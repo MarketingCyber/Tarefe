@@ -1,0 +1,263 @@
+@import "tailwindcss";
+
+/*
+ * Tarefe design tokens.
+ * Palette is fixed by brief: one brand color (purple), one accent (yellow),
+ * used sparingly. No gradients, no additional UI colors — semantic states
+ * below are desaturated utility colors, not a second accent.
+ */
+/*
+ * --font-latin and --font-fa are intentionally NOT declared here. next/font
+ * (src/lib/fonts.ts) is the single source of truth for both — its .variable
+ * classes set these custom properties on <html> at runtime (Inter,
+ * self-hosted IranSansX). Declaring a fallback value for them in this
+ * @theme block would create a second, conflicting definition that can win
+ * the cascade depending on stylesheet injection order — exactly the kind
+ * of rule that silently overrides a font swap. Don't reintroduce one.
+ */
+@theme {
+  --color-purple-600: #5d0089;
+  --color-purple-900: #241426;
+  --color-yellow-500: #f7c800;
+
+  --color-body: #4a3a4e;
+  /* Was #8a7a8e (~4.0:1 on white) — fails WCAG AA's 4.5:1 minimum for
+     normal text, and this token is used sitewide for descriptions, badge
+     labels, meta text at text-xs/text-sm (well under the "large text"
+     threshold that would allow 3:1). Darkened to ~5.1:1, same hue family. */
+  --color-secondary: #776a7a;
+  --color-tint: #faf6fc;
+  --color-white: #ffffff;
+
+  /* Derived surfaces / borders, kept in the same purple family */
+  --color-border: #ece2f1;
+  --color-border-strong: #ddccE4;
+  --color-surface: #ffffff;
+  --color-surface-tint: #faf6fc;
+
+  /* Semantic states — functional signals, not a second brand accent */
+  --color-success: #1f7a4d;
+  --color-success-bg: #eaf7f0;
+  --color-warning: #a15c00;
+  --color-warning-bg: #fdf1de;
+  --color-danger: #b3261e;
+  --color-danger-bg: #fbeaea;
+
+  --shadow-card: 0 1px 2px rgba(36, 20, 38, 0.04), 0 6px 24px -8px rgba(36, 20, 38, 0.10);
+  --shadow-card-hover: 0 2px 4px rgba(36, 20, 38, 0.06), 0 12px 32px -8px rgba(36, 20, 38, 0.16);
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-white);
+    color: var(--color-body);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  html[lang="fa"] body {
+    font-family: var(--font-fa);
+  }
+
+  html:not([lang="fa"]) body {
+    font-family: var(--font-latin);
+  }
+
+  /* Numbers and Latin fragments inside Persian copy (prices, product codes) stay in Inter for legibility. */
+  .font-latin,
+  .number-font {
+    font-family: var(--font-latin);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-purple-600);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: rgba(93, 0, 137, 0.16);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-tint);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d0c2d3;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .container-page {
+    max-width: 1360px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  .press {
+    transition: transform 160ms var(--ease-out-strong);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* Marquee.tsx's infinite loop — plain CSS, no JS driving it. The shift
+     is one copy-width, expressed as a percentage of the whole track:
+     `--marquee-shift` = 100/copies, written once by the component from a
+     constant prop. It's exact *because* callers put spacing in each item's
+     own padding rather than a container `gap`, so every copy is identical
+     in width and the track is a whole multiple of them. (With `gap-x-*`
+     it isn't — N items get N-1 gaps, so the track falls short of a whole
+     multiple and the shift lands before the next copy starts.) The copy
+     count matters for a second reason: a cycle ends with the viewport
+     showing [C, C+V], so the track has to extend past that or a blank gap
+     opens along the trailing edge — see Marquee.tsx's comment. */
+  @keyframes marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-1 * var(--marquee-shift, 50%)));
+    }
+  }
+  .animate-marquee {
+    animation-name: marquee-scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  /* The site-wide reduced-motion rule above sets animation-duration to
+     0.01ms + iteration-count 1, which for a one-shot entrance harmlessly
+     freezes it at its start. For a *looping* animation it does the
+     opposite of what's wanted: the browser still plays that near-instant
+     cycle once and lands on the `to` keyframe, snapping the track to -50%
+     instead of leaving it still. Marquee.tsx already swaps to a static
+     list when reduced motion is on, so this is belt-and-braces for any
+     window where both render — and for any future looping animation that
+     reaches for .animate-marquee without its own JS gate. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* EnergyTariffCards.tsx's top-card border — two comet-like streaks (gold
+     + purple, the brand's own two colors), each with a trailing fade
+     rather than a flat line, 180° apart on a conic-gradient. Rotation is
+     driven by GSAP (see WinnerGlow in that file), not a CSS animation —
+     GSAP's custom-ease support is what lets the rotation genuinely
+     accelerate/decelerate through each revolution ("sinuous") instead of
+     spinning at one constant rate, which plain CSS keyframes can only
+     approximate with hand-sampled steps. `.tariff-winner-glow__ring` is a
+     real element (GSAP needs something to select and set `transform` on —
+     it cannot target a `::before` pseudo-element), sized to 300% and
+     inset -100% so the corners are always covered as it rotates behind
+     the 2px-inset white card surface (the padding-box mask trick). */
+  .tariff-winner-glow {
+    /* `display: flex` + this 2px padding (not a margin on __inner) is what
+       makes the border reveal even on all four sides — see __inner below
+       for why the obvious margin-based version breaks specifically at the
+       bottom. */
+    display: flex;
+    padding: 2px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+  }
+  .tariff-winner-glow__ring {
+    position: absolute;
+    inset: -100%;
+    width: 300%;
+    height: 300%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--color-yellow-500) 10deg,
+      transparent 18deg,
+      transparent 176deg,
+      var(--color-purple-600) 186deg,
+      transparent 194deg,
+      transparent 360deg
+    );
+    will-change: transform;
+  }
+  .tariff-winner-glow__inner {
+    /* Previously `margin: 2px` on an element with `height: 100%` (h-full)
+       — a percentage height doesn't shrink for the element's own margin, so
+       the margin-box ended up 4px taller than the parent's content box. The
+       2px top margin still read as a clean gap (nothing pushed back), but
+       the bottom edge overflowed the parent by 2px and got clipped by its
+       `overflow: hidden` — closing the exact gap the ring needs to show
+       through on that one side, so the border revealed on three sides and
+       not the fourth. Moving the 2px inset to the parent's `padding` (flex
+       container) and stretching __inner via the flex default
+       (`align-items: stretch`, no explicit height needed) sizes it correctly
+       off the parent's content box on all four sides — and, unlike
+       `position: absolute; inset: 2px`, keeps __inner in normal flow, which
+       this card's height still depends on (see EnergyTariffCards.tsx: the
+       grid's own row-stretch sizing is derived from this content). */
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    border-radius: calc(1rem - 2px);
+  }
+
+  /* EnergyConsumptionCalculator.tsx's single gold CTA — a soft outward
+     ripple, the same restrained "occasional, real purpose" use of
+     animation as the winner-card glow above: this button appears once per
+     calculator use (not hundreds of times a day), and the ripple's whole
+     job is to make the *one* correct next action findable at a glance
+     among the surrounding purple UI, not to decorate. */
+  @keyframes calculate-cta-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(247, 200, 0, 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgba(247, 200, 0, 0);
+    }
+  }
+  .calculate-cta-pulse {
+    animation: calculate-cta-pulse 2.4s ease-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .calculate-cta-pulse {
+      animation: none !important;
+    }
+  }
+}

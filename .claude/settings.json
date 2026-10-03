@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh -i \"/c/Users/HoldCo/.ssh/Tarefe/tarefe-privatekey.pem\" -o StrictHostKeyChecking=no root@82.165.255.110 *)"
+    ]
+  }
+}

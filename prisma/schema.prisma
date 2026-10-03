@@ -1,0 +1,706 @@
+// Tarefe backend foundation — Phase 2 "Bucket 2" (CRM/contracts/portal).
+// Self-hosted PostgreSQL on the same VPS as the app. Kept intentionally
+// scoped to what unblocks the immediate next real screens (lead capture,
+// portal dashboard, ops leads view) rather than modeling every entity the
+// full Phase 2/3 specs eventually want (Ticket/Message/Notification are
+// included since they're cheap to add now; full CMS/marketing-attribution
+// tables are deferred until there's a real screen that needs them).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL no longer lives here — it's supplied via
+// prisma.config.ts (for the CLI/migrations) and via the driver adapter
+// passed to the PrismaClient constructor at runtime (see src/lib/db.ts).
+datasource db {
+  provider = "postgresql"
+}
+
+// LEAD_MANAGER/CONTENT_EDITOR/ANALYST added 2026-10-01 — narrower staff
+// roles scoped to one slice of /ops each (see src/lib/permissions.ts for
+// exactly what each one can reach). ADVISOR and ADMIN keep the original
+// "full access" scope so existing staff lose nothing; ADMIN alone can
+// still manage team access (/ops/team).
+enum UserRole {
+  CUSTOMER
+  ADVISOR
+  ADMIN
+  LEAD_MANAGER
+  CONTENT_EDITOR
+  ANALYST
+}
+
+enum Locale {
+  fa
+  de
+  ru
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  // Nullable since 2026-08-31 (Google sign-in): an account created via
+  // "Continue with Google" has no password at all until the customer
+  // chooses to set one on /app/profile — see auth.ts's signIn callback and
+  // profile/page.tsx's changePassword/setPassword actions for how both
+  // paths are handled without assuming a password always exists.
+  passwordHash String?
+  name         String
+  phone        String?
+  role         UserRole @default(CUSTOMER)
+  // Staff access control (2026-08-31, /ops/team) — revoking access sets
+  // this false rather than deleting the row, so assigned leads/contracts/
+  // activity history stay intact and attributable. Enforced in
+  // authorize() and the Google signIn callback (auth.ts); an active=false
+  // account simply can't complete a sign-in through either path.
+  active       Boolean  @default(true)
+  locale       Locale   @default(fa)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // MFA (Phase 6.3/12): staff-only (ADVISOR/ADMIN) in practice — the
+  // /ops/security UI that manages these fields is gated to those roles,
+  // customers never see it. mfaSecret is AES-256-GCM encrypted (see
+  // src/lib/mfa.ts) using a key derived from AUTH_SECRET, not stored
+  // plaintext — a leaked DB dump alone can't be used to generate valid
+  // codes. Null/false until someone actually completes setup.
+  mfaSecret  String?
+  mfaEnabled Boolean @default(false)
+
+  // Customer-side relations
+  contracts        Contract[]
+  applications      Application[] @relation("CustomerApplications")
+  serviceRequests   ServiceRequest[] @relation("CustomerRequests")
+  notifications     Notification[]
+  documents         Document[]      @relation("DocumentOwner")
+  analyticsEvents   AnalyticsEvent[]
+
+  // Advisor-side relations
+  assignedLeads       Lead[]            @relation("AssignedAdvisor")
+  assignedApplications Application[]    @relation("ApplicationAdvisor")
+  assignedRequests    ServiceRequest[]  @relation("RequestAdvisor")
+  messagesSent        Message[]         @relation("MessageSender")
+  activityLogs        ActivityLog[]     @relation("ActivityActor")
+
+  // Task relations (Phase 8.4) — three distinct roles a User can play on
+  // one Task: the advisor/admin it's assigned to, whoever created it, and
+  // (separately) the customer it's about, when there is one. A customer
+  // and an assignee are never the same row in practice (customers don't
+  // get assigned tasks) but Prisma still needs three named relations
+  // since they're all User → Task.
+  assignedTasks Task[] @relation("TaskAssignee")
+  createdTasks  Task[] @relation("TaskCreatedBy")
+  customerTasks Task[] @relation("TaskCustomer")
+
+  @@map("users")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONSULTATION_SCHEDULED
+  APPLICATION_STARTED
+  APPLICATION_SUBMITTED
+  CONTRACT_ACTIVE
+  LOST
+}
+
+// Every consultation-form submission becomes a Lead — this is what the
+// ConsultationForm now writes to instead of dead-ending on a success page.
+model Lead {
+  id          String     @id @default(cuid())
+  name        String
+  // 2026-10-01: phone is now the required contact method (WhatsApp is how
+  // leads actually get contacted) and email became the optional one —
+  // flipped from the original "email required, phone optional" shape.
+  // Still nullable in the DB despite the app now always requiring it: 2
+  // real leads were captured under the old rule with no phone on file,
+  // and backfilling them with a fabricated number would be worse than
+  // just leaving historical rows as they actually were submitted.
+  phone String?
+  email String? // optional — a phone number is enough to start a lead; email just gives an advisor an extra way to reach them
+  category    String? // taxonomy category slug, e.g. "insurance"
+  serviceSlug String? // productType/subcategory slug, e.g. "pkv"
+  sourcePage  String? // path the form was submitted from, for attribution
+  locale      Locale     @default(fa)
+  status      LeadStatus @default(NEW)
+  notes       String?
+
+  // Marketing attribution — two snapshots, both read from the visitor's
+  // browser-side UTM store (see src/lib/analytics.ts) at the moment the
+  // lead form was submitted. "First" is captured once, on this visitor's
+  // very first landing, and never overwritten after — answers "what
+  // channel actually brought this person to us" even if they filled the
+  // form on a later, direct visit. "Last" is re-captured on every visit
+  // that carries UTM params and overwritten each time — answers "what was
+  // the most recent campaign that drove this specific submission",
+  // matches how paid-ads platforms attribute a conversion. All ten are
+  // nullable: most traffic (direct, organic, no campaign) legitimately
+  // has none of this.
+  utmFirstSource   String?
+  utmFirstMedium   String?
+  utmFirstCampaign String?
+  utmFirstTerm     String?
+  utmFirstContent  String?
+  utmLastSource    String?
+  utmLastMedium    String?
+  utmLastCampaign  String?
+  utmLastTerm      String?
+  utmLastContent   String?
+
+  assignedAdvisorId String?
+  assignedAdvisor   User?   @relation("AssignedAdvisor", fields: [assignedAdvisorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+  activityLogs ActivityLog[]
+  tasks        Task[]
+
+  @@map("leads")
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  PROVIDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  provider      String
+  tariffName    String
+  category      String
+  monthlyPrice  String?
+  status        ApplicationStatus @default(DRAFT)
+
+  leadId     String?
+  lead       Lead?   @relation(fields: [leadId], references: [id])
+  customerId String?
+  customer   User?   @relation("CustomerApplications", fields: [customerId], references: [id])
+
+  advisorId String?
+  advisor   User?   @relation("ApplicationAdvisor", fields: [advisorId], references: [id])
+
+  contract  Contract?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("applications")
+}
+
+enum ContractStatus {
+  ACTIVE
+  PENDING
+  EXPIRING
+  CANCELLED
+}
+
+// The "universal contract model" from the Phase 2 spec — one shape across
+// insurance/energy/communication rather than a table per category.
+model Contract {
+  id                    String         @id @default(cuid())
+  provider              String
+  productName           String
+  category              String
+  contractNumber        String?
+  startDate             DateTime?
+  endDate               DateTime?
+  cancellationDeadline  DateTime?
+  priceMonthly          String?
+  status                ContractStatus @default(ACTIVE)
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  applicationId String?     @unique
+  application   Application? @relation(fields: [applicationId], references: [id])
+
+  documents      Document[]
+  serviceRequests ServiceRequest[]
+  tasks          Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contracts")
+}
+
+enum DocumentType {
+  CONTRACT
+  POLICY
+  INVOICE
+  LETTER
+  ID_DOC
+  CERTIFICATE
+  OTHER
+}
+
+model Document {
+  id       String       @id @default(cuid())
+  title    String
+  type     DocumentType @default(OTHER)
+  fileUrl  String?
+
+  ownerId String
+  owner   User   @relation("DocumentOwner", fields: [ownerId], references: [id])
+
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+
+  uploadedAt DateTime @default(now())
+
+  @@map("documents")
+}
+
+enum RequestStatus {
+  RECEIVED
+  UNDER_REVIEW
+  SENT_TO_PROVIDER
+  PROVIDER_PROCESSING
+  COMPLETED
+}
+
+enum RequestPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// Covers both "service request" (cancellation/address change/etc, portal
+// side) and "support ticket" (ops side) — same shape, per the Phase 2
+// spec's instruction that a customer's issue shouldn't need five screens.
+model ServiceRequest {
+  id          String          @id @default(cuid())
+  subjectType String // cancellation | address_change | invoice_question | claim_report | other
+  subject     String
+  description String?
+  priority    RequestPriority @default(NORMAL)
+  status      RequestStatus   @default(RECEIVED)
+
+  customerId String
+  customer   User   @relation("CustomerRequests", fields: [customerId], references: [id])
+
+  advisorId String?
+  advisor   User?   @relation("RequestAdvisor", fields: [advisorId], references: [id])
+
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+
+  messages Message[]
+  tasks    Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_requests")
+}
+
+model Message {
+  id      String @id @default(cuid())
+  content String
+
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+
+  senderId String
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Notification {
+  id      String  @id @default(cuid())
+  type    String // e.g. "contract_deadline", "new_message", "application_update"
+  title   String
+  body    String
+  read    Boolean @default(false)
+
+  // Set only by the rule-based notification engine (Phase 8/11 —
+  // scripts/run-notification-rules.ts), e.g. "lead_stale:{leadId}". Lets a
+  // rule check "have I already notified this person about this specific
+  // thing?" without re-sending every time the script runs (hourly via
+  // cron). Left null for manually-triggered notifications (a ticket
+  // reply, a status change) — those aren't repeated by a cron job, so
+  // they have nothing to dedupe against. Postgres treats multiple NULLs
+  // as distinct under a unique constraint, so this doesn't collide with
+  // itself for manual notifications.
+  dedupeKey String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@map("notifications")
+}
+
+// Phase 10 (Analytics/Tracking): first-party event log, self-hosted in the
+// same Postgres DB rather than a third-party vendor — consistent with how
+// auth/leads/CRM were built this project. `sessionId` is a random,
+// non-identifying id generated client-side and kept in localStorage (see
+// src/lib/analytics.ts) — NOT a fingerprint, NOT an IP-derived value, so an
+// anonymous visitor stays anonymous. `userId` is only set once someone is
+// actually signed in, at which point their own actions are already tied to
+// their account elsewhere in the app anyway (leads, contracts, tickets).
+model AnalyticsEvent {
+  id       String  @id @default(cuid())
+  name     String // page_view | service_view | product_view | search | comparison_started | ... — see src/lib/analytics.ts EVENT for the full real list
+  path     String?
+  locale   Locale?
+  category String? // taxonomy category slug
+  service  String? // taxonomy subcategory/productType slug
+  // Optional (not every event has a browser session): staff-triggered CRM
+  // lifecycle events (application/contract/ticket/MFA — see trackServer()
+  // in src/lib/analytics.ts) are recorded from inside a Server Action with
+  // no client session at all, only the acting staff member's userId below.
+  sessionId String?
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+  metadata Json?
+
+  // Same first-touch/last-touch attribution as Lead — see its comment.
+  // Carried on every event (not just the lead-creation one) so raw traffic
+  // can be broken down by channel before anyone has converted into a lead
+  // at all — "how many sessions did this UTM campaign bring in", not just
+  // "how many leads did it produce".
+  utmFirstSource   String?
+  utmFirstMedium   String?
+  utmFirstCampaign String?
+  utmFirstTerm     String?
+  utmFirstContent  String?
+  utmLastSource    String?
+  utmLastMedium    String?
+  utmLastCampaign  String?
+  utmLastTerm      String?
+  utmLastContent   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([sessionId])
+  @@map("analytics_events")
+}
+
+// Generic timeline, reused across Lead/Contract/ServiceRequest per the
+// Phase 2 spec's "Activity Timeline should be one reusable component."
+model ActivityLog {
+  id         String @id @default(cuid())
+  entityType String // "lead" | "contract" | "application" | "service_request"
+  entityId   String
+  action     String // "created" | "status_changed" | "note_added" | ...
+  note       String?
+
+  actorId String?
+  actor   User?   @relation("ActivityActor", fields: [actorId], references: [id])
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("activity_logs")
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// Phase 8.4 — "call customer", "send comparison", "follow up" etc. as real,
+// trackable objects, not just a status field on a Lead/Ticket. Optionally
+// linked to whichever record it's actually about (lead/contract/ticket/
+// customer) — at most one of those is normally set, but that's a UI
+// convention, not a DB constraint; a free-standing task ("call the
+// provider about X") with none of them set is equally valid.
+model Task {
+  id       String       @id @default(cuid())
+  title    String
+  notes    String?
+  dueAt    DateTime?
+  priority TaskPriority @default(NORMAL)
+  status   TaskStatus   @default(OPEN)
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  customerId String?
+  customer   User?   @relation("TaskCustomer", fields: [customerId], references: [id])
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+
+  serviceRequestId String?
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assigneeId, status])
+  @@index([dueAt])
+  @@map("tasks")
+}
+
+// Phase 9 — first real CMS-managed content type. FAQ was picked as the
+// starting slice deliberately: it's pure content with no product/pricing
+// logic tangled in, already exists as a real public feature (both the
+// homepage FaqSection and the dedicated /faq page previously read from a
+// hardcoded src/lib/faq-data.ts), and is small enough (5 items) that the
+// existing content could be migrated into this table by the seed script
+// with nothing lost.
+//
+// Discrete per-locale columns (not a single Json {fa,de,ru} field, unlike
+// LocalizedText elsewhere in this codebase) — the admin edit form needs
+// one named field per locale regardless, since a plain HTML form can't
+// submit nested JSON without extra client JS, so this keeps read and
+// write symmetric: every other model in this schema uses typed columns,
+// not a Json blob, for anything with real per-field validation. `order`
+// is a plain integer for manual up/down reordering — no drag-and-drop,
+// deliberately, to keep the first CMS admin UI small.
+model FaqItem {
+  id String @id @default(cuid())
+
+  questionFa String
+  questionDe String
+  questionRu String
+  answerFa   String @db.Text
+  answerDe   String @db.Text
+  answerRu   String @db.Text
+
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+  @@map("faq_items")
+}
+
+// Phase 9's second CMS content type. Directly resolves a standing gap:
+// src/components/home/Testimonials.tsx used to show three fabricated
+// named customers with invented quotes and fake ratings — replaced
+// earlier with an honest "none yet" placeholder specifically because
+// there was nothing real to show, with a code comment saying the
+// COMPONENT (not the claim) was what would get swapped once real
+// testimonials existed. This table plus /ops/testimonials is that swap —
+// it stays genuinely empty until staff enter something real; nothing is
+// seeded here (contrast FaqItem's seed, which migrated real pre-existing
+// content).
+//
+// `consentNote` isn't legally load-bearing on its own, but gives staff a
+// place to record how permission to publish a real customer's name and
+// words was obtained (verbal via WhatsApp, a signed form, etc.) — this is
+// personal data about a real, identifiable person being published
+// publicly, and the point is to make documenting consent the path of
+// least resistance, not to skip it. `rating` is nullable and never
+// defaulted — only set it when the customer actually gave one.
+model Testimonial {
+  id           String  @id @default(cuid())
+  customerName String
+  // Latin-script transliteration (e.g. "Ali Mohammadi" for "علی محمدی") —
+  // not a translation, a reading aid. Shared by de AND ru (not a third
+  // customerNameRu field): a Persian name transliterated to Latin script
+  // is equally readable to German and Russian visitors, and this project
+  // already keeps foreign proper nouns in Latin script across all three
+  // locales elsewhere (e.g. the Impressum's German address, unchanged in
+  // the Russian section) — one field matches that existing convention
+  // instead of introducing Cyrillic transliteration rules with no
+  // precedent here. Falls back to customerName (the fa original) when
+  // unset, same pattern as quoteDe/quoteRu falling back to quoteFa.
+  customerNameLatin String?
+  quoteFa      String  @db.Text
+  quoteDe      String? @db.Text
+  quoteRu      String? @db.Text
+  // "In what we helped with" label (e.g. "Private Krankenversicherung
+  // (PKV)"). serviceLabel is the Farsi original; De/Ru are optional
+  // translations, same fallback-to-Fa pattern as quoteDe/quoteRu.
+  serviceLabel   String?
+  serviceLabelDe String?
+  serviceLabelRu String?
+  rating       Int?
+  consentNote  String? @db.Text
+
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+  @@map("testimonials")
+}
+
+// Phase 9's third CMS content type, migrated from src/lib/guides-data.ts
+// (now deleted). Deliberately NOT a nested sections[]/paragraphs[]
+// structure like the old hardcoded Guide interface had — that shape needs
+// a dynamic add/remove-section admin form (a real complexity jump from
+// FaqItem/Testimonial's flat fields), and the actual content only ever
+// used two primitives: headings and paragraphs. `bodyFa`/`bodyDe`/`bodyRu`
+// are plain text using a minimal convention instead — a line starting
+// with "## " starts a new section, blank-line-separated blocks become
+// paragraphs (see src/lib/guide-body.ts's parser) — NOT a markdown
+// library: rendered as plain React text (never dangerouslySetInnerHTML),
+// so there is no HTML-injection surface to sanitize at all, and no new
+// dependency for a feature set this small.
+//
+// De/Ru fields are nullable (unlike FaqItem's, which are non-nullable but
+// often just empty strings) — null cleanly means "not translated, fall
+// back to Persian" without the empty-string-as-sentinel ambiguity FaqItem
+// has. Worth using this cleaner pattern for new content types even though
+// FaqItem wasn't changed to match retroactively.
+model Guide {
+  id   String @id @default(cuid())
+  slug String @unique
+
+  titleFa   String
+  titleDe   String?
+  titleRu   String?
+  excerptFa String
+  excerptDe String?
+  excerptRu String?
+  bodyFa    String  @db.Text
+  bodyDe    String? @db.Text
+  bodyRu    String? @db.Text
+
+  // Taxonomy slugs (see src/lib/taxonomy.ts) for the "get a consultation
+  // for this" CTA at the end of the guide — plain strings, not a real FK,
+  // same as Lead.category/serviceSlug elsewhere in this schema.
+  relatedCategory    String?
+  relatedSubcategory String?
+  relatedProductType String?
+
+  /** Date the specific facts in this guide were last checked against a real source — shown to readers, not decorative. */
+  verifiedAt DateTime?
+  /** [{label, url}] — small enough to stay Json (see AnalyticsEvent.metadata for precedent), entered via a one-per-line "Label | URL" convention in the admin form. */
+  sources    Json?
+
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+  @@map("guides")
+}
+
+enum EnergyKind {
+  ELECTRICITY
+  GAS
+}
+
+// Phase 9's fourth CMS content type (2026-09-27) — real, admin-entered
+// electricity/gas tariffs for the PLP comparison cards (see
+// EnergyTariffCards.tsx). Replaces the previous approach of hardcoding a
+// single tariff in src/lib/pdp-data.ts's KNOWN_TARIFFS, which only ever had
+// one real electricity tariff and zero gas tariffs — nowhere near enough to
+// run a genuine "which is cheapest" comparison. Staff re-enter these
+// periodically as real market rates change; nothing here is fabricated or
+// auto-generated. (KNOWN_TARIFFS itself is untouched — it backs the
+// separate, already-shipped single-tariff PDP pages like
+// /services/energy/electricity/vattenfall-naturstrom-12, a different
+// feature with a different lifecycle from this comparison-card table.)
+model EnergyTariff {
+  id       String     @id @default(cuid())
+  kind     EnergyKind
+  provider String
+  name     String
+
+  // Flat fallback price — read by the calculator ONLY when this tariff has
+  // no priceRows (e.g. a tariff entered by hand via the simple admin form,
+  // before a real provider price grid has been bulk-imported for it).
+  // Real German energy prices vary by network-operator region (postal
+  // code) and by annual usage tier — see EnergyTariffPriceRow below —
+  // so a bulk-imported tariff's actual price comes from there instead.
+  workingPriceCtPerKwh String? // Arbeitspreis, ct/kWh
+  basePriceEurPerYear  String? // Grundpreis, €/year
+  bonusEur             String?
+  priceGuaranteeMonths Int?
+  contractDurationMonths Int?
+
+  // One short, optional standout selling point per locale — shown on the
+  // comparison card (e.g. "100% erneuerbare Energie"). Falls back to the
+  // Fa original the same way Testimonial.customerNameLatin and
+  // Guide's de/ru fields already do elsewhere in this schema — not a
+  // translation requirement, just a nice-to-have when staff have one.
+  highlightFa String?
+  highlightDe String?
+  highlightRu String?
+
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  priceRows EnergyTariffPriceRow[]
+
+  @@index([kind, published, order])
+  @@map("energy_tariffs")
+}
+
+// Real, postal-code- and consumption-band-specific pricing, bulk-imported
+// from a provider's own export file (e.g. Goldgas's PLZ x Staffel price
+// grids — 7,120 German postal codes x ~18 usage tiers per product; German
+// energy prices genuinely vary by network-operator region and by annual
+// usage, so there is no single "the price" for a tariff to show every
+// visitor). A bulk upload fully replaces every row for one EnergyTariff —
+// see EnergyTariffPriceRow's import action — never merges/appends, so a
+// re-upload can't leave stale rows behind alongside new ones.
+model EnergyTariffPriceRow {
+  id       String       @id @default(cuid())
+  tariffId String
+  tariff   EnergyTariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
+
+  plz                String // postal code, e.g. "10115"
+  ort                String?
+  consumptionFromKwh Int // Staffel von
+  consumptionToKwh   Int // Staffel bis
+  validFrom          DateTime
+
+  basePriceEurPerYear    String // Grundpreis (€)
+  workingPriceCtPerKwh   String // Arbeitspreis (ct/kWh)
+  workingPriceNtCtPerKwh String? // Arbeitspreis NT — night-tariff rate, mainly relevant for electricity
+
+  bonusEur        String?
+  welcomeBonusEur String?
+  loyaltyBonus    String?
+  bonusKwh        String?
+  bonusPercent    String?
+
+  networkOperator String? // Netzbetreiber
+  salesArea       String? // Vertriebsgebiet
+  sourcePriceId   String? // provider's own "Preis ID" — traceability back to their export, not used for lookups
+  sourceBonusId   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tariffId, plz, consumptionFromKwh, consumptionToKwh])
+  @@map("energy_tariff_price_rows")
+}
