@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
+import { syncLeadToDynamics } from "@/lib/dynamics-lead-sync";
 
 /**
  * Declarative validation (Phase 12) — this route previously hand-checked
@@ -18,7 +19,14 @@ import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
 const UtmField = z.string().trim().min(1).max(200).optional();
 
 const LeadSchema = z.object({
-  name: z.string().trim().min(1, "name is required").max(200),
+  // Split at the form level (2026-10-07) — the CRM sync needs real,
+  // separate given/family names rather than the combined string we used
+  // to send as firstName with an empty lastName (which triggered their
+  // system's own placeholder lastName). Combined back into one `name`
+  // for our own Lead.name column below, so nothing else reading it needs
+  // to change.
+  firstName: z.string().trim().min(1, "first name is required").max(100),
+  lastName: z.string().trim().min(1, "last name is required").max(100),
   // Phone is now the required contact method (2026-10-01) — it's how
   // leads actually get contacted (WhatsApp), so it's the one thing the
   // form can't be submitted without; email stays collectable but optional.
@@ -76,7 +84,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: z.prettifyError(parsed.error) }, { status: 400 });
   }
   const {
-    name,
+    firstName,
+    lastName,
     phone,
     email,
     category,
@@ -98,6 +107,7 @@ export async function POST(request: Request) {
   } = parsed.data;
 
   const resolvedLocale: Locale = LOCALES.includes(locale as Locale) ? (locale as Locale) : "fa";
+  const name = `${firstName} ${lastName}`.trim();
 
   const lead = await prisma.lead.create({
     data: {
@@ -141,6 +151,25 @@ export async function POST(request: Request) {
       ipOverride: getClientIp(request),
     });
   }
+
+  // Same best-effort contract — see dynamics-lead-sync.ts's own comment.
+  // Real separate firstName/lastName from the form, not re-derived from
+  // the combined lead.name — see LeadSchema's own comment above.
+  await syncLeadToDynamics({
+    firstName,
+    lastName,
+    phone: lead.phone,
+    email: lead.email,
+    category: lead.category,
+    serviceSlug: lead.serviceSlug,
+    sourcePage: lead.sourcePage,
+    locale: resolvedLocale,
+    utmLastSource: lead.utmLastSource,
+    utmLastMedium: lead.utmLastMedium,
+    utmLastCampaign: lead.utmLastCampaign,
+    utmLastTerm: lead.utmLastTerm,
+    utmLastContent: lead.utmLastContent,
+  });
 
   return NextResponse.json({ id: lead.id }, { status: 201 });
 }

@@ -27,10 +27,21 @@ function getOrCreateGaClientId(): string {
 
 const LABELS: Record<
   Locale,
-  { name: string; email: string; phone: string; phoneNote: string; submit: string; sending: string; error: string; riskReversal: string }
+  {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    phoneNote: string;
+    submit: string;
+    sending: string;
+    error: string;
+    riskReversal: string;
+  }
 > = {
   fa: {
-    name: "نام و نام خانوادگی",
+    firstName: "نام",
+    lastName: "نام خانوادگی",
     email: "ایمیل (اختیاری)",
     phone: "شماره تماس",
     phoneNote: "ترجیحاً شماره‌ای وارد کن که واتساپ هم روش فعال باشه — معمولاً از همون طریق باهات در تماسیم.",
@@ -40,7 +51,8 @@ const LABELS: Record<
     riskReversal: "۱۰۰٪ رایگان و بدون تعهد — فقط یک بار تماس می‌گیریم.",
   },
   de: {
-    name: "Vor- und Nachname",
+    firstName: "Vorname",
+    lastName: "Nachname",
     email: "E-Mail (optional)",
     phone: "Telefonnummer",
     phoneNote: "Am besten eine Nummer mit aktivem WhatsApp — wir melden uns in der Regel darüber.",
@@ -50,7 +62,8 @@ const LABELS: Record<
     riskReversal: "100 % kostenlos und unverbindlich — wir melden uns nur einmal.",
   },
   ru: {
-    name: "Имя и фамилия",
+    firstName: "Имя",
+    lastName: "Фамилия",
     email: "Эл. почта (необязательно)",
     phone: "Номер телефона",
     phoneNote: "Лучше указать номер с активным WhatsApp — мы обычно связываемся именно через него.",
@@ -107,7 +120,8 @@ export function ConsultationForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.get("name"),
+          firstName: form.get("firstName"),
+          lastName: form.get("lastName"),
           email: form.get("email"),
           phone: form.get("phone"),
           category,
@@ -148,7 +162,10 @@ export function ConsultationForm({
       {serviceLabel && (
         <p className="rounded-lg bg-tint px-3 py-2 text-xs font-medium text-purple-600">{serviceLabel}</p>
       )}
-      <Field id="name" label={labels.name} type="text" required />
+      <div className="grid grid-cols-2 gap-4">
+        <Field id="firstName" label={labels.firstName} type="text" required />
+        <Field id="lastName" label={labels.lastName} type="text" required />
+      </div>
       <Field id="phone" label={labels.phone} type="tel" required />
       <p className="-mt-2.5 text-[11px] text-secondary">{labels.phoneNote}</p>
       <Field id="email" label={labels.email} type="email" />
