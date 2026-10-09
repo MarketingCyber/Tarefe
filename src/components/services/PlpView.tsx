@@ -22,6 +22,15 @@ import { CoverageAccordion } from "@/components/services/pdp/CoverageAccordion";
 import { FaqAccordion } from "@/components/services/pdp/FaqAccordion";
 import { Reveal } from "@/components/shared/Reveal";
 import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, WHY_NOT_DIY, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
+import { getEnergyPageContent } from "@/lib/energy-page-content";
+import {
+  EnergySupplyPaths,
+  EnergyWhyNow,
+  EnergyOptions,
+  EnergyWhyTarefe,
+  EnergyProcess,
+} from "@/components/services/energy/EnergySections";
+import { EnergyWhenToCheck } from "@/components/services/energy/EnergyWhenToCheck";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -63,6 +72,10 @@ export async function PlpView({
   const energyTariffCount = isEnergyCalculator
     ? await prisma.energyTariff.count({ where: { kind: subcategory.slug === "electricity" ? "ELECTRICITY" : "GAS", published: true } })
     : 0;
+  // Electricity and gas swap the generic long-form sections for their own
+  // copy (lib/energy-page-content.ts) — same slots, same order, different
+  // words. Null for every other service page, which keeps the generic path.
+  const energy = isEnergyCalculator ? getEnergyPageContent(subcategory.slug as "electricity" | "gas") : null;
 
   return (
     <div className="pb-24 sm:pb-0">
@@ -164,6 +177,15 @@ export async function PlpView({
                 hasAnyTariffs={energyTariffCount > 0}
               />
             </Reveal>
+            {/* Below the calculator, not above it: the calculator stays the
+                first thing after the hero (see the note above), and this
+                "where does your supply come from today" framing reads as
+                its follow-up. */}
+            {energy && (
+              <div className="mt-14">
+                <EnergySupplyPaths locale={locale} content={energy} />
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -172,7 +194,8 @@ export async function PlpView({
           below it — this and 03 are the page's actual substance, not
           supporting material, and the heading scale now says so instead
           of every one of the 11 sections reading as equally important. */}
-      {content?.whatItIs && (
+      {energy && <EnergyWhyNow locale={locale} content={energy} />}
+      {!energy && content?.whatItIs && (
         <section className="container-page py-14">
           <Reveal>
             <h2 className="max-w-[28ch] text-xl font-bold text-purple-900 md:text-2xl">
@@ -185,6 +208,8 @@ export async function PlpView({
 
       {/* 03 — Benefits: the most important section on the page — same
           heavier heading tier as 02. */}
+      {energy && <EnergyOptions locale={locale} content={energy} formId={FORM_ID} />}
+      {!energy && (
       <section className={`py-14 ${content?.whatItIs ? "border-t border-border bg-tint" : ""}`}>
         <div className="container-page">
           <Reveal>
@@ -211,6 +236,7 @@ export async function PlpView({
           </Reveal>
         </div>
       </section>
+      )}
 
       {/* 04 — Coverage: non-energy products with bespoke content get the
           coverage accordion (energy's equivalent, the calculator, already
@@ -229,7 +255,10 @@ export async function PlpView({
       )}
 
       {/* 06 — Why Tarefe: sells the brand, not the product. Same 5 points
-          on every service page — deliberately category-agnostic. */}
+          on every service page — deliberately category-agnostic. Energy
+          pages swap in their own copy (which also absorbs 08 below). */}
+      {energy && <EnergyWhyTarefe locale={locale} content={energy} />}
+      {!energy && (
       <section className="container-page py-12">
         <Reveal>
           <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, { fa: "چرا تعرفه؟", de: "Warum Tarefe?", ru: "Почему Tarefe?" })}</h2>
@@ -254,11 +283,14 @@ export async function PlpView({
           </div>
         </Reveal>
       </section>
+      )}
 
       {/* 07 — Process: 6 steps, ending in ongoing support, matching 06/08.
           Last step's number breaks from purple to gold, same treatment as
           the homepage journey (HowItWorks.tsx) — the one step that isn't
           really a step, since support doesn't end when the process does. */}
+      {energy && <EnergyProcess locale={locale} content={energy} formId={FORM_ID} />}
+      {!energy && (
       <section className="border-t border-border bg-tint py-12">
         <div className="container-page">
           <Reveal>
@@ -280,10 +312,13 @@ export async function PlpView({
           </Reveal>
         </div>
       </section>
+      )}
 
       {/* 08 — Why not just do it myself? The real differentiator from a
           bare comparison table. Lighter tier: shorter section, tighter
-          padding — supporting material, not a headline claim. */}
+          padding — supporting material, not a headline claim. Skipped on
+          the energy pages: their 06 already makes this exact argument. */}
+      {!energy && (
       <section className="container-page py-10">
         <Reveal>
           <h2 className="max-w-[36ch] text-lg font-bold text-purple-900">
@@ -303,10 +338,14 @@ export async function PlpView({
           </ul>
         </Reveal>
       </section>
+      )}
 
       {/* 09 — Customer experience. No fabricated testimonials — same
-          honest placeholder already used on the homepage. */}
-      <section className="border-t border-border bg-tint py-10">
+          honest placeholder already used on the homepage. Same block on
+          the energy pages (this is where real customer comments will
+          appear); they add 09b (when to check) right after it, which has
+          no generic counterpart. */}
+      <section className={`border-t border-border py-10 ${energy ? "" : "bg-tint"}`}>
         <div className="container-page flex flex-col items-center gap-3 text-center">
           <Reveal>
             <div className="flex flex-col items-center gap-3">
@@ -323,14 +362,15 @@ export async function PlpView({
           </Reveal>
         </div>
       </section>
+      {energy && <EnergyWhenToCheck locale={locale} content={energy.whenToCheck} formId={FORM_ID} />}
 
       {/* 10 — FAQ: collapsed accordion, not a static open grid — 6-7 Q&A
           pairs all expanded at once is a lot of dense text competing for
           attention this deep into an 11-section page. */}
       <section className="container-page py-10">
         <Reveal>
-          <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, { fa: "سوالات پرتکرار", de: "Häufige Fragen", ru: "Частые вопросы" })}</h2>
-          <FaqAccordion locale={locale} items={PDP_FAQ_ITEMS} />
+          <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, energy ? energy.faqTitle : { fa: "سوالات پرتکرار", de: "Häufige Fragen", ru: "Частые вопросы" })}</h2>
+          <FaqAccordion locale={locale} items={energy ? energy.faq : PDP_FAQ_ITEMS} />
         </Reveal>
       </section>
 

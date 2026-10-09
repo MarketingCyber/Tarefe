@@ -12,17 +12,27 @@ import rheinEnergieLogo from "@/assets/logos/rheinenergie.svg";
 import eWieEinfachLogo from "@/assets/logos/e-wie-einfach.svg";
 import markELogo from "@/assets/logos/mark-e.webp";
 import vattenfallLogo from "@/assets/logos/vattenfall.png";
+import eweLogo from "@/assets/logos/ewe.svg";
+import enviaMLogo from "@/assets/logos/envia-m.svg";
+import eprimoLogo from "@/assets/logos/eprimo.svg";
 
 // Keyed by EnergyTariff.provider exactly as stored — see
-// scripts/replace-energy-tariffs.ts, the single place that writes these
-// strings. A provider not in this map (a hand-entered tariff with no logo
-// on file yet) falls back to its plain name text below, never a broken image.
+// scripts/replace-energy-tariffs.ts and scripts/add-energy-tariffs.ts, the
+// only places that write these strings. A provider not in this map (a
+// hand-entered tariff with no logo on file yet) falls back to its plain
+// name text below, never a broken image. ewe.svg/envia-m.svg pulled
+// 2026-10-08 straight from each provider's own live site (ewe.de's inline
+// header SVG, enviam.de's own logo asset URL) — real brand color confirmed
+// via computed style, not guessed.
 const PROVIDER_LOGOS: Record<string, StaticImageData> = {
   EVD: evdLogo,
   RheinEnergie: rheinEnergieLogo,
   "E WIE EINFACH": eWieEinfachLogo,
   "Mark-E": markELogo,
   Vattenfall: vattenfallLogo,
+  EWE: eweLogo,
+  "Envia M": enviaMLogo,
+  Eprimo: eprimoLogo,
 };
 
 export interface TariffCardData {
@@ -159,7 +169,13 @@ export function EnergyTariffCards({
       return { ...t, monthly, basePriceMonthly };
     })
     .filter((t): t is TariffCardData & { monthly: number; basePriceMonthly: number } => t !== null)
-    .sort((a, b) => a.monthly - b.monthly);
+    .sort((a, b) => a.monthly - b.monthly)
+    // Top 3 cheapest, not every tariff we have priced — found 2026-10-08,
+    // 6 cards read as a dense table to compare rather than a clear
+    // recommendation. Also makes the desktop "podium" layout (winner
+    // elevated in the middle column) the standard view instead of a
+    // special case that only applied when exactly 3 happened to exist.
+    .slice(0, 3);
 
   if (withEstimate.length === 0) return null;
 
@@ -219,8 +235,17 @@ export function EnergyTariffCards({
                 {t.bonusEur && (
                   <li className="flex items-baseline justify-between gap-2">
                     <span>{BONUS_LABEL[locale]}</span>
-                    <span className="font-latin text-body">
-                      {t.bonusEur} € <span className="text-secondary">{BONUS_INCLUDED_NOTE[locale]}</span>
+                    <span className="text-body">
+                      {/* font-latin on the amount only, not the whole value
+                          (found 2026-10-08) — it was wrapping
+                          BONUS_INCLUDED_NOTE too, and font-latin has no
+                          Farsi/Cyrillic glyphs, so that note silently
+                          rendered in the browser's fallback font instead
+                          of the site's own. Same root cause as the PLZ
+                          placeholder and kWh-formatting comments elsewhere
+                          in this codebase — font-latin must never wrap
+                          anything but the actual Latin/numeric run. */}
+                      <span className="font-latin">{t.bonusEur} €</span> <span className="text-secondary">{BONUS_INCLUDED_NOTE[locale]}</span>
                     </span>
                   </li>
                 )}

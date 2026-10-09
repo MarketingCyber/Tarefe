@@ -22,6 +22,21 @@ const QuerySchema = z.object({
   locale: z.enum(["fa", "de", "ru"]).optional().default("fa"),
 });
 
+/**
+ * The bonus a card should show: the first of the given values that is a
+ * real, positive amount — or null. Provider exports fill every bonus column
+ * with "0,00" rather than leaving it empty, and `??` treats "0.00" as
+ * present: it would let a zero "Bonus" column hide a real 100 € welcome
+ * bonus (Eprimo), never look at the loyalty column at all (Vattenfall
+ * r.B.), and print "Bonus 0.00 €" on every tariff that has none.
+ */
+function firstPositiveBonus(...values: (string | null | undefined)[]): string | null {
+  for (const v of values) {
+    if (v && Number.parseFloat(v) > 0) return v;
+  }
+  return null;
+}
+
 export async function GET(request: Request) {
   const { allowed } = rateLimit(`energy-lookup:${getClientIp(request)}`, 30);
   if (!allowed) {
@@ -65,7 +80,7 @@ export async function GET(request: Request) {
           name: t.name,
           workingPriceCtPerKwh: row.workingPriceCtPerKwh,
           basePriceEurPerYear: row.basePriceEurPerYear,
-          bonusEur: row.bonusEur ?? row.welcomeBonusEur ?? null,
+          bonusEur: firstPositiveBonus(row.bonusEur, row.welcomeBonusEur, row.loyaltyBonus),
           priceGuaranteeMonths: t.priceGuaranteeMonths,
           highlight: highlightFor(t),
         },
@@ -85,7 +100,7 @@ export async function GET(request: Request) {
           name: t.name,
           workingPriceCtPerKwh: t.workingPriceCtPerKwh,
           basePriceEurPerYear: t.basePriceEurPerYear,
-          bonusEur: t.bonusEur,
+          bonusEur: firstPositiveBonus(t.bonusEur),
           priceGuaranteeMonths: t.priceGuaranteeMonths,
           highlight: highlightFor(t),
         },

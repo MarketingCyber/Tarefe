@@ -18,7 +18,7 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   };
 
   return (
-    <nav aria-label="Breadcrumb" className="container-page flex items-center gap-1.5 py-4 text-xs text-secondary">
+    <nav aria-label="Breadcrumb" className="container-page flex flex-wrap items-center gap-x-1.5 gap-y-1 py-4 text-xs text-secondary">
       {items.map((item, i) => (
         <span key={item.href} className="flex items-center gap-1.5">
           {i > 0 && <span className="opacity-50">/</span>}

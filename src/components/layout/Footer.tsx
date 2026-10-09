@@ -122,7 +122,7 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <li>
-      <Link href={href} className="text-sm text-secondary transition-colors hover:text-purple-600">
+      <Link href={href} className="text-sm text-secondary transition-colors hover:text-purple-600 [overflow-wrap:anywhere]">
         {children}
       </Link>
     </li>

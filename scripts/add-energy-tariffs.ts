@@ -20,11 +20,27 @@ const prisma = new PrismaClient({ adapter });
 
 const FILES_DIR = path.join(__dirname, "..", "data", "energy-tariffs");
 
-const TARIFFS = [
+// `bonusEur` is the tariff-level headline bonus shown in the admin screen —
+// NOT what the calculator shows (that comes from each price row; see
+// firstPositiveBonus in api/energy-tariffs/lookup/route.ts). Optional.
+const TARIFFS: readonly {
+  kind: "ELECTRICITY" | "GAS";
+  provider: string;
+  name: string;
+  file: string;
+  bonusEur?: string;
+}[] = [
   { kind: "ELECTRICITY", provider: "Envia M", name: "enviaM MEIN STROM best 24", file: "2026-09-14_Envia M_enviaM MEIN STROM best 24_1132.xlsx" },
   { kind: "ELECTRICITY", provider: "EWE", name: "EWE Zuhause+ Grünstrom 24", file: "2026-10-06_EWE_EWE Zuhause+ Grünstrom 24_1329.xlsx" },
   { kind: "ELECTRICITY", provider: "Vattenfall", name: "ÖkoStrom24 Einfach", file: "2026-10-01_Vattenfall_ÖkoStrom24 Einfach_1512.xlsx" },
-] as const;
+  // 2026-10-09 — gas batch. Vattenfall "r.B." is a separate product from the
+  // already-live "Easy 24 Gas PUR" (own prices; its 230 € is the loyalty
+  // bonus column, not the welcome bonus). EWE Gas is 0 € up to 6,000 kWh/yr
+  // and 75 € above in the file itself — row data is imported as-is.
+  { kind: "GAS", provider: "Eprimo", name: "eprimoGas PrimaKlima Stabil", file: "2026-09-04_Eprimo_eprimoGas PrimaKlima Stabil_1413.xlsx", bonusEur: "100" },
+  { kind: "GAS", provider: "Vattenfall", name: "Easy 24 Gas PUR r.B.", file: "2026-09-17_Vattenfall_Easy 24 Gas PUR r.B._511.xlsx", bonusEur: "230" },
+  { kind: "GAS", provider: "EWE", name: "EWE Zuhause+ Gas", file: "2026-10-06_EWE_EWE Zuhause+ Gas_1264.xlsx", bonusEur: "0" },
+];
 
 const HEADER_MAP = {
   plz: "PLZ",
@@ -135,7 +151,7 @@ async function main() {
 
     const nextOrder = (await prisma.energyTariff.count()) + 1;
     const tariff = await prisma.energyTariff.create({
-      data: { kind: spec.kind, provider: spec.provider, name: spec.name, published: true, order: nextOrder },
+      data: { kind: spec.kind, provider: spec.provider, name: spec.name, bonusEur: spec.bonusEur ?? null, published: true, order: nextOrder },
     });
 
     const { priceRows, skipped, totalRows } = parsePriceRows(filePath, tariff.id);

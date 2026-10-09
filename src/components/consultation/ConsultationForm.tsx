@@ -192,7 +192,11 @@ export function ConsultationForm({
 
 function Field({ id, label, type, required }: { id: string; label: string; type: string; required?: boolean }) {
   return (
-    <div className="grid gap-1.5">
+    // min-w-0 here and w-full min-w-0 on the input: a text input has an
+    // intrinsic width (~218px at 16px font), and a grid item won't shrink
+    // below its content by default — two of these side by side in the
+    // first/last name row overflowed a phone screen and widened the page.
+    <div className="grid min-w-0 gap-1.5">
       <label htmlFor={id} className="text-xs font-semibold text-body">
         {label}
       </label>
@@ -204,7 +208,7 @@ function Field({ id, label, type, required }: { id: string; label: string; type:
         // text-base, not text-sm — iOS Safari force-zooms the page on
         // focus for any input under 16px (see EnergyConsumptionCalculator.tsx's
         // PLZ field for the full "why", found on this same form's page).
-        className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-base text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25 sm:text-sm"
+        className="w-full min-w-0 rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-base text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25 sm:text-sm"
       />
     </div>
   );
