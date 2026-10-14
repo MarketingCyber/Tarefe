@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
 import { track, EVENT, getAttribution } from "@/lib/analytics";
 import { getConsent } from "@/lib/cookie-consent";
+import { GERMAN_PHONE_ERROR, isGermanPhone } from "@/lib/phone";
 
 /**
  * Reuses the real GA4 identity cookie if the client script already ran and
@@ -203,7 +204,14 @@ export function ConsultationForm({
         <Field id="firstName" label={labels.firstName} type="text" required />
         <Field id="lastName" label={labels.lastName} type="text" required />
       </div>
-      <Field id="phone" label={labels.phone} type="tel" required />
+      <Field
+        id="phone"
+        label={labels.phone}
+        type="tel"
+        required
+        placeholder="0171 1234567"
+        validate={(v) => (isGermanPhone(v) ? "" : GERMAN_PHONE_ERROR[locale])}
+      />
       <p className="-mt-2.5 text-[11px] text-secondary">{labels.phoneNote}</p>
       <Field id="email" label={labels.email} type="email" />
       {/* Honeypot: invisible to people (clipped to 1px, not focusable, ignored by
@@ -234,7 +242,22 @@ export function ConsultationForm({
   );
 }
 
-function Field({ id, label, type, required }: { id: string; label: string; type: string; required?: boolean }) {
+function Field({
+  id,
+  label,
+  type,
+  required,
+  placeholder,
+  validate,
+}: {
+  id: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  placeholder?: string;
+  /** Returns an error message for an invalid value, "" when valid — shown through the browser's own validation bubble on submit. */
+  validate?: (value: string) => string;
+}) {
   return (
     // min-w-0 here and w-full min-w-0 on the input: a text input has an
     // intrinsic width (~218px at 16px font), and a grid item won't shrink
@@ -249,6 +272,10 @@ function Field({ id, label, type, required }: { id: string; label: string; type:
         name={id}
         type={type}
         required={required}
+        placeholder={placeholder}
+        // Native constraint validation: an empty custom message means valid, so the
+        // browser blocks the submit and shows this text next to the field when not.
+        onInput={validate ? (e) => e.currentTarget.setCustomValidity(e.currentTarget.value ? validate(e.currentTarget.value) : "") : undefined}
         // text-base, not text-sm — iOS Safari force-zooms the page on
         // focus for any input under 16px (see EnergyConsumptionCalculator.tsx's
         // PLZ field for the full "why", found on this same form's page).
