@@ -6,7 +6,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
 import { syncLeadToDynamics } from "@/lib/dynamics-lead-sync";
 import { isBotUserAgent, isTorExit, verifyFormToken } from "@/lib/lead-guard";
-import { isGermanPhone } from "@/lib/phone";
+import { isGermanPhone, toAsciiDigits } from "@/lib/phone";
 
 /**
  * Declarative validation (Phase 12) — this route previously hand-checked
@@ -32,8 +32,16 @@ const LeadSchema = z.object({
   // Phone is now the required contact method (2026-10-01) — it's how
   // leads actually get contacted (WhatsApp), so it's the one thing the
   // form can't be submitted without; email stays collectable but optional.
-  // German numbers only (01…, 0049…, +49…) — see lib/phone.ts for why.
-  phone: z.string().trim().min(5, "phone is required").max(50).refine(isGermanPhone, "phone must be a German number starting with 01, 0049 or +49"),
+  // German mobile numbers only (01…, 0049…, +49…, each with its own exact digit
+  // count) — see lib/phone.ts. Persian/Arabic digits are converted to 0-9 first, so
+  // what is stored and sent to the CRM is always plain digits.
+  phone: z
+    .string()
+    .trim()
+    .min(5, "phone is required")
+    .max(50)
+    .transform(toAsciiDigits)
+    .refine(isGermanPhone, "phone must be a German mobile number: 01… (11-12 digits), or +49/0049… followed by 10-11 digits"),
   email: z.union([z.literal(""), z.email("Invalid email address")]).optional(),
   category: z.string().max(100).optional(),
   serviceSlug: z.string().max(100).optional(),

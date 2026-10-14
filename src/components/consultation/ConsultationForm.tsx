@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
 import { track, EVENT, getAttribution } from "@/lib/analytics";
 import { getConsent } from "@/lib/cookie-consent";
-import { GERMAN_PHONE_ERROR, isGermanPhone } from "@/lib/phone";
+import { germanPhoneError } from "@/lib/phone";
 
 /**
  * Reuses the real GA4 identity cookie if the client script already ran and
@@ -209,8 +209,11 @@ export function ConsultationForm({
         label={labels.phone}
         type="tel"
         required
-        placeholder="0171 1234567"
-        validate={(v) => (isGermanPhone(v) ? "" : GERMAN_PHONE_ERROR[locale])}
+        // A pattern, not a real-looking number: bots can read placeholders, and a copied
+        // "0171 1234567" would pass validation. "01xx xxxxxxx" shows people the shape
+        // but fails the check if a bot pastes it verbatim.
+        placeholder="01xx xxxxxxx"
+        validate={(v) => germanPhoneError(v, locale)}
       />
       <p className="-mt-2.5 text-[11px] text-secondary">{labels.phoneNote}</p>
       <Field id="email" label={labels.email} type="email" />
