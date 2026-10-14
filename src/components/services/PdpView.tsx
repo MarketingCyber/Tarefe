@@ -384,7 +384,7 @@ export function PdpView({
         <div className="container-page grid gap-10 md:grid-cols-2 md:items-center">
           <div className="text-center md:text-start">
             <h2 className="text-xl font-bold text-white md:text-2xl">
-              {byLocale(locale, { fa: "شرایطت را با ما بررسی کنیم؟", de: "Sollen wir Ihre Situation prüfen?", ru: "Проверим вашу ситуацию?" })}
+              {byLocale(locale, { fa: "بیا با هم شرایطت را بررسی کنیم", de: "Sollen wir Ihre Situation prüfen?", ru: "Проверим вашу ситуацию?" })}
             </h2>
             <p className="mt-2 max-w-[42ch] text-sm text-white/70 md:mx-0 mx-auto">
               {byLocale(locale, {

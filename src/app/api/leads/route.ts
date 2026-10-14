@@ -5,6 +5,7 @@ import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
 import { syncLeadToDynamics } from "@/lib/dynamics-lead-sync";
+import { isBotUserAgent, isTorExit, verifyFormToken } from "@/lib/lead-guard";
 
 /**
  * Declarative validation (Phase 12) — this route previously hand-checked
@@ -54,7 +55,23 @@ const LeadSchema = z.object({
   // (localStorage-only, unreadable server-side, so the client passes it).
   gaClientId: z.string().trim().max(100).optional(),
   consentAccepted: z.boolean().optional(),
+  // Anti-abuse (see lib/lead-guard.ts). `website` is the honeypot — a field
+  // real visitors never see or fill. `formToken` comes from GET /api/leads/token.
+  website: z.string().max(500).optional(),
+  formToken: z.string().max(300).optional(),
 });
+
+/**
+ * Rejected-as-bot submissions get a normal-looking 201 and are simply not
+ * saved or synced: a bot that sees an error adapts, one that sees success
+ * moves on. Only used for signals that cannot come from a real visitor
+ * (bot user agent, filled honeypot, replayed token) — never for anything
+ * a legitimate browser could trip, which gets an honest error instead.
+ */
+function pretendAccepted(reason: string, ip: string) {
+  console.warn(`[lead-guard] dropped lead (${reason}) ip=${ip}`);
+  return NextResponse.json({ id: `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}` }, { status: 201 });
+}
 
 /**
  * What the ConsultationForm now actually submits to — the missing link
@@ -70,6 +87,15 @@ export async function POST(request: Request) {
   const { allowed } = rateLimit(`leads:${getClientIp(request)}`, 5);
   if (!allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  const ip = getClientIp(request);
+  if (isBotUserAgent(request.headers.get("user-agent"))) return pretendAccepted("bot user agent", ip);
+  // Tor exits are where the 2026-10 flood came from; a real visitor who is
+  // blocked still sees the form's error text, which points at WhatsApp.
+  if (await isTorExit(ip)) {
+    console.warn(`[lead-guard] blocked Tor exit ip=${ip}`);
+    return NextResponse.json({ error: "Blocked" }, { status: 403 });
   }
 
   let body: unknown;
@@ -104,7 +130,18 @@ export async function POST(request: Request) {
     utmLastContent,
     gaClientId,
     consentAccepted,
+    website,
+    formToken,
   } = parsed.data;
+
+  if (website) return pretendAccepted("honeypot filled", ip);
+  const tokenResult = verifyFormToken(formToken);
+  if (tokenResult === "replayed" || tokenResult === "too_fast") return pretendAccepted(`token ${tokenResult}`, ip);
+  if (tokenResult !== "ok") {
+    // missing / invalid / expired: could be a bot, or a visitor on a stale cached page — be honest so the form can retry.
+    console.warn(`[lead-guard] rejected lead (token ${tokenResult}) ip=${ip}`);
+    return NextResponse.json({ error: "Please reload the page and try again", code: "form_token" }, { status: 400 });
+  }
 
   const resolvedLocale: Locale = LOCALES.includes(locale as Locale) ? (locale as Locale) : "fa";
   const name = `${firstName} ${lastName}`.trim();

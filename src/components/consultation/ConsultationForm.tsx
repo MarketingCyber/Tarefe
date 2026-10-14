@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
 import { track, EVENT, getAttribution } from "@/lib/analytics";
@@ -24,6 +24,8 @@ function getOrCreateGaClientId(): string {
   }
   return `${Math.floor(Math.random() * 2147483647)}.${Math.floor(Date.now() / 1000)}`;
 }
+
+const MIN_TOKEN_AGE_MS = 2_200;
 
 const LABELS: Record<
   Locale,
@@ -101,6 +103,25 @@ export function ConsultationForm({
   const labels = LABELS[locale];
   const startedRef = useRef(false);
 
+  // Anti-abuse token (see lib/lead-guard.ts): fetched when the form mounts,
+  // sent with the submission. A bot POSTing straight at /api/leads never
+  // loads this page, so it never has one. The submit handler also waits
+  // until the token is at least MIN_TOKEN_AGE_MS old — a person needs far
+  // longer to fill three fields, but password-manager autofill + an instant
+  // click could otherwise beat the server's minimum-age check.
+  const tokenRef = useRef<{ promise: Promise<string | null>; at: number } | null>(null);
+  function loadToken() {
+    const promise = fetch("/api/leads/token", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => (j && typeof j.token === "string" ? (j.token as string) : null))
+      .catch(() => null);
+    tokenRef.current = { promise, at: Date.now() };
+    return tokenRef.current;
+  }
+  useEffect(() => {
+    loadToken();
+  }, []);
+
   function handleFirstInteraction() {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -116,10 +137,13 @@ export function ConsultationForm({
     const { first, last } = getAttribution();
     const consentAccepted = getConsent() === "accepted";
     try {
-      const res = await fetch("/api/leads", {
+      const send = (formToken: string | null) =>
+        fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          formToken: formToken ?? undefined,
+          website: form.get("website"),
           firstName: form.get("firstName"),
           lastName: form.get("lastName"),
           email: form.get("email"),
@@ -142,6 +166,19 @@ export function ConsultationForm({
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
         }),
       });
+
+      const waitForToken = async (t: { promise: Promise<string | null>; at: number }) => {
+        const token = await t.promise;
+        const wait = MIN_TOKEN_AGE_MS - (Date.now() - t.at);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        return token;
+      };
+      let res = await send(await waitForToken(tokenRef.current ?? loadToken()));
+      if (res.status === 400) {
+        // A tab left open for hours (or a stale cached page) carries an expired token — get a fresh one and try once more.
+        const body = await res.clone().json().catch(() => null);
+        if (body?.code === "form_token") res = await send(await waitForToken(loadToken()));
+      }
       if (!res.ok) throw new Error("Request failed");
       track(EVENT.CONSULTATION_SUBMITTED, { path: pathname, locale, category, service: serviceSlug });
       router.push(`/${locale}/consultation/success`);
@@ -156,7 +193,7 @@ export function ConsultationForm({
       id={id}
       onSubmit={handleSubmit}
       onFocus={handleFirstInteraction}
-      className={`grid gap-4 rounded-2xl border border-border bg-white p-6 ${className ?? ""}`}
+      className={`relative grid gap-4 rounded-2xl border border-border bg-white p-6 ${className ?? ""}`}
     >
       {heading && <p className="text-base font-bold text-purple-900">{heading}</p>}
       {serviceLabel && (
@@ -169,6 +206,13 @@ export function ConsultationForm({
       <Field id="phone" label={labels.phone} type="tel" required />
       <p className="-mt-2.5 text-[11px] text-secondary">{labels.phoneNote}</p>
       <Field id="email" label={labels.email} type="email" />
+      {/* Honeypot: invisible to people (clipped to 1px, not focusable, ignored by
+          screen readers and autofill), irresistible to form-filling bots.
+          A non-empty value makes the server silently drop the submission. */}
+      <div aria-hidden="true" className="sr-only">
+        <label htmlFor="website">Website</label>
+        <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
       {error && (
         <p role="alert" className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">
           {labels.error}

@@ -53,10 +53,19 @@ const WORKING_PRICE_LABEL: Record<Locale, string> = { fa: "قیمت مصرف", d
 const BASE_PRICE_LABEL: Record<Locale, string> = { fa: "قیمت پایه ماهانه", de: "Grundpreis (monatlich)", ru: "Базовая цена (ежемесячно)" };
 const BONUS_LABEL: Record<Locale, string> = { fa: "بونوس", de: "Bonus", ru: "Бонус" };
 const BONUS_INCLUDED_NOTE: Record<Locale, string> = {
-  fa: "(در مبلغ ماهانه بالا لحاظ شده)",
-  de: "(bereits im Monatsbetrag oben berücksichtigt)",
-  ru: "(уже учтён в сумме выше)",
+  fa: "در مبلغ ماهانه بالا لحاظ شده است",
+  de: "Bereits im Monatsbetrag oben berücksichtigt",
+  ru: "Уже учтён в сумме выше",
 };
+
+/** A bonus counts only if it is a real positive amount — "0.00" strings are common in provider exports. */
+const bonusAmount = (v: string | null): number => {
+  const n = v ? parseFloat(v) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/** One number format for every figure on the card (comma decimals, like the Grundpreis already was) — the raw DB strings mixed "14.43", "230.00" and "14,90" side by side. */
+const fmt = (n: number, minFraction = 0, maxFraction = 2) => n.toLocaleString("de-DE", { minimumFractionDigits: minFraction, maximumFractionDigits: maxFraction });
 const GUARANTEE_LABEL: Record<Locale, (m: number) => string> = {
   fa: (m) => `گارانتی قیمت ${m} ماه`,
   de: (m) => `${m} Monate Preisgarantie`,
@@ -218,35 +227,42 @@ export function EnergyTariffCards({
 
               <div className="mt-4">
                 <p className="text-[11px] text-secondary">{PER_MONTH[locale]}</p>
-                <p className="font-latin text-3xl font-extrabold text-purple-900">
-                  ≈ {Math.round(t.monthly).toLocaleString("de-DE")} <span className="text-base font-semibold">€</span>
+                {/* Every figure below is a dir="ltr" run inside the RTL
+                    page: without it the bidi algorithm reorders "≈ 44 €"
+                    into "€ 44 ≈" and "14,43 ct/kWh" into "ct/kWh 14,43"
+                    on the fa locale. font-latin stays on the numeric run
+                    only — never on Farsi/Cyrillic text (no glyphs there). */}
+                <p className="text-3xl font-extrabold text-purple-900">
+                  <span dir="ltr" className="font-latin inline-block">
+                    ≈ {fmt(Math.round(t.monthly))} <span className="text-base font-semibold">€</span>
+                  </span>
                 </p>
               </div>
 
-              <ul className="mt-4 space-y-1.5 text-xs text-secondary">
+              <ul className="mt-4 space-y-2 text-xs text-secondary">
                 <li className="flex items-baseline justify-between gap-2">
                   <span>{WORKING_PRICE_LABEL[locale]}</span>
-                  <span className="font-latin text-body">{t.workingPriceCtPerKwh} ct/kWh</span>
+                  <span dir="ltr" className="font-latin text-body">{fmt(parseFloat(t.workingPriceCtPerKwh), 2, 3)} ct/kWh</span>
                 </li>
                 <li className="flex items-baseline justify-between gap-2">
                   <span>{BASE_PRICE_LABEL[locale]}</span>
-                  <span className="font-latin text-body">{t.basePriceMonthly.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
+                  <span dir="ltr" className="font-latin text-body">{fmt(t.basePriceMonthly, 2, 2)} €</span>
                 </li>
-                {t.bonusEur && (
-                  <li className="flex items-baseline justify-between gap-2">
-                    <span>{BONUS_LABEL[locale]}</span>
-                    <span className="text-body">
-                      {/* font-latin on the amount only, not the whole value
-                          (found 2026-10-08) — it was wrapping
-                          BONUS_INCLUDED_NOTE too, and font-latin has no
-                          Farsi/Cyrillic glyphs, so that note silently
-                          rendered in the browser's fallback font instead
-                          of the site's own. Same root cause as the PLZ
-                          placeholder and kWh-formatting comments elsewhere
-                          in this codebase — font-latin must never wrap
-                          anything but the actual Latin/numeric run. */}
-                      <span className="font-latin">{t.bonusEur} €</span> <span className="text-secondary">{BONUS_INCLUDED_NOTE[locale]}</span>
-                    </span>
+                {/* Bonus: the amount sits in a pill on the same line as its
+                    label (like every row above), and the "already counted
+                    in the monthly figure" note drops to its own line
+                    underneath. Before, the note shared the amount's
+                    line and wrapped mid-phrase beside a "230.00" that
+                    didn't even use the card's number format. */}
+                {bonusAmount(t.bonusEur) > 0 && (
+                  <li>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{BONUS_LABEL[locale]}</span>
+                      <span dir="ltr" className="font-latin rounded-full bg-success-bg px-2.5 py-0.5 text-[11px] font-bold text-success">
+                        {fmt(bonusAmount(t.bonusEur))} €
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-snug text-secondary">{BONUS_INCLUDED_NOTE[locale]}</p>
                   </li>
                 )}
               </ul>

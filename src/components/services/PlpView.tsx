@@ -24,9 +24,8 @@ import { Reveal } from "@/components/shared/Reveal";
 import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, WHY_NOT_DIY, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
 import { getEnergyPageContent } from "@/lib/energy-page-content";
 import {
-  EnergySupplyPaths,
+  EnergySituations,
   EnergyWhyNow,
-  EnergyOptions,
   EnergyWhyTarefe,
   EnergyProcess,
 } from "@/components/services/energy/EnergySections";
@@ -183,7 +182,7 @@ export async function PlpView({
                 its follow-up. */}
             {energy && (
               <div className="mt-14">
-                <EnergySupplyPaths locale={locale} content={energy} />
+                <EnergySituations locale={locale} content={energy} formId={FORM_ID} />
               </div>
             )}
           </div>
@@ -208,7 +207,6 @@ export async function PlpView({
 
       {/* 03 — Benefits: the most important section on the page — same
           heavier heading tier as 02. */}
-      {energy && <EnergyOptions locale={locale} content={energy} formId={FORM_ID} />}
       {!energy && (
       <section className={`py-14 ${content?.whatItIs ? "border-t border-border bg-tint" : ""}`}>
         <div className="container-page">
@@ -378,7 +376,7 @@ export async function PlpView({
       <section className="border-t border-border bg-purple-900 py-12 md:py-16">
         <div className="container-page grid gap-10 md:grid-cols-2 md:items-center">
           <div className="text-center md:text-start">
-            <h2 className="text-xl font-bold text-white md:text-2xl">{byLocale(locale, { fa: "شرایطت را با ما بررسی کنیم؟", de: "Sollen wir Ihre Situation prüfen?", ru: "Проверим вашу ситуацию?" })}</h2>
+            <h2 className="text-xl font-bold text-white md:text-2xl">{byLocale(locale, { fa: "بیا با هم شرایطت را بررسی کنیم", de: "Sollen wir Ihre Situation prüfen?", ru: "Проверим вашу ситуацию?" })}</h2>
             <p className="mt-2 max-w-[42ch] text-sm text-white/70 md:mx-0 mx-auto">
               {byLocale(locale, {
                 fa: "فقط چند اطلاعات ساده — یک مشاور فارسی ظرف کمتر از سه ساعت کاری با تو تماس می‌گیرد.",
