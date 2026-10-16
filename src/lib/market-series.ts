@@ -58,8 +58,8 @@ function bucketKey(d: string, preset: Preset): string {
 }
 
 /** Last N bucket starts up to and including the bucket of `lastDate`, oldest first. */
-function windowStarts(lastDate: string, preset: Preset): string[] {
-  const n = WINDOW[preset];
+function windowStarts(lastDate: string, preset: Preset, size?: number): string[] {
+  const n = size ?? WINDOW[preset];
   const out: string[] = [];
   if (preset === "monthly") {
     let y = +lastDate.slice(0, 4);
@@ -83,10 +83,10 @@ function windowStarts(lastDate: string, preset: Preset): string[] {
 }
 
 /** Aggregate the daily series into the preset's buckets. Buckets with no data are left out (never drawn as zero). */
-export function aggregate(points: readonly DailyPoint[], preset: Preset): Bucket[] {
+export function aggregate(points: readonly DailyPoint[], preset: Preset, windowSize?: number): Bucket[] {
   if (points.length === 0) return [];
   const lastDate = points[points.length - 1][0];
-  const keep = new Set(windowStarts(lastDate, preset));
+  const keep = new Set(windowStarts(lastDate, preset, windowSize));
   const map = new Map<string, { sum: number; n: number; end: string }>();
   for (const [date, value] of points) {
     const k = bucketKey(date, preset);

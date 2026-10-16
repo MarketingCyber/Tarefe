@@ -1,40 +1,46 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { ArrowDown, ArrowUp } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, LockKey } from "@phosphor-icons/react";
 import { byLocale, type Locale } from "@/lib/taxonomy";
-import { DEFAULT_PRESET, PRESETS, aggregate, statsFor, type Bucket, type Commodity, type MarketSeries, type Preset } from "@/lib/market-series";
+import { aggregate, type Bucket, type Commodity, type MarketSeries } from "@/lib/market-series";
 import { MARKET_LABELS } from "@/lib/market-chart-labels";
 
 /**
  * Live wholesale-price chart for the electricity and gas pages — it replaces the
- * schematic Preisgarantie sketch (PriceGuaranteeChart, which is still rendered
- * whenever the feed is unavailable, so the page never shows an empty box).
+ * schematic Preisgarantie sketch (PriceGuaranteeChart, still rendered whenever
+ * the feed is unavailable, so the page never shows an empty box).
  *
- * Data: /api/market/{commodity} → one daily series in ct/kWh; the monthly /
- * weekly / daily views are averages computed here (lib/market-series.ts), so
- * switching never waits for the network. Default view: MONTHLY, last 24 months —
- * daily wholesale prices swing wildly with the weather, which makes a poor first
- * impression of "the market"; months show the trend and weekly / daily are one
- * tap away.
+ * What it is for: show that market prices have risen, and tie that to the
+ * Preisgarantie — "your price stays fixed until the end of the contract, even if
+ * prices rise further". So it is deliberately small: a headline computed from the
+ * data ("up X% in the last 12 months" — only when the data really shows a rise,
+ * otherwise a neutral line), two numbers (current price, change from last month),
+ * ONE chart (13 months of monthly averages, unit written on the chart) and the
+ * guarantee sentence. The guarantee sentence is conditional ("even if"), never a
+ * forecast.
  *
- * Drawing: hand-rolled SVG at the container's real pixel width (text stays
- * readable on a phone), always left-to-right — time runs oldest → newest like
- * every price chart, inside an LTR island on the RTL page. The newest bucket is
- * drawn dashed when it is still filling up (month / week to date).
+ * Data: /api/market/{commodity} → one daily series in ct/kWh (lib/energy-market-data.ts);
+ * monthly averages are computed here (lib/market-series.ts).
  *
- * Motion (GSAP, off under prefers-reduced-motion): the line draws itself once
- * when the data first arrives, the latest price counts up, and a preset switch
- * redraws the line in half a second. Hover/touch/keyboard feedback is instant —
- * those happen constantly and must never feel delayed.
+ * Drawing: hand-rolled SVG at the container's real pixel width, always
+ * left-to-right (oldest → newest, like every price chart) inside an LTR island on
+ * the RTL page. The newest month is drawn dashed while it is still filling up.
+ *
+ * Motion (GSAP, off under prefers-reduced-motion): the line draws itself once when
+ * the data first arrives and the current price counts up. Hover / touch / keyboard
+ * feedback is instant — those happen constantly and must never feel delayed.
  *
  * Not a tariff price: both feeds are wholesale prices without taxes, levies or
- * grid fees, and the subtitle says so (see lib/market-chart-labels.ts).
+ * grid fees, and the subtitle says so (lib/market-chart-labels.ts).
  */
 
-const H = 196;
-const PAD = { l: 40, r: 12, t: 12, b: 24 };
+// 13 monthly points = the same month a year ago → now, so "12-month change" is exact.
+const MONTHS = 13;
+const RISE_THRESHOLD = 0.03; // below this the headline stays neutral instead of claiming a rise
+const H = 190;
+const PAD = { l: 34, r: 14, t: 26, b: 24 };
 const BRAND = "#5d0089";
 const GRID = "#ece2f1";
 const INK = "#776a7a";
@@ -42,13 +48,13 @@ const YELLOW = "#f7c800";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const LOCALE_TAG: Record<Locale, { date: string; num: string }> = {
-  fa: { date: "fa-IR-u-ca-gregory-nu-latn", num: "en-US" },
-  de: { date: "de-DE", num: "de-DE" },
-  ru: { date: "ru-RU", num: "de-DE" },
+// fa uses Persian digits in DATES and in the headline sentence (like the surrounding prose); every price stays in Latin digits.
+const LOCALE_TAG: Record<Locale, { date: string; num: string; prose: string }> = {
+  fa: { date: "fa-IR-u-ca-gregory", num: "en-US", prose: "fa-IR" },
+  de: { date: "de-DE", num: "de-DE", prose: "de-DE" },
+  ru: { date: "ru-RU", num: "de-DE", prose: "ru-RU" },
 };
 
-const MS_DAY = 86_400_000;
 const utc = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
 
 /** "Nice" axis ticks covering [min, max] with roughly `count` steps. */
@@ -76,10 +82,9 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
   const rootRef = useRef<HTMLElement>(null);
   const plotRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLSpanElement>(null);
-  const animated = useRef({ intro: false, preset: DEFAULT_PRESET as Preset });
+  const introDone = useRef(false);
 
   const [load, setLoad] = useState<Load>({ status: "idle" });
-  const [preset, setPreset] = useState<Preset>(DEFAULT_PRESET);
   const [hover, setHover] = useState<number | null>(null);
   const [width, setWidth] = useState(0);
 
@@ -119,32 +124,30 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
   }, [ready]);
 
   const series = ready ? load.series : null;
-  const buckets = useMemo(() => (series ? aggregate(series.points, preset) : []), [series, preset]);
-  const stats = useMemo(() => (series ? statsFor(series.points, buckets) : null), [series, buckets]);
+  const buckets = useMemo(() => (series ? aggregate(series.points, "monthly", MONTHS) : []), [series]);
+  const latest = series ? series.points[series.points.length - 1] : null;
+  // Change from last month: the newest month (so far) against the one before it.
+  const monthChange = useMemo(() => {
+    if (buckets.length < 2) return null;
+    const cur = buckets[buckets.length - 1].value;
+    const prev = buckets[buckets.length - 2].value;
+    return prev > 0 ? (cur - prev) / prev : null;
+  }, [buckets]);
+  // Change over the whole window: the same month a year ago → now (needs a full 13 months).
+  const yearChange = useMemo(() => {
+    if (buckets.length < MONTHS) return null;
+    const first = buckets[0].value;
+    return first > 0 ? (buckets[buckets.length - 1].value - first) / first : null;
+  }, [buckets]);
 
   const fmt = useMemo(() => new Intl.NumberFormat(tag.num, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), [tag.num]);
-  const fmt1 = useMemo(() => new Intl.NumberFormat(tag.num, { minimumFractionDigits: 0, maximumFractionDigits: 1 }), [tag.num]);
+  const fmtAxis = useMemo(() => new Intl.NumberFormat(tag.num, { minimumFractionDigits: 0, maximumFractionDigits: 1 }), [tag.num]);
   const pct = useMemo(() => new Intl.NumberFormat(tag.num, { maximumFractionDigits: 0 }), [tag.num]);
+  const pctProse = useMemo(() => new Intl.NumberFormat(tag.prose, { maximumFractionDigits: 0 }), [tag.prose]);
   const dateFmt = useMemo(() => {
     const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(tag.date, { timeZone: "UTC", ...o });
-    return {
-      monthShort: f({ month: "short", year: "2-digit" }),
-      monthLong: f({ month: "long", year: "numeric" }),
-      dayShort: f({ day: "numeric", month: "short" }),
-      dayLong: f({ weekday: "short", day: "numeric", month: "short", year: "numeric" }),
-      dayLongNoWeekday: f({ day: "numeric", month: "short", year: "numeric" }),
-    };
+    return { monthShort: f({ month: "short", year: "2-digit" }), monthLong: f({ month: "long", year: "numeric" }), day: f({ day: "numeric", month: "short", year: "numeric" }) };
   }, [tag.date]);
-
-  const shortLabel = useCallback((b: Bucket) => (preset === "monthly" ? dateFmt.monthShort : dateFmt.dayShort).format(utc(b.start)), [preset, dateFmt]);
-  const longLabel = useCallback(
-    (b: Bucket) => {
-      if (preset === "monthly") return dateFmt.monthLong.format(utc(b.start));
-      if (preset === "weekly") return `${dateFmt.dayShort.format(utc(b.start))} – ${dateFmt.dayLongNoWeekday.format(utc(b.start) + 6 * MS_DAY)}`;
-      return dateFmt.dayLong.format(utc(b.start));
-    },
-    [preset, dateFmt],
-  );
 
   // ---- geometry
   const W = Math.max(width, 240);
@@ -155,7 +158,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
     const vals = buckets.map((b) => b.value);
     const lo = Math.min(...vals);
     const hi = Math.max(...vals);
-    const ticks = niceTicks(lo - (hi - lo) * 0.06, hi + (hi - lo) * 0.06, 4);
+    const ticks = niceTicks(lo - (hi - lo) * 0.08, hi + (hi - lo) * 0.08, 3);
     const yMin = ticks[0];
     const yMax = ticks[ticks.length - 1];
     const t0 = utc(buckets[0].start);
@@ -163,21 +166,20 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
     const x = (b: Bucket) => PAD.l + (t1 === t0 ? plotW / 2 : ((utc(b.start) - t0) / (t1 - t0)) * plotW);
     const y = (v: number) => PAD.t + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
     const pts = buckets.map((b) => ({ x: x(b), y: y(b.value) }));
-    const last = buckets[buckets.length - 1];
-    const dashed = last.partial && pts.length > 1;
-    const solid = dashed ? pts.slice(0, -1) : pts;
+    const dashed = buckets[buckets.length - 1].partial && pts.length > 1;
     const line = (p: { x: number; y: number }[]) => p.map((q, i) => `${i ? "L" : "M"}${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join(" ");
-    const solidPath = line(solid);
+    // A label every 4 months, counted back from today: enough to orient, never crowded.
+    const xTicks = buckets.map((_, i) => i).filter((i) => (buckets.length - 1 - i) % 4 === 0);
     return {
       ticks,
       pts,
       y,
-      solidPath,
+      solidPath: line(dashed ? pts.slice(0, -1) : pts),
       dashedPath: dashed ? line(pts.slice(-2)) : null,
       areaPath: `${line(pts)} L${pts[pts.length - 1].x.toFixed(1)} ${PAD.t + plotH} L${pts[0].x.toFixed(1)} ${PAD.t + plotH} Z`,
-      xTicks: Array.from(new Set(Array.from({ length: W < 360 ? 4 : 5 }, (_, k) => Math.round((k / ((W < 360 ? 4 : 5) - 1)) * (buckets.length - 1))))),
+      xTicks,
     };
-  }, [buckets, plotW, plotH, W]);
+  }, [buckets, plotW, plotH]);
 
   // ---- interaction
   const indexAt = (clientX: number) => {
@@ -207,105 +209,65 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
     e.preventDefault();
   };
 
-  const choosePreset = (p: Preset) => {
-    setPreset(p);
-    setHover(null);
-  };
-
-  // ---- GSAP: intro draw + count-up (once), quick redraw on preset change
+  // ---- GSAP: the line draws itself once, the current price counts up
   useIsoLayoutEffect(() => {
     const root = rootRef.current;
-    if (!root || !geo || !stats?.latest) return;
-    const first = !animated.current.intro;
-    const presetChanged = animated.current.preset !== preset;
-    animated.current = { intro: true, preset };
-    const target = stats.latest.value;
-    if (numRef.current && !first) numRef.current.textContent = fmt.format(target);
-    if (!first && !presetChanged) return;
-
+    if (!root || !geo || !latest || introDone.current) return;
+    introDone.current = true;
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const lines = root.querySelectorAll<SVGPathElement>("[data-draw]");
       const fades = root.querySelectorAll<SVGElement>("[data-fade]");
-      const dur = first ? 1 : 0.5;
-      gsap.fromTo(lines, { strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: dur, ease: "power3.out", onComplete: () => gsap.set(lines, { clearProps: "strokeDasharray,strokeDashoffset" }) });
-      gsap.fromTo(fades, { opacity: 0 }, { opacity: 1, duration: dur * 0.7, delay: dur * 0.35, ease: "power2.out", clearProps: "opacity" });
-      if (first && numRef.current) {
+      gsap.fromTo(lines, { strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1, ease: "power3.out", onComplete: () => gsap.set(lines, { clearProps: "strokeDasharray,strokeDashoffset" }) });
+      gsap.fromTo(fades, { opacity: 0 }, { opacity: 1, duration: 0.7, delay: 0.35, ease: "power2.out", clearProps: "opacity" });
+      const el = numRef.current;
+      if (el) {
         const obj = { v: 0 };
-        const el = numRef.current;
-        gsap.to(obj, { v: target, duration: 0.9, ease: "power3.out", onUpdate: () => (el.textContent = fmt.format(obj.v)), onComplete: () => (el.textContent = fmt.format(target)) });
+        gsap.to(obj, { v: latest[1], duration: 0.9, ease: "power3.out", onUpdate: () => (el.textContent = fmt.format(obj.v)), onComplete: () => (el.textContent = fmt.format(latest[1])) });
       }
     });
     return () => mm.revert();
-  }, [geo, preset, stats?.latest?.value]);
+  }, [geo, latest]);
 
   if (load.status === "error") return <>{fallback}</>;
 
   const hb = hover !== null ? buckets[hover] : null;
-  const prevOfHover = hover !== null && hover > 0 ? buckets[hover - 1] : null;
-  const hoverChange = hb && prevOfHover && prevOfHover.value > 0 ? (hb.value - prevOfHover.value) / prevOfHover.value : null;
-  const changeFrac = stats?.change ?? null;
-  const rising = changeFrac !== null && changeFrac > 0.005;
-  const falling = changeFrac !== null && changeFrac < -0.005;
+  const rising = monthChange !== null && monthChange > 0.005;
+  const falling = monthChange !== null && monthChange < -0.005;
   const title = byLocale(locale, L.title);
   const hoverX = hover !== null && geo ? geo.pts[hover].x : 0;
+  const labelOf = (b: Bucket) => dateFmt.monthLong.format(utc(b.start));
+  const headline = yearChange !== null && yearChange >= RISE_THRESHOLD ? byLocale(locale, L.risen).replace("{p}", pctProse.format(yearChange * 100)) : byLocale(locale, L.swings);
 
   return (
     <figure ref={rootRef} aria-labelledby={`${uid}-t`} className="mt-5 rounded-xl bg-white p-4">
       <figcaption>
-        <p id={`${uid}-t`} className="text-sm font-bold text-purple-900">
+        <p id={`${uid}-t`} className="text-xs font-medium text-secondary">
           {title}
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-secondary">{byLocale(locale, L.subtitle)}</p>
+        <p className="mt-1 text-base font-bold leading-snug text-purple-900">{headline}</p>
       </figcaption>
 
-      {/* preset switch */}
-      <div role="radiogroup" aria-label={title} className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-tint p-1">
-        {PRESETS.map((p) => {
-          const on = preset === p;
-          return (
-            <button
-              key={p}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              disabled={!ready}
-              onClick={() => choosePreset(p)}
-              className={`press min-h-9 rounded-full px-2 text-xs font-semibold transition-colors duration-150 disabled:opacity-60 ${on ? "bg-purple-900 text-white" : "text-secondary hover:text-purple-900"}`}
-            >
-              {byLocale(locale, L.presets[p])}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* headline numbers */}
-      <dl className="mt-4 grid grid-cols-3 gap-x-3 gap-y-2">
+      {/* the two numbers that matter */}
+      <dl className="mt-4 grid grid-cols-2 gap-x-4">
         <div className="min-w-0">
-          <dt className="text-[10px] font-medium leading-tight text-secondary">{byLocale(locale, L.latest)}</dt>
-          <dd className="font-latin mt-1 text-xl font-bold leading-none tracking-tight text-purple-900 tabular-nums" dir="ltr">
-            <span ref={numRef}>{stats?.latest ? fmt.format(stats.latest.value) : "—"}</span>
-            <span className="ms-1 text-[10px] font-medium text-secondary">ct/kWh</span>
+          <dt className="text-xs font-medium text-secondary">{byLocale(locale, L.latest)}</dt>
+          <dd className="font-latin mt-1 flex items-baseline gap-1.5 leading-none text-purple-900 tabular-nums" dir="ltr">
+            <span ref={numRef} className="text-3xl font-bold tracking-tight">
+              {latest ? fmt.format(latest[1]) : "—"}
+            </span>
+            <span className="text-xs font-medium text-secondary">ct/kWh</span>
           </dd>
-          <dd className="font-latin mt-1 text-[10px] text-secondary" dir="ltr">
-            {stats?.latest ? dateFmt.dayLongNoWeekday.format(utc(stats.latest.date)) : " "}
-          </dd>
+          <dd className="mt-1.5 text-[11px] text-secondary">{latest ? dateFmt.day.format(utc(latest[0])) : " "}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-[10px] font-medium leading-tight text-secondary">{byLocale(locale, L.average)}</dt>
-          <dd className="font-latin mt-1 text-xl font-bold leading-none tracking-tight text-purple-900 tabular-nums" dir="ltr">
-            {stats && buckets.length ? fmt.format(stats.average) : "—"}
-            <span className="ms-1 text-[10px] font-medium text-secondary">ct</span>
+          <dt className="text-xs font-medium text-secondary">{byLocale(locale, L.monthlyChange)}</dt>
+          <dd className={`font-latin mt-1 flex items-center gap-1 text-3xl font-bold leading-none tracking-tight tabular-nums ${rising ? "text-danger" : falling ? "text-success" : "text-purple-900"}`} dir="ltr">
+            {rising && <ArrowUp size={20} weight="bold" aria-hidden />}
+            {falling && <ArrowDown size={20} weight="bold" aria-hidden />}
+            {monthChange === null ? "—" : `${monthChange > 0 ? "+" : ""}${pct.format(monthChange * 100)}%`}
           </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[10px] font-medium leading-tight text-secondary">{byLocale(locale, L.change)}</dt>
-          <dd className={`font-latin mt-1 flex items-center gap-1 text-xl font-bold leading-none tracking-tight tabular-nums ${rising ? "text-danger" : falling ? "text-success" : "text-purple-900"}`} dir="ltr">
-            {rising && <ArrowUp size={14} weight="bold" aria-hidden />}
-            {falling && <ArrowDown size={14} weight="bold" aria-hidden />}
-            {changeFrac === null ? "—" : `${changeFrac > 0 ? "+" : ""}${pct.format(changeFrac * 100)}%`}
-          </dd>
-          <dd className="mt-1 text-[10px] leading-tight text-secondary">{byLocale(locale, L.periodChange[preset])}</dd>
+          <dd className="mt-1.5 text-[11px] leading-snug text-secondary">{byLocale(locale, L.monthlyChangeNote)}</dd>
         </div>
       </dl>
 
@@ -316,7 +278,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
         tabIndex={ready ? 0 : -1}
         role="group"
         aria-label={`${title} — ${byLocale(locale, L.unitName)}`}
-        className="relative mt-3 touch-pan-y select-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-purple-600/30"
+        className="relative mt-4 touch-pan-y select-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-purple-600/30"
         style={{ height: H }}
         onPointerMove={(e) => ready && setHover(indexAt(e.clientX))}
         onPointerDown={(e) => ready && setHover(indexAt(e.clientX))}
@@ -326,7 +288,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
       >
         {!ready || !geo ? (
           <div aria-hidden className="absolute inset-0 overflow-hidden rounded-lg">
-            {[0.15, 0.4, 0.65, 0.9].map((f) => (
+            {[0.2, 0.5, 0.8].map((f) => (
               <div key={f} className="absolute inset-x-0 border-t border-border" style={{ top: `${f * 100}%` }} />
             ))}
             <div className="absolute inset-x-0 bottom-0 top-1/3 animate-pulse bg-gradient-to-b from-purple-600/10 to-transparent [clip-path:polygon(0_60%,12%_45%,26%_55%,40%_25%,55%_40%,70%_15%,85%_30%,100%_10%,100%_100%,0_100%)]" />
@@ -336,23 +298,27 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" aria-hidden>
             <defs>
               <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor={BRAND} stopOpacity="0.16" />
+                <stop offset="0" stopColor={BRAND} stopOpacity="0.14" />
                 <stop offset="1" stopColor={BRAND} stopOpacity="0" />
               </linearGradient>
             </defs>
 
+            {/* the unit, written on the chart */}
+            <text x={0} y={11} fontSize="12" fontWeight="600" fill={INK} className="font-latin">
+              ct/kWh
+            </text>
+
             {geo.ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.l} x2={W - PAD.r} y1={geo.y(t)} y2={geo.y(t)} stroke={GRID} strokeWidth="1" />
-                <text x={PAD.l - 7} y={geo.y(t) + 3.5} textAnchor="end" fontSize="10" fill={INK} className="font-latin">
-                  {fmt1.format(t)}
+                <text x={PAD.l - 8} y={geo.y(t) + 4} textAnchor="end" fontSize="12" fill={INK} className="font-latin">
+                  {fmtAxis.format(t)}
                 </text>
               </g>
             ))}
-            {geo.ticks[0] < 0 && geo.ticks[geo.ticks.length - 1] > 0 && <line x1={PAD.l} x2={W - PAD.r} y1={geo.y(0)} y2={geo.y(0)} stroke={INK} strokeOpacity="0.45" strokeWidth="1" />}
             {geo.xTicks.map((i, k) => (
-              <text key={i} x={geo.pts[i].x} y={H - 6} textAnchor={k === 0 ? "start" : k === geo.xTicks.length - 1 ? "end" : "middle"} fontSize="10" fill={INK} className="font-latin">
-                {shortLabel(buckets[i])}
+              <text key={i} x={geo.pts[i].x} y={H - 6} textAnchor={k === 0 ? "start" : k === geo.xTicks.length - 1 ? "end" : "middle"} fontSize="12" fill={INK} className="font-latin">
+                {dateFmt.monthShort.format(utc(buckets[i].start))}
               </text>
             ))}
 
@@ -360,47 +326,48 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
             <path d={geo.solidPath} data-draw pathLength={1} fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             {geo.dashedPath && <path d={geo.dashedPath} data-fade fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="1 6" />}
 
-            {/* newest point: brand marker */}
-            <circle cx={geo.pts[geo.pts.length - 1].x} cy={geo.pts[geo.pts.length - 1].y} r="5" fill={YELLOW} stroke={BRAND} strokeWidth="2" data-fade />
+            {/* one small dot per month, so it is clear each point is a month */}
+            <g data-fade>
+              {geo.pts.slice(0, -1).map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke={BRAND} strokeWidth="1.75" />
+              ))}
+            </g>
+            <circle cx={geo.pts[geo.pts.length - 1].x} cy={geo.pts[geo.pts.length - 1].y} r="5.5" fill={YELLOW} stroke={BRAND} strokeWidth="2" data-fade />
 
-            {/* hover / focus */}
             {hover !== null && (
               <g pointerEvents="none">
                 <line x1={hoverX} x2={hoverX} y1={PAD.t} y2={PAD.t + plotH} stroke={BRAND} strokeOpacity="0.35" strokeWidth="1" />
-                <circle cx={hoverX} cy={geo.pts[hover].y} r="5" fill="#fff" stroke={BRAND} strokeWidth="2.5" />
+                <circle cx={hoverX} cy={geo.pts[hover].y} r="5.5" fill="#fff" stroke={BRAND} strokeWidth="2.5" />
               </g>
             )}
           </svg>
         )}
 
         {hb && geo && (
-          <div
-            className="pointer-events-none absolute top-0 z-10 min-w-[8.5rem] rounded-lg border border-border bg-white px-3 py-2 shadow-[0_8px_24px_-8px_rgba(36,20,38,0.25)]"
-            style={{ left: Math.min(Math.max(hoverX, 76), W - 76), transform: "translateX(-50%)" }}
-          >
-            <p className="text-[11px] text-secondary">
-              {longLabel(hb)}
+          <div className="pointer-events-none absolute top-0 z-10 min-w-[8.5rem] rounded-lg border border-border bg-white px-3 py-2 shadow-[0_8px_24px_-8px_rgba(36,20,38,0.25)]" style={{ left: Math.min(Math.max(hoverX, 76), W - 76), transform: "translateX(-50%)" }}>
+            <p className="text-xs text-secondary">
+              {labelOf(hb)}
               {hb.partial && ` · ${byLocale(locale, L.toDate)}`}
             </p>
             <p className="font-latin mt-0.5 text-base font-bold leading-tight text-purple-900 tabular-nums">
-              {fmt.format(hb.value)} <span className="text-[10px] font-medium text-secondary">ct/kWh</span>
+              {fmt.format(hb.value)} <span className="text-xs font-medium text-secondary">ct/kWh</span>
             </p>
-            <p className="mt-0.5 text-[10px] leading-tight text-secondary">
-              {byLocale(locale, L.perPoint[preset])}
-              {hoverChange !== null && (
-                <span className="font-latin ms-1.5 tabular-nums" dir="ltr">
-                  {hoverChange > 0 ? "▲ +" : hoverChange < 0 ? "▼ " : ""}
-                  {pct.format(hoverChange * 100)}%
-                </span>
-              )}
-            </p>
+            <p className="mt-0.5 text-[11px] leading-tight text-secondary">{byLocale(locale, L.monthAverage)}</p>
           </div>
         )}
       </div>
 
+      {/* the point of the section */}
+      <p className="mt-4 flex items-start gap-2.5 rounded-lg bg-purple-600/[0.07] px-3 py-2.5 text-sm font-semibold leading-snug text-purple-900">
+        <LockKey size={18} weight="fill" className="mt-0.5 shrink-0 text-purple-600" aria-hidden />
+        <span>{byLocale(locale, L.guarantee)}</span>
+      </p>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-secondary">{byLocale(locale, L.subtitle)}</p>
+
       {/* screen-reader equivalent of the chart + the hovered point */}
       <p className="sr-only" aria-live="polite">
-        {hb ? `${longLabel(hb)}: ${fmt.format(hb.value)} ${byLocale(locale, L.unitName)}` : ""}
+        {hb ? `${labelOf(hb)}: ${fmt.format(hb.value)} ${byLocale(locale, L.unitName)}` : ""}
       </p>
       {ready && (
         <table className="sr-only">
@@ -408,7 +375,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
           <tbody>
             {buckets.map((b) => (
               <tr key={b.start}>
-                <th scope="row">{longLabel(b)}</th>
+                <th scope="row">{labelOf(b)}</th>
                 <td>{`${fmt.format(b.value)} ct/kWh`}</td>
               </tr>
             ))}
@@ -416,7 +383,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
         </table>
       )}
 
-      <p className="mt-3 border-t border-border pt-3 text-[10px] leading-relaxed text-secondary">
+      <p className="mt-2 border-t border-border pt-2 text-[11px] leading-relaxed text-secondary">
         {byLocale(locale, L.sourceLead)}:{" "}
         {series ? (
           <a href={series.source.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-purple-600">
