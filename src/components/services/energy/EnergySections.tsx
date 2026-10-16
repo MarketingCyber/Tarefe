@@ -18,6 +18,7 @@ import type { EnergyPageContent } from "@/lib/energy-page-content";
 import { Reveal } from "@/components/shared/Reveal";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
 import { PriceGuaranteeChart } from "./PriceGuaranteeChart";
+import { MarketPriceChart } from "./MarketPriceChart";
 
 /**
  * The electricity / gas page sections that replace PlpView's generic
@@ -167,7 +168,8 @@ export function EnergyWhyNow({ locale, content }: SectionProps) {
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-body">{byLocale(locale, whyNow.callout.body)}</p>
-            <PriceGuaranteeChart locale={locale} labels={whyNow.callout.chart} />
+            {/* Live wholesale prices; the number-free schematic stays as the fallback when the feed is unavailable. */}
+            <MarketPriceChart commodity={content.kind} locale={locale} fallback={<PriceGuaranteeChart locale={locale} labels={whyNow.callout.chart} />} />
           </div>
           <p className="mt-5 text-base font-semibold leading-relaxed text-purple-900">{byLocale(locale, whyNow.closing)}</p>
         </div>

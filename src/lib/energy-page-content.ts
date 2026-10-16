@@ -32,6 +32,8 @@ export type EnergyKind = "electricity" | "gas";
 type LT = LocalizedText;
 
 export interface EnergyPageContent {
+  /** Which commodity this page is about — picks the live price feed for the chart in `whyNow`. */
+  kind: EnergyKind;
   situations: {
     title: LT;
     grundversorger: { term: string; label: LT; heading: LT; text: LT; intro: LT; bullets: LT[]; cta: LT };
@@ -89,6 +91,7 @@ function build(kind: EnergyKind): EnergyPageContent {
   const { fa: n, de: P, deYour: Y, ru: r } = VOCAB[kind];
 
   return {
+    kind,
     // One block, two situations: what each supply route is AND what the
     // visitor can do about it.
     situations: {
