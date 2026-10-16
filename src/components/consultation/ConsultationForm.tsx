@@ -135,7 +135,7 @@ export function ConsultationForm({
     setError(false);
 
     const form = new FormData(e.currentTarget);
-    const { first, last } = getAttribution();
+    const { first, last, visit } = getAttribution();
     const consentAccepted = getConsent() === "accepted";
     try {
       const send = (formToken: string | null) =>
@@ -163,6 +163,11 @@ export function ConsultationForm({
           utmLastCampaign: last?.campaign,
           utmLastTerm: last?.term,
           utmLastContent: last?.content,
+          utmVisitSource: visit?.source,
+          utmVisitMedium: visit?.medium,
+          utmVisitCampaign: visit?.campaign,
+          utmVisitTerm: visit?.term,
+          utmVisitContent: visit?.content,
           consentAccepted,
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
         }),

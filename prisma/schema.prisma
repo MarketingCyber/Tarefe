@@ -149,6 +149,13 @@ model Lead {
   utmLastCampaign  String?
   utmLastTerm      String?
   utmLastContent   String?
+  // The visit in which the form was submitted (see AnalyticsEvent) — shows e.g.
+  // "first came from Google Ads, submitted on a later direct visit".
+  utmVisitSource   String?
+  utmVisitMedium   String?
+  utmVisitCampaign String?
+  utmVisitTerm     String?
+  utmVisitContent  String?
 
   assignedAdvisorId String?
   assignedAdvisor   User?   @relation("AssignedAdvisor", fields: [assignedAdvisorId], references: [id])
@@ -386,10 +393,31 @@ model AnalyticsEvent {
   utmLastTerm      String?
   utmLastContent   String?
 
+  // 2026-10-16: THIS visit's own source — classified when the visit began from
+  // utm_* / click ids (gclid…) / referrer, and "(direct) / (none)" when there
+  // was none of those. Unlike first/last (which keep the last NON-direct touch
+  // for a returning visitor), this is what the traffic-source reports use by
+  // default, so "Direct" really means visits that arrived directly.
+  utmVisitSource   String?
+  utmVisitMedium   String?
+  utmVisitCampaign String?
+  utmVisitTerm     String?
+  utmVisitContent  String?
+
+  // Coarse buckets derived server-side from the User-Agent header in
+  // /api/events (see src/lib/user-agent.ts) — added 2026-10-15 for the
+  // analytics explorer's device/browser/OS dimensions. The raw UA string is
+  // deliberately NOT stored: bucketed values are enough for reporting and
+  // far less identifying.
+  device  String? // mobile | tablet | desktop
+  browser String?
+  os      String?
+
   createdAt DateTime @default(now())
 
   @@index([name, createdAt])
   @@index([sessionId])
+  @@index([createdAt])
   @@map("analytics_events")
 }
 
@@ -703,4 +731,32 @@ model EnergyTariffPriceRow {
 
   @@index([tariffId, plz, consumptionFromKwh, consumptionToKwh])
   @@map("energy_tariff_price_rows")
+}
+
+/// 2026-10-16: cookie-free landing counter, written by src/proxy.ts for every full
+/// page load (not SPA navigations). Nothing is stored on the visitor's device and
+/// no IP / user-agent string / URL query is stored: `visitor` is an HMAC of
+/// IP + user agent under a key that changes every day, so it can count unique
+/// visitors within a day but cannot recognise or link a person across days.
+/// Exists so ad clicks are visible even though most visitors never touch the
+/// cookie banner (which gates AnalyticsEvent). See src/lib/landing-hits.ts.
+model LandingHit {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  path      String // pathname only, no query string
+  locale    Locale?
+  source    String // "google", "(direct)", "instagram", a referring host …
+  medium    String // "cpc", "organic", "social", "referral", "(none)", a utm_medium
+  campaign  String?
+  term      String?
+  content   String?
+  clickId   String? // which paid click id was present ("gclid", "msclkid" …) — the id's value is never stored
+  device    String?
+  browser   String?
+  os        String?
+  visitor   String // daily-rotating anonymous hash, see above
+
+  @@index([createdAt])
+  @@index([visitor, createdAt])
+  @@map("landing_hits")
 }

@@ -37,6 +37,12 @@ export const EVENT = {
   LOGIN: "login",
   LOGOUT: "logout",
   WEB_VITAL: "web_vital",
+  // Added 2026-10-15 for the analytics explorer's funnel — the electricity/
+  // gas pages are the main acquisition path and had NO event between "page
+  // view" and "form submitted": no way to see who used the calculator or
+  // clicked a tariff card.
+  ENERGY_CALCULATOR_USED: "energy_calculator_used",
+  TARIFF_CTA_CLICKED: "tariff_cta_clicked",
   // Below this line: fired via trackServer() (see analytics-server.ts) from
   // inside a Server Action, not the client track() below — these are
   // staff-triggered CRM lifecycle events with no browser session of their
@@ -60,68 +66,132 @@ export type EventName = (typeof EVENT)[keyof typeof EVENT];
 /**
  * Marketing attribution, captured client-side and stamped onto every event
  * (see track() below) and onto Lead at submission time (ConsultationForm).
- * Two snapshots, both read from the same five UTM params:
- *  - "first": written once, the first time this browser ever carries UTM
- *    params, never overwritten after — "what channel actually brought this
- *    person to us", survives a return visit weeks later via a bookmark.
- *  - "last": overwritten every time a new visit carries UTM params —
- *    "what was the most recent campaign that drove this action", the model
- *    paid-ads platforms use for conversion attribution.
- * Same consent gate as sessionId below: only captured once cookie consent
- * is "accepted" (TTDSG), so pre-consent campaign visits legitimately go
- * unattributed — an accepted limitation, not a bug.
+ * Three snapshots, each the same five fields (source / medium / campaign /
+ * term / content):
+ *  - "visit": THIS visit's own classification — utm_* params, else a paid
+ *    click id (gclid…), else the referrer (organic / social / referral), else
+ *    "(direct) / (none)". The traffic-source reports use this by default, so
+ *    "Direct" means visits that really arrived directly.
+ *  - "first": written once, the first time this browser is seen, never
+ *    overwritten after — "what channel actually brought this person to us".
+ *  - "last": the last NON-direct touch, overwritten whenever a visit carries a
+ *    real source — the model paid-ads platforms use for conversion attribution.
+ *    A direct visit never erases it.
+ * Same consent gate as sessionId below: only STORED once cookie consent is
+ * "accepted" (TTDSG). The landing URL/referrer are *read* (not stored) as soon
+ * as the script loads and kept in memory only, so a visitor who accepts the
+ * banner on the second page still gets the source they arrived with.
  */
-export interface UtmSnapshot {
-  source?: string;
-  medium?: string;
-  campaign?: string;
-  term?: string;
-  content?: string;
-}
+import { DIRECT, classifySource, type Classification, type UtmSnapshot } from "./traffic-source";
+export type { UtmSnapshot, Classification } from "./traffic-source";
+export { classifySource, deriveFromReferrer, DIRECT } from "./traffic-source";
 
+// sessionStorage (per tab): this tab's current visit classification + last activity time.
+const VISIT_KEY = "tarefe:visit";
+// localStorage: the most recent visit (any tab) — lets a link opened in a NEW tab from our own site continue that visit instead of looking "direct".
+const VISIT_LAST_KEY = "tarefe:visit_last";
 const UTM_FIRST_KEY = "tarefe:utm_first";
 const UTM_LAST_KEY = "tarefe:utm_last";
+// localStorage: set by opening any page with ?internal=1 — see isInternalTraffic().
+const INTERNAL_KEY = "tarefe:internal_traffic";
+/** Same 30-minute inactivity rule the dashboard uses to split visits into sessions. */
+const VISIT_GAP_MS = 30 * 60 * 1000;
 
-function readUtmFromLocation(): UtmSnapshot | null {
-  const params = new URLSearchParams(window.location.search);
-  const snapshot: UtmSnapshot = {
-    source: params.get("utm_source") ?? undefined,
-    medium: params.get("utm_medium") ?? undefined,
-    campaign: params.get("utm_campaign") ?? undefined,
-    term: params.get("utm_term") ?? undefined,
-    content: params.get("utm_content") ?? undefined,
-  };
-  return Object.values(snapshot).some(Boolean) ? snapshot : null;
+
+/**
+ * The landing classification, read once as soon as this module loads in the
+ * browser — BEFORE any consent. It is held in memory only (nothing is written
+ * to storage), so a visitor who accepts cookies on page 2 still has the
+ * source of page 1. A full page reload re-reads it from the new document, where
+ * the referrer is already our own site, so it then falls back to the stored visit.
+ */
+const landing: Classification | null = typeof window !== "undefined" ? classifySource(window.location.search, document.referrer, window.location.hostname) : null;
+
+/**
+ * Team members can opt their own browser out of analytics by opening any
+ * page once with ?internal=1 (and back in with ?internal=0). Stored in
+ * localStorage; track() then records nothing from that browser.
+ */
+function isInternalTraffic(): boolean {
+  try {
+    const flag = new URLSearchParams(window.location.search).get("internal");
+    if (flag === "1") window.localStorage.setItem(INTERNAL_KEY, "1");
+    else if (flag === "0") window.localStorage.removeItem(INTERNAL_KEY);
+    return window.localStorage.getItem(INTERNAL_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
-function readStoredUtm(key: string): UtmSnapshot | null {
+interface StoredVisit {
+  snap: UtmSnapshot;
+  at: number;
+}
+
+function readJson<T>(storage: Storage, key: string): T | null {
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as UtmSnapshot) : null;
+    const raw = storage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-/** Call on every page view — cheap no-op when the current URL has no UTM params. */
-function captureUtm(): void {
-  try {
-    const fromUrl = readUtmFromLocation();
-    if (!fromUrl) return;
-    window.localStorage.setItem(UTM_LAST_KEY, JSON.stringify(fromUrl));
-    if (!window.localStorage.getItem(UTM_FIRST_KEY)) {
-      window.localStorage.setItem(UTM_FIRST_KEY, JSON.stringify(fromUrl));
-    }
-  } catch {
-    // localStorage unavailable — this visit's attribution just isn't captured.
-  }
+function readStoredUtm(key: string): UtmSnapshot | null {
+  return readJson<UtmSnapshot>(window.localStorage, key);
 }
 
-/** First-touch and last-touch snapshots as currently stored — read by track() and by ConsultationForm (for Lead's own attribution fields). */
-export function getAttribution(): { first: UtmSnapshot | null; last: UtmSnapshot | null } {
-  if (getConsent() !== "accepted") return { first: null, last: null };
-  captureUtm();
-  return { first: readStoredUtm(UTM_FIRST_KEY), last: readStoredUtm(UTM_LAST_KEY) };
+/**
+ * This visit's classification — computed once per visit and cached for the
+ * tab, refreshed after 30 minutes of inactivity. See the file header for the
+ * decision order. Also keeps the visitor's first / last-non-direct touch.
+ */
+function resolveVisit(): UtmSnapshot {
+  const now = Date.now();
+  const stored = readJson<StoredVisit>(window.sessionStorage, VISIT_KEY);
+  const fresh = !!stored && now - stored.at < VISIT_GAP_MS;
+  const here = classifySource(window.location.search, document.referrer, window.location.hostname);
+
+  let snap: UtmSnapshot;
+  if (here.fromUrl && here.snap) {
+    snap = here.snap; // this very URL carries a campaign / click id
+  } else if (fresh && stored) {
+    snap = stored.snap; // same visit, later page
+  } else if (!stored) {
+    // First classification in this tab. Prefer what the landing document had at load time.
+    const l = landing ?? here;
+    if (l.snap) snap = l.snap;
+    else if (l.internal) {
+      // Opened from one of our own pages in a new tab: continue that visit if it was recent.
+      const last = readJson<StoredVisit>(window.localStorage, VISIT_LAST_KEY);
+      snap = last && now - last.at < VISIT_GAP_MS ? last.snap : DIRECT;
+    } else snap = DIRECT;
+  } else {
+    snap = DIRECT; // a tab left idle for 30+ minutes and used again: a new visit with no source signal
+  }
+
+  try {
+    const entry: StoredVisit = { snap, at: now };
+    window.sessionStorage.setItem(VISIT_KEY, JSON.stringify(entry));
+    window.localStorage.setItem(VISIT_LAST_KEY, JSON.stringify(entry));
+    const isDirect = snap.source === DIRECT.source && snap.medium === DIRECT.medium;
+    if (!window.localStorage.getItem(UTM_FIRST_KEY)) window.localStorage.setItem(UTM_FIRST_KEY, JSON.stringify(snap));
+    if (!isDirect || !window.localStorage.getItem(UTM_LAST_KEY)) window.localStorage.setItem(UTM_LAST_KEY, JSON.stringify(snap));
+  } catch {
+    // storage unavailable — this visit's attribution just isn't remembered between pages.
+  }
+  return snap;
+}
+
+/** Visit / first-touch / last-touch snapshots — read by track() and by ConsultationForm (for Lead's own attribution fields). */
+export function getAttribution(): { first: UtmSnapshot | null; last: UtmSnapshot | null; visit: UtmSnapshot | null } {
+  if (getConsent() !== "accepted") return { first: null, last: null, visit: null };
+  try {
+    const visit = resolveVisit();
+    return { first: readStoredUtm(UTM_FIRST_KEY) ?? visit, last: readStoredUtm(UTM_LAST_KEY) ?? visit, visit };
+  } catch {
+    return { first: null, last: null, visit: null };
+  }
 }
 
 const SESSION_KEY = "tarefe:session_id";
@@ -172,11 +242,12 @@ function getSessionId(): string | null {
 
 export function track(name: EventName, props: { path?: string; locale?: string; category?: string; service?: string; metadata?: Record<string, unknown> } = {}) {
   if (getConsent() !== "accepted") return;
+  if (isInternalTraffic()) return; // a team member who opted out with ?internal=1
 
   const sessionId = getSessionId();
   if (!sessionId) return;
 
-  const { first, last } = getAttribution();
+  const { first, last, visit } = getAttribution();
   const body = JSON.stringify({
     name,
     sessionId,
@@ -191,6 +262,11 @@ export function track(name: EventName, props: { path?: string; locale?: string; 
     utmLastCampaign: last?.campaign,
     utmLastTerm: last?.term,
     utmLastContent: last?.content,
+    utmVisitSource: visit?.source,
+    utmVisitMedium: visit?.medium,
+    utmVisitCampaign: visit?.campaign,
+    utmVisitTerm: visit?.term,
+    utmVisitContent: visit?.content,
   });
 
   try {

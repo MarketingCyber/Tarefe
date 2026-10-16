@@ -1,186 +1,231 @@
+import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { EVENT } from "@/lib/analytics";
 import { canAccessAnalytics } from "@/lib/permissions";
-
-const DAYS = 30;
-
-const EVENT_LABEL: Record<string, string> = {
-  page_view: "بازدید صفحه",
-  search: "جستجوها",
-  comparison_started: "مقایسه‌های شروع‌شده",
-  qualification_started: "ویزاردهای صلاحیت‌سنجی شروع‌شده",
-  qualification_completed: "ویزاردهای صلاحیت‌سنجی تکمیل‌شده",
-  consultation_form_started: "فرم‌های مشاوره شروع‌شده",
-  consultation_submitted: "مشاوره‌های ارسال‌شده",
-  whatsapp_clicked: "کلیک‌های واتساپ",
-  phone_clicked: "کلیک‌های تماس تلفنی",
-  signup: "ثبت‌نام‌ها",
-  login: "ورودها",
-  logout: "خروج‌ها",
-  web_vital: "نمونه‌های وب وایتالز",
-  mfa_enabled: "فعال‌سازی احراز هویت دومرحله‌ای",
-  mfa_disabled: "غیرفعال‌سازی احراز هویت دومرحله‌ای",
-  lead_status_changed: "تغییر وضعیت سرنخ",
-  application_created: "درخواست‌های ثبت‌شده",
-  application_approved: "درخواست‌های تاییدشده",
-  contract_created: "قراردادهای ایجادشده",
-  contract_cancelled: "قراردادهای لغوشده",
-  ticket_created: "تیکت‌های ثبت‌شده",
-  document_uploaded: "مدارک بارگذاری‌شده",
-};
-
-const VITAL_LABEL: Record<string, string> = { LCP: "Largest Contentful Paint", CLS: "Cumulative Layout Shift", INP: "Interaction to Next Paint", FCP: "First Contentful Paint", TTFB: "Time to First Byte" };
-const VITAL_ORDER = ["LCP", "INP", "CLS", "FCP", "TTFB"];
-
-function formatVitalValue(name: string, value: number): string {
-  if (name === "CLS") return value.toFixed(3);
-  if (value >= 1000) return `${(value / 1000).toFixed(2)}s`;
-  return `${Math.round(value)}ms`;
-}
-
-/** Percentile of a pre-sorted array — p75 is the standard Core Web Vitals reporting percentile (matches Chrome UX Report / Lighthouse convention). */
-function percentile(sortedValues: number[], p: number): number {
-  if (sortedValues.length === 0) return 0;
-  const index = Math.min(sortedValues.length - 1, Math.floor(p * sortedValues.length));
-  return sortedValues[index];
-}
+import { METRICS, SRC_DIMS, DEV_DIMS, breakdownFor, filtersToQuery, parseFilters, resolveRange, webVitalSamples, type Dim, type MetricKey, type TrendKpi } from "@/lib/analytics-report";
+import { buildDashboard } from "@/lib/analytics-dashboard";
+import { DashboardShell, NavLink } from "@/components/analytics/DashboardShell";
+import { Toolbar } from "@/components/analytics/Toolbar";
+import { StatTiles } from "@/components/analytics/StatTiles";
+import { TrendCard, type Tab } from "@/components/analytics/TrendCard";
+import { DevicesCard, EventsCard, FunnelCard, Insights, LandingCard, ServerVisitsSection, SourcesCard } from "@/components/analytics/Panels";
+import { AdvancedSection } from "@/components/analytics/Advanced";
+import { DIM_LABEL, KPI_PLAIN, dimValueLabel } from "@/components/analytics/labels";
 
 /**
- * Real counts from AnalyticsEvent — no placeholder charts, no invented
- * trend lines. A brand-new deployment will legitimately show mostly zeros
- * until real visitors generate events; that's the honest state, not a
- * bug to paper over with fake data.
+ * Analytics dashboard (v2, 2026-10-15) — rebuilt around questions, not controls.
+ *
+ *   one slim toolbar  →  a plain-language summary  →  headline tiles
+ *   →  one trend  →  "where from / how many convert / which pages / which
+ *   device / what do they do"  →  collapsed power tools.
+ *
+ * Every filter, tab and range is a LINK to this same page with different
+ * query params (see DashboardShell): there are no Apply buttons, the URL is
+ * the entire state, and any view can be bookmarked or shared. The engine is
+ * unchanged from the explorer (lib/analytics-report.ts — read its header for
+ * what a "session" is and the honest limits); this page only chooses what to
+ * show and says it in plain words.
  */
-export default async function AnalyticsPage() {
+export const dynamic = "force-dynamic";
+
+const TREND_TABS: TrendKpi[] = ["sessions", "users", "leads_crm", "conv_rate", "median_duration", "pages_per_session"];
+const SPLIT_DIMS: Dim[] = ["channel", "source", "device", "locale", "landing_group", "visitor_type"];
+
+const VITAL_ORDER = ["LCP", "INP", "CLS", "FCP", "TTFB"];
+const VITAL_LABEL: Record<string, string> = { LCP: "Main content load", INP: "Response to clicks", CLS: "Layout stability", FCP: "First paint", TTFB: "Server response" };
+
+function formatVital(name: string, v: number): string {
+  if (name === "CLS") return v.toFixed(3);
+  return v >= 1000 ? `${(v / 1000).toFixed(2)}s` : `${Math.round(v)}ms`;
+}
+const percentile = (sorted: number[], p: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] : 0);
+
+export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
   if (!canAccessAnalytics(session?.user?.role)) redirect("/ops");
 
-  const since = new Date(new Date().getTime() - DAYS * 24 * 60 * 60 * 1000);
-
-  const [byName, topPaths, totalSessions, webVitalEvents] = await Promise.all([
-    prisma.analyticsEvent.groupBy({ by: ["name"], where: { createdAt: { gte: since } }, _count: { _all: true } }),
-    prisma.analyticsEvent.groupBy({
-      by: ["path"],
-      where: { createdAt: { gte: since }, name: EVENT.PAGE_VIEW, path: { not: null } },
-      _count: { _all: true },
-      orderBy: { _count: { path: "desc" } },
-      take: 10,
-    }),
-    prisma.analyticsEvent.findMany({ where: { createdAt: { gte: since } }, distinct: ["sessionId"], select: { sessionId: true } }),
-    // Core Web Vitals (Phase 12.3) — p75 computed here rather than via SQL
-    // aggregation: the current data volume is small enough (first-party,
-    // consent-gated, one niche site) that pulling matching rows into Node
-    // is simpler and more portable than a raw percentile_cont query, and
-    // metadata is a Json field Prisma can't aggregate over directly anyway.
-    prisma.analyticsEvent.findMany({ where: { createdAt: { gte: since }, name: EVENT.WEB_VITAL }, select: { metadata: true } }),
+  const f = parseFilters(await searchParams);
+  const { range } = resolveRange(f);
+  const [d, adv, vitalRows] = await Promise.all([
+    buildDashboard(f),
+    f.adv ? breakdownFor(f, range) : Promise.resolve(null),
+    webVitalSamples(range),
   ]);
 
-  const vitalsByMetric: Record<string, { value: number; rating: string }[]> = {};
-  for (const event of webVitalEvents) {
-    const meta = event.metadata as { name?: string; value?: number; rating?: string } | null;
-    if (!meta?.name || typeof meta.value !== "number") continue;
-    (vitalsByMetric[meta.name] ??= []).push({ value: meta.value, rating: meta.rating ?? "" });
+  // ---------------------------------------------------------------- trend card props
+  const kpi = f.trendKpis[0];
+  const meta = KPI_PLAIN[kpi] ?? { label: METRICS[kpi as MetricKey].label, hint: METRICS[kpi as MetricKey].hint };
+  const format = kpi === "leads_crm" ? "int" : METRICS[kpi as MetricKey].format;
+  const href = (over: Record<string, string | undefined>) => `?${filtersToQuery(f, over)}`;
+  const trendTabs: Tab[] = TREND_TABS.map((k) => ({ label: KPI_PLAIN[k].label, href: href({ kpi: k, k: k }), active: kpi === k }));
+  const splitOptions: Tab[] = [
+    { label: "No split", href: href({ split: undefined }), active: !f.trendSplit },
+    ...SPLIT_DIMS.map((dim) => ({ label: DIM_LABEL[dim], href: href({ split: dim }), active: f.trendSplit === dim })),
+  ];
+  const series = d.trend.series.map((s) => ({
+    name: f.trendSplit ? (s.name === "Other" ? "Other" : dimValueLabel(f.trendSplit, s.name)) : meta.label,
+    values: s.values,
+    previous: s.previous,
+  }));
+
+  // ---------------------------------------------------------------- web vitals
+  const vitals: Record<string, { value: number; rating: string }[]> = {};
+  for (const row of vitalRows) {
+    const m = row.metadata as { name?: string; value?: number; rating?: string } | null;
+    if (m?.name && typeof m.value === "number") (vitals[m.name] ??= []).push({ value: m.value, rating: m.rating ?? "" });
   }
-  const vitalStats = VITAL_ORDER.filter((name) => vitalsByMetric[name]?.length).map((name) => {
-    const samples = vitalsByMetric[name];
-    const sortedValues = samples.map((s) => s.value).sort((a, b) => a - b);
-    const goodCount = samples.filter((s) => s.rating === "good").length;
-    return { name, p75: percentile(sortedValues, 0.75), goodPct: Math.round((goodCount / samples.length) * 100), sampleCount: samples.length };
+  const vitalStats = VITAL_ORDER.filter((n) => vitals[n]?.length).map((n) => {
+    const s = vitals[n];
+    const sorted = s.map((x) => x.value).sort((a, b) => a - b);
+    return { name: n, p75: percentile(sorted, 0.75), good: Math.round((s.filter((x) => x.rating === "good").length / s.length) * 100), count: s.length };
   });
 
-  const countByName = Object.fromEntries(byName.map((b) => [b.name, b._count._all]));
-  const formStarted = countByName[EVENT.CONSULTATION_FORM_STARTED] ?? 0;
-  const submitted = countByName[EVENT.CONSULTATION_SUBMITTED] ?? 0;
-  const conversionRate = formStarted > 0 ? Math.round((submitted / formStarted) * 100) : null;
-
-  const qualStarted = countByName[EVENT.QUALIFICATION_STARTED] ?? 0;
-  const qualCompleted = countByName[EVENT.QUALIFICATION_COMPLETED] ?? 0;
-  const qualRate = qualStarted > 0 ? Math.round((qualCompleted / qualStarted) * 100) : null;
-
   return (
-    <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">آنالیتیکس</h1>
-      <p className="mt-1 text-sm text-secondary">{DAYS} روز اخیر، ردیابی رویداد مستقیم توسط خود سایت — بدون سرویس شخص ثالث، بدون آمار ساختگی.</p>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-white p-5">
-          <p className="text-xs text-secondary">سشن‌های یکتا</p>
-          <p className="font-latin mt-1 text-3xl font-bold text-purple-900">{totalSessions.length}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-white p-5">
-          <p className="text-xs text-secondary">نرخ تبدیل فرم مشاوره</p>
-          <p className="font-latin mt-1 text-3xl font-bold text-purple-900">{conversionRate === null ? "—" : `${conversionRate}%`}</p>
-          <p className="mt-1 text-xs text-secondary">
-            {submitted} از {formStarted} فرم شروع‌شده ارسال شد
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-white p-5">
-          <p className="text-xs text-secondary">نرخ تکمیل ویزارد صلاحیت‌سنجی</p>
-          <p className="font-latin mt-1 text-3xl font-bold text-purple-900">{qualRate === null ? "—" : `${qualRate}%`}</p>
-          <p className="mt-1 text-xs text-secondary">
-            {qualCompleted} از {qualStarted} ویزارد شروع‌شده تکمیل شد
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 rounded-xl border border-border bg-white p-5">
-        <h2 className="text-sm font-bold text-purple-900">وب وایتالز</h2>
-        <p className="mt-1 text-xs text-secondary">p75 (صدک ۷۵ام) — روش استاندارد گزارش‌دهی وب وایتالز. فقط بازدیدکنندگانی که رضایت آنالیتیکس را پذیرفته‌اند شمارش می‌شوند.</p>
-        {vitalStats.length === 0 ? (
-          <p className="mt-4 text-sm text-secondary">هنوز نمونه‌ای از وب وایتالز در این بازه ثبت نشده.</p>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {vitalStats.map((v) => (
-              <div key={v.name} className="rounded-lg bg-tint p-3">
-                <p className="font-latin text-xs font-semibold text-secondary" title={VITAL_LABEL[v.name]}>
-                  {v.name}
-                </p>
-                <p className="font-latin mt-1 text-xl font-bold text-purple-900">{formatVitalValue(v.name, v.p75)}</p>
-                <p className={`mt-1 text-xs font-medium ${v.goodPct >= 75 ? "text-success" : v.goodPct >= 50 ? "text-warning" : "text-danger"}`}>{v.goodPct}٪ خوب</p>
-                <p className="font-latin text-[10px] text-secondary">{v.sampleCount} نمونه</p>
-              </div>
-            ))}
-          </div>
+    <div dir="ltr" lang="en" className="container-page py-8 text-left">
+      <h1 className="text-2xl font-bold text-purple-900">Analytics</h1>
+      <p className="mt-1 max-w-[85ch] text-sm leading-relaxed text-secondary">
+        Who visits the site, where they come from, and how many become customers. Only visitors who accepted cookies are tracked, so these numbers are a sample of the traffic, not all of it.
+        {d.trackedSince && (
+          <>
+            {" "}
+            Data available since <span className="font-latin">{d.trackedSince}</span>.
+          </>
         )}
-      </div>
+      </p>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-white p-5">
-          <h2 className="mb-4 text-sm font-bold text-purple-900">رویدادها بر اساس نوع</h2>
-          {byName.length === 0 ? (
-            <p className="text-sm text-secondary">هنوز رویدادی در این بازه ثبت نشده.</p>
+      <DashboardShell>
+        <div className="mt-6">
+          <Toolbar d={d} />
+        </div>
+
+        <div className="mt-6">
+          <Insights lines={d.insights} />
+        </div>
+
+        <div className="mt-4">
+          <ServerVisitsSection d={d} srcDims={SRC_DIMS} devDims={DEV_DIMS} />
+        </div>
+
+        <h2 className="mt-10 text-lg font-bold text-purple-900">Visitors who accepted cookies</h2>
+        <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
+          Everything below comes from cookie-based tracking, so it only covers visitors who accepted the cookie banner. It adds what the section above cannot see: pages per visit, visit length, the funnel, forms and clicks.
+        </p>
+
+        {!d.hasData ? (
+          <div className="mt-4 rounded-2xl border border-border bg-tint px-6 py-10 text-center">
+            <p className="text-base font-semibold text-purple-900">No cookie-tracked visits in this period</p>
+            <p className="mt-1 text-sm text-secondary">Nobody who accepted cookies visited in this period, or the filters exclude them. Choose a longer period or remove some filters.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <NavLink href={href({ p: "90d", from: undefined, to: undefined })} className="press rounded-full bg-purple-600 px-5 py-2 text-sm font-semibold text-white hover:bg-purple-900">
+                Last 90 days
+              </NavLink>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4">
+              <StatTiles d={d} />
+              {d.compareEmpty && (
+                <p className="mt-3 rounded-lg bg-tint px-3 py-2 text-xs text-secondary">
+                  The previous period (<span className="font-latin">{d.previous.from}</span> to <span className="font-latin">{d.previous.to}</span>) has no tracked visits, so there is nothing to compare with.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6">
+              <TrendCard
+                title={meta.label}
+                hint={meta.hint}
+                format={format}
+                buckets={d.trend.buckets}
+                unit={d.trend.unit}
+                series={series}
+                tabs={trendTabs}
+                splitLabel={f.trendSplit ? `Split by: ${DIM_LABEL[f.trendSplit]}` : "Split lines"}
+                splitOptions={splitOptions}
+                compare={f.compare && !d.compareEmpty}
+                note={d.trend.leadsUnavailable ? "CRM leads cannot be shown with this filter or split because the leads table does not store that information." : undefined}
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
+              <SourcesCard d={d} dims={SRC_DIMS} />
+              <FunnelCard d={d} />
+              <LandingCard d={d} />
+              <DevicesCard d={d} dims={DEV_DIMS} />
+              <EventsCard d={d} />
+            </div>
+          </>
+        )}
+
+        <div className="mt-8">
+          <AdvancedSection filters={f} eventNames={d.options.events} breakdown={adv} totals={adv ? d.totals : null} />
+        </div>
+      </DashboardShell>
+
+      <details className="group mt-4 rounded-2xl border border-border bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 text-base font-bold text-purple-900 transition-colors hover:bg-tint [&::-webkit-details-marker]:hidden">
+          Site performance and speed
+          <CaretDown size={16} className="shrink-0 text-secondary transition-transform duration-150 group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-border p-5">
+          {vitalStats.length === 0 ? (
+            <p className="text-sm text-secondary">No samples recorded in this period yet.</p>
           ) : (
-            <ul className="space-y-2.5">
-              {byName
-                .sort((a, b) => b._count._all - a._count._all)
-                .map((row) => (
-                  <li key={row.name} className="flex items-center justify-between text-sm">
-                    <span className="text-body">{EVENT_LABEL[row.name] ?? row.name}</span>
-                    <span className="font-latin font-semibold text-purple-900">{row._count._all}</span>
-                  </li>
+            <>
+              <p className="mb-3 text-xs text-secondary">p75 (75% of visits were faster than this value). Only the date range applies here.</p>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {vitalStats.map((v) => (
+                  <div key={v.name} className="rounded-xl bg-tint p-3">
+                    <p className="text-xs text-secondary">{VITAL_LABEL[v.name]}</p>
+                    <p className="font-latin mt-1 text-xl font-bold text-purple-900">{formatVital(v.name, v.p75)}</p>
+                    <p className={`mt-1 text-xs font-medium ${v.good >= 75 ? "text-success" : v.good >= 50 ? "text-warning" : "text-danger"}`}>{v.good}% good</p>
+                    <p className="font-latin text-[10px] text-secondary">
+                      {v.name} · {v.count} samples
+                    </p>
+                  </div>
                 ))}
-            </ul>
+              </div>
+            </>
           )}
         </div>
+      </details>
 
-        <div className="rounded-xl border border-border bg-white p-5">
-          <h2 className="mb-4 text-sm font-bold text-purple-900">پربازدیدترین صفحات</h2>
-          {topPaths.length === 0 ? (
-            <p className="text-sm text-secondary">هنوز بازدید صفحه‌ای در این بازه ثبت نشده.</p>
-          ) : (
-            <ul className="space-y-2.5">
-              {topPaths.map((row) => (
-                <li key={row.path} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-latin truncate text-body">{row.path}</span>
-                  <span className="font-latin shrink-0 font-semibold text-purple-900">{row._count._all}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <details className="group mt-4 rounded-2xl border border-border bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 text-base font-bold text-purple-900 transition-colors hover:bg-tint [&::-webkit-details-marker]:hidden">
+          About these numbers
+          <CaretDown size={16} className="shrink-0 text-secondary transition-transform duration-150 group-open:rotate-180" />
+        </summary>
+        <ul className="list-disc space-y-2 border-t border-border p-5 ps-10 text-xs leading-relaxed text-secondary">
+          <li>
+            <b className="text-body">All visits (no cookies):</b> the first section is counted on our server for every full page load by a real browser. It stores no IP address, no user-agent text and nothing on the visitor&apos;s device; people are told apart only by a code that changes every day. Bots, crawlers, prefetches and in-site navigation are excluded, and your own team&apos;s visits are included. A visit is one or more page loads by the same visitor less than 30 minutes apart. Counting started on the day this was released, so earlier days are empty.
+          </li>
+          <li>
+            <b className="text-body">Cookie consent:</b> visitors who have not accepted cookies are not tracked at all, so visit numbers are a sample. The lead count (CRM) comes from the leads table and is complete.
+          </li>
+          <li>
+            <b className="text-body">How a visit&apos;s source is decided</b> (first match wins): ① UTM tags in the link (<span className="font-latin">utm_source</span> / <span className="font-latin">utm_medium</span>) → ② an ad click id: Google Ads <span className="font-latin">gclid</span> / <span className="font-latin">gbraid</span> / <span className="font-latin">wbraid</span> counts as <span className="font-latin">google / cpc</span> (campaign shown as &quot;(auto-tagged)&quot; unless you also add <span className="font-latin">utm_campaign</span>), Bing <span className="font-latin">msclkid</span> as <span className="font-latin">bing / cpc</span> → ③ the site the visitor came from: a search engine = <span className="font-latin">organic</span>, a social network = <span className="font-latin">social</span>, any other website = <span className="font-latin">referral</span> → ④ nothing at all = <span className="font-latin">(direct) / (none)</span>. Moving between pages of our own site is never a source.
+          </li>
+          <li>
+            <b className="text-body">Attribution (Settings menu):</b> &quot;This visit&quot; (default) uses how that very visit arrived, so Direct means visits that arrived directly. &quot;Last touch&quot; gives a returning visitor the last real source they came from, and &quot;First touch&quot; the source that first brought them. Visits recorded before 16 Oct 2026 only have last-touch data.
+          </li>
+          <li>
+            <b className="text-body">(not set):</b> no source was recorded. This is older data from before source tracking, or a visit where the cookie banner was not yet accepted and the visitor then reloaded the page. It shrinks as new data comes in.
+          </li>
+          <li>
+            <b className="text-body">Google Ads:</b> keep auto-tagging switched on in Google Ads (it is by default) so clicks are recognised as paid even without UTM tags. To also see campaign names, add a tracking template such as <span className="font-latin">{"{lpurl}?utm_source=google&utm_medium=cpc&utm_campaign={campaignid}"}</span> in the account settings.
+          </li>
+          <li>
+            <b className="text-body">Visit length:</b> the time between the first and last action. Time spent on the last page is not visible, so the typical (median) length is shown rather than the average.
+          </li>
+          <li>
+            <b className="text-body">Low-sample rates:</b> a percentage based on fewer than {d.lowSample} visits is shown dimmed with a &quot;~&quot;, meaning it is only approximate.
+          </li>
+          <li>
+            <b className="text-body">Your own team&apos;s traffic:</b> open any page of the site once with <span className="font-latin">?internal=1</span> to stop that browser being tracked (<span className="font-latin">?internal=0</span> turns it back on).
+          </li>
+        </ul>
+      </details>
     </div>
   );
 }

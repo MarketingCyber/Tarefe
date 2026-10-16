@@ -7,6 +7,7 @@ import { useReducedMotion } from "motion/react";
 import { Crown, ArrowRight } from "@phosphor-icons/react";
 import type { Locale } from "@/lib/taxonomy";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
+import { track, EVENT } from "@/lib/analytics";
 import evdLogo from "@/assets/logos/evd.png";
 import rheinEnergieLogo from "@/assets/logos/rheinenergie.svg";
 import eWieEinfachLogo from "@/assets/logos/e-wie-einfach.svg";
@@ -272,6 +273,7 @@ export function EnergyTariffCards({
 
               <ConsultationCtaLink
                 href={consultationHref}
+                onClick={() => track(EVENT.TARIFF_CTA_CLICKED, { path: window.location.pathname, locale, category: "energy", metadata: { provider: t.provider, tariff: t.name, rank: sortedIndex + 1 } })}
                 className={`press mt-5 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
                   isTop ? "bg-purple-600 text-white hover:bg-purple-900" : "border border-border-strong text-purple-900 hover:border-purple-600"
                 }`}

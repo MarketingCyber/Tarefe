@@ -58,6 +58,12 @@ const LeadSchema = z.object({
   utmLastCampaign: UtmField,
   utmLastTerm: UtmField,
   utmLastContent: UtmField,
+  // The visit the form was submitted in (see AnalyticsEvent in schema.prisma).
+  utmVisitSource: UtmField,
+  utmVisitMedium: UtmField,
+  utmVisitCampaign: UtmField,
+  utmVisitTerm: UtmField,
+  utmVisitContent: UtmField,
   // See src/lib/ga4-measurement-protocol.ts's own comment for the full
   // "why" — sending server-side so a lead form submission is counted even
   // when the consent-gated client GTM script never loaded in time.
@@ -138,6 +144,11 @@ export async function POST(request: Request) {
     utmLastCampaign,
     utmLastTerm,
     utmLastContent,
+    utmVisitSource,
+    utmVisitMedium,
+    utmVisitCampaign,
+    utmVisitTerm,
+    utmVisitContent,
     gaClientId,
     consentAccepted,
     website,
@@ -175,6 +186,11 @@ export async function POST(request: Request) {
       utmLastCampaign: utmLastCampaign ?? null,
       utmLastTerm: utmLastTerm ?? null,
       utmLastContent: utmLastContent ?? null,
+      utmVisitSource: utmVisitSource ?? null,
+      utmVisitMedium: utmVisitMedium ?? null,
+      utmVisitCampaign: utmVisitCampaign ?? null,
+      utmVisitTerm: utmVisitTerm ?? null,
+      utmVisitContent: utmVisitContent ?? null,
     },
   });
 

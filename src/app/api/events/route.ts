@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { EVENT } from "@/lib/analytics";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { parseUserAgent } from "@/lib/user-agent";
 
 const KNOWN_EVENTS: Set<string> = new Set(Object.values(EVENT));
 
@@ -37,6 +38,12 @@ const EventSchema = z.object({
   utmLastCampaign: UtmField,
   utmLastTerm: UtmField,
   utmLastContent: UtmField,
+  // This visit's own classification (incl. "(direct)") — see analytics.ts classifyVisit().
+  utmVisitSource: UtmField,
+  utmVisitMedium: UtmField,
+  utmVisitCampaign: UtmField,
+  utmVisitTerm: UtmField,
+  utmVisitContent: UtmField,
 });
 
 /**
@@ -86,11 +93,21 @@ export async function POST(request: Request) {
     utmLastCampaign,
     utmLastTerm,
     utmLastContent,
+    utmVisitSource,
+    utmVisitMedium,
+    utmVisitCampaign,
+    utmVisitTerm,
+    utmVisitContent,
   } = parsed.data;
 
   // Attribute to a signed-in user when one exists, without requiring it —
   // most traffic is anonymous, and that's fine for behavioral analytics.
   const session = await auth().catch(() => null);
+
+  // Device / browser / OS buckets for the analytics explorer — derived from
+  // the request's own User-Agent, bucketed immediately; the raw string is
+  // never stored (see lib/user-agent.ts).
+  const { device, browser, os } = parseUserAgent(request.headers.get("user-agent"));
 
   try {
     await prisma.analyticsEvent.create({
@@ -117,6 +134,14 @@ export async function POST(request: Request) {
         utmLastCampaign: utmLastCampaign ?? null,
         utmLastTerm: utmLastTerm ?? null,
         utmLastContent: utmLastContent ?? null,
+        utmVisitSource: utmVisitSource ?? null,
+        utmVisitMedium: utmVisitMedium ?? null,
+        utmVisitCampaign: utmVisitCampaign ?? null,
+        utmVisitTerm: utmVisitTerm ?? null,
+        utmVisitContent: utmVisitContent ?? null,
+        device,
+        browser,
+        os,
       },
     });
   } catch {

@@ -13,6 +13,7 @@ import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { trackServer } from "@/lib/analytics-server";
 import { EVENT } from "@/lib/analytics";
 import { canAccessPipeline } from "@/lib/permissions";
+import { LeadAttributionPanel } from "@/components/crm/LeadAttribution";
 
 const STATUS_OPTIONS = ["NEW", "CONTACTED", "QUALIFIED", "CONSULTATION_SCHEDULED", "APPLICATION_STARTED", "APPLICATION_SUBMITTED", "CONTRACT_ACTIVE", "LOST"] as const;
 
@@ -108,6 +109,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <dd className="mt-0.5 text-body">{lead.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</dd>
               </div>
             </dl>
+
+            <LeadAttributionPanel lead={lead} />
 
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
               <form action={updateStatus} className="flex items-center gap-2">

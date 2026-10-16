@@ -15,10 +15,21 @@ import { scrollToFormField } from "@/lib/scroll-to-form";
  * and a form-not-found or pre-hydration click still falls back to the
  * browser's own anchor jump.
  */
-export function ConsultationCtaLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+export function ConsultationCtaLink({
+  href,
+  className,
+  children,
+  onClick,
+}: {
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+  /** Side effect only (e.g. an analytics event) — runs first and can never block the navigation/scroll. */
+  onClick?: () => void;
+}) {
   if (!href.startsWith("#")) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} onClick={onClick}>
         {children}
       </Link>
     );
@@ -30,6 +41,7 @@ export function ConsultationCtaLink({ href, className, children }: { href: strin
       href={href}
       className={className}
       onClick={(e) => {
+        onClick?.();
         if (!document.getElementById(formId)) return;
         e.preventDefault();
         history.pushState(null, "", href);

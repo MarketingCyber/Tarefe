@@ -5,6 +5,7 @@ import { Calculator, ArrowRight } from "@phosphor-icons/react";
 import { useReducedMotion } from "motion/react";
 import type { Locale } from "@/lib/taxonomy";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
+import { track, EVENT } from "@/lib/analytics";
 import { EnergyTariffCards, type TariffCardData } from "@/components/products/EnergyTariffCards";
 
 /**
@@ -325,6 +326,10 @@ export function EnergyConsumptionCalculator({
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "error">("idle");
 
   const winnerCardRef = useRef<HTMLDivElement>(null);
+  // One "calculator used" event per mount: the lookup effect below re-runs on
+  // every PLZ / kWh change after the first calculation, and a visitor tweaking
+  // their consumption should not look like several separate uses.
+  const usageTrackedRef = useRef(false);
 
   // Live mode: (re-)fetch real prices for this PLZ + consumption whenever
   // either changes, but only after the visitor has actually asked for a
@@ -351,6 +356,10 @@ export function EnergyConsumptionCalculator({
         if (cancelled) return;
         setLiveCards(data.cards);
         setLookupStatus("idle");
+        if (!usageTrackedRef.current) {
+          usageTrackedRef.current = true;
+          track(EVENT.ENERGY_CALCULATOR_USED, { path: window.location.pathname, locale, category: "energy", service: kind, metadata: { kind, resultCount: data.cards.length } });
+        }
       })
       .catch(() => {
         if (cancelled) return;

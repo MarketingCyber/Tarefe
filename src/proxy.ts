@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { recordLanding } from "@/lib/landing-hits";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/taxonomy";
 
 /**
@@ -19,11 +20,15 @@ function detectLocale(request: NextRequest): Locale {
   return (match as Locale) ?? DEFAULT_LOCALE;
 }
 
-export function proxy(request: NextRequest) {
+export function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   const hasLocale = LOCALES.some((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`));
-  if (hasLocale) return NextResponse.next();
+  if (hasLocale) {
+    // Cookie-free landing counter (lib/landing-hits.ts): runs after the response is sent, never delays or breaks the page.
+    event.waitUntil(recordLanding(request));
+    return NextResponse.next();
+  }
 
   const locale = detectLocale(request);
   const url = request.nextUrl.clone();

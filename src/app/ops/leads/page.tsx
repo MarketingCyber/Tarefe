@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { Funnel } from "@phosphor-icons/react/dist/ssr";
 import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
+import { LeadSourceCell } from "@/components/crm/LeadAttribution";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   NEW: "purple",
@@ -64,7 +65,8 @@ export default async function OpsLeadsPage() {
                 <th className="px-4 py-3 text-start font-medium">نام</th>
                 <th className="px-4 py-3 text-start font-medium">اطلاعات تماس</th>
                 <th className="px-4 py-3 text-start font-medium">خدمت</th>
-                <th className="px-4 py-3 text-start font-medium">منبع</th>
+                <th className="px-4 py-3 text-start font-medium">منبع ترافیک</th>
+                <th className="px-4 py-3 text-start font-medium">صفحه فرم</th>
                 <th className="px-4 py-3 text-start font-medium">وضعیت</th>
                 <th className="px-4 py-3 text-start font-medium">مشاور</th>
                 <th className="px-4 py-3 text-start font-medium">دریافت</th>
@@ -86,6 +88,9 @@ export default async function OpsLeadsPage() {
                   </td>
                   <td className="px-4 py-3 text-secondary">
                     {lead.category ?? "—"} {lead.serviceSlug ? `/ ${lead.serviceSlug}` : ""}
+                  </td>
+                  <td className="px-4 py-3">
+                    <LeadSourceCell lead={lead} />
                   </td>
                   <td className="font-latin px-4 py-3 text-xs text-secondary">{lead.sourcePage ?? "—"}</td>
                   <td className="px-4 py-3">

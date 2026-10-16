@@ -49,14 +49,30 @@ import type { NextConfig } from "next";
 // fetch/XHR, so connect-src alone didn't cover it. CSP directives are
 // resource-type-specific — allowing a domain for one doesn't allow it for
 // another. A real, live-visitor-affecting gap, not a debug-only one.
+//
+// GTM preview mode / Tag Assistant (added 2026-10-15): Google's own CSP
+// guide for preview lists extra origins that the debug UI and its assets
+// load from — tagmanager.google.com (script, style, img), Google Fonts
+// (style + font) and gstatic (img). Without them Tag Assistant can fail to
+// connect or render. All Google-owned, and only fetched when a preview
+// session is actually running.
+//
+// Found by reproducing a preview request in a real browser (2026-10-15) —
+// the cause of Tag Assistant reporting "ad blockers might have blocked the
+// script" even with no blocker: in preview mode the web container opens a
+// frame to our server-side container (sgtm.tarefe.de) so the two can attach
+// to the same debug session, and frame-src did not list it ("Framing
+// 'https://sgtm.tarefe.de/' violates ... frame-src"). Without that frame
+// the preview never connects. style-src also needs www.googletagmanager.com:
+// the in-page Tag Assistant badge loads /debug/badge.css from there.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google.com https://*.doubleclick.net",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
-  "font-src 'self' data:",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://www.google.com https://*.doubleclick.net",
+  "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
+  "img-src 'self' data: https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://sgtm.tarefe.de https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://sgtm.tarefe.de https://www.google.com https://*.doubleclick.net https://www.googleadservices.com",
-  "frame-src https://www.google.com https://maps.google.com https://www.googletagmanager.com",
+  "frame-src https://www.google.com https://maps.google.com https://www.googletagmanager.com https://sgtm.tarefe.de",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
