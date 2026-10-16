@@ -50,6 +50,7 @@ export const LANDING_COPY = {
   bonus: (eur: string, locale: Locale) => (locale === "fa" ? `${eur} یورو بونوس` : locale === "de" ? `${eur} € Bonus` : `Бонус ${eur} €`),
   guarantee: t("Preisgarantie", "Preisgarantie", "Preisgarantie"),
   continueWith: t("ادامه با این تعرفه", "Weiter mit diesem Tarif", "Продолжить с этим тарифом"),
+  continueBest: t("ادامه با بهترین گزینه", "Weiter mit der besten Option", "Продолжить с лучшим вариантом"),
   choose: t("انتخاب", "Wählen", "Выбрать"),
   basedOn: (kwh: string, locale: Locale) =>
     locale === "fa" ? `بر اساس ${kwh} کیلووات‌ساعت در سال (برآورد کم)` : locale === "de" ? `Basis: ${kwh} kWh pro Jahr (niedrig geschätzt)` : `Расчёт на ${kwh} кВт·ч в год (скромная оценка)`,
@@ -59,7 +60,13 @@ export const LANDING_COPY = {
   lookupError: t("نشد تعرفه‌ها را بگیریم. دوباره امتحان کن.", "Die Tarife konnten nicht geladen werden. Bitte erneut versuchen.", "Не удалось загрузить тарифы. Попробуйте ещё раз."),
   retry: t("تلاش دوباره", "Erneut versuchen", "Повторить"),
 
-  requestTitle: t("تقریباً تمام شد", "Fast geschafft", "Почти готово"),
+  requestTitle: t("درخواست مشاوره رایگان با تیم تعرفه", "Kostenlose Beratung vom Tarefe-Team anfragen", "Бесплатная консультация от команды Tarefe"),
+  perks: [
+    t("قیمت تضمینی", "Preisgarantie", "Гарантия цены"),
+    t("ارزان‌ترین تعرفه", "Günstigster Tarif", "Самый выгодный тариф"),
+    t("پشتیبانی فارسی", "Beratung auf Persisch", "Поддержка на вашем языке"),
+    t("کاغذبازی با ما، رایگان", "Papierkram erledigen wir, kostenlos", "Бумаги берём на себя, бесплатно"),
+  ],
   yourTariff: t("تعرفه انتخابی", "Gewählter Tarif", "Выбранный тариф"),
   submit: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
   promise: t(

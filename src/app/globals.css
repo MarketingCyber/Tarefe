@@ -261,6 +261,26 @@
     }
   }
 
+  /* The Ads landing journey's winner-card button: a breathing yellow halo (a tight ring
+     plus a soft bloom) so the one recommended action is the first thing the eye finds. */
+  @keyframes winner-cta-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 3px rgba(247, 200, 0, 0.55), 0 0 18px 2px rgba(247, 200, 0, 0.35);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(247, 200, 0, 0.28), 0 0 34px 10px rgba(247, 200, 0, 0.55);
+    }
+  }
+  .winner-cta-glow {
+    animation: winner-cta-glow 2.2s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .winner-cta-glow {
+      animation: none;
+      box-shadow: 0 0 0 4px rgba(247, 200, 0, 0.5), 0 0 22px 4px rgba(247, 200, 0, 0.4);
+    }
+  }
+
   /* Content that swaps in place (the situation tabs): a short fade + 6px rise, ease-out. */
   @keyframes panel-in {
     from {

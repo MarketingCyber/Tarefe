@@ -531,7 +531,7 @@ function StepResults({
                 </li>
               )}
             </ul>
-            <button type="button" onClick={() => onChoose(winner.id)} className="press inline-flex min-h-14 items-center justify-center gap-2.5 rounded-full bg-purple-600 px-8 text-base font-bold text-white transition-colors hover:bg-purple-900">
+            <button type="button" onClick={() => onChoose(winner.id)} className="press winner-cta-glow inline-flex min-h-14 items-center justify-center gap-2.5 rounded-full bg-purple-600 px-8 text-base font-bold text-white transition-colors hover:bg-purple-900">
               {pick(c.continueWith, locale)}
               <ArrowRight size={18} weight="bold" className="rtl:rotate-180" />
             </button>
@@ -558,6 +558,11 @@ function StepResults({
               ))}
             </div>
           )}
+
+          <button type="button" onClick={() => onChoose(winner.id)} className="press mt-2 inline-flex min-h-14 items-center justify-center gap-2.5 rounded-full bg-purple-600 px-8 text-base font-bold text-white transition-colors hover:bg-purple-900">
+            {pick(c.continueBest, locale)}
+            <ArrowRight size={18} weight="bold" className="rtl:rotate-180" />
+          </button>
 
           <p className="text-sm text-secondary">
             {c.basedOn(fmtKwh(annualKwh), locale)}{" "}
@@ -595,16 +600,24 @@ function StepRequest({
         {pick(c.requestTitle, locale)}
       </h1>
 
+      <ul className="flex flex-wrap gap-x-5 gap-y-2.5 text-sm font-semibold text-purple-900">
+        {c.perks.map((p, i) => (
+          <li key={i} className="flex items-center gap-1.5">
+            <CheckCircle size={17} weight="fill" className="shrink-0 text-success" aria-hidden />
+            {pick(p, locale)}
+          </li>
+        ))}
+      </ul>
+
       {chosen && (
-        <div className="flex items-center justify-between gap-4 rounded-2xl bg-tint p-5">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-secondary">{pick(c.yourTariff, locale)}</p>
-            <p className="mt-1 truncate text-base font-bold text-purple-900">{chosen.name}</p>
-            <p className="font-latin mt-0.5 text-sm text-secondary" dir="ltr">
-              ≈ {fmtEur(chosen.monthly)} € / {locale === "fa" ? "ماه" : locale === "de" ? "Monat" : "мес."}
-            </p>
-          </div>
-          <button type="button" onClick={onChange} className="shrink-0 text-sm font-semibold text-purple-600 underline underline-offset-4 hover:text-purple-900">
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-tint px-4 py-2.5 text-sm">
+          <p className="min-w-0 truncate">
+            <span className="font-bold text-purple-900">{chosen.name}</span>
+            <span className="font-latin ms-2 text-secondary" dir="ltr">
+              ≈ {fmtEur(chosen.monthly)} €
+            </span>
+          </p>
+          <button type="button" onClick={onChange} className="shrink-0 font-semibold text-purple-600 underline underline-offset-4 hover:text-purple-900">
             {pick(c.change, locale)}
           </button>
         </div>
@@ -616,7 +629,7 @@ function StepRequest({
         category="energy"
         serviceSlug={kind}
         bare
-        className="gap-6! [&_input]:rounded-xl [&_input]:px-4 [&_input]:py-3.5"
+        className="gap-6! [&_input]:rounded-xl [&_input]:border-2 [&_input]:border-purple-600/40 [&_input]:px-4 [&_input]:py-3.5 [&_input]:shadow-[0_1px_0_rgba(93,0,137,0.06)] [&_input:focus]:border-purple-600"
         extra={extra}
         submitLabel={pick(c.submit, locale)}
         footnote={null}
