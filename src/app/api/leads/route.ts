@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { LandingContextSchema, summariseLandingContext } from "@/lib/landing-lead";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
@@ -64,6 +65,9 @@ const LeadSchema = z.object({
   utmVisitCampaign: UtmField,
   utmVisitTerm: UtmField,
   utmVisitContent: UtmField,
+  // Google Ads landing journey: the click id and the choices made on the way (src/lib/landing-lead.ts).
+  gclid: z.string().trim().max(200).optional(),
+  landing: LandingContextSchema.optional(),
   // See src/lib/ga4-measurement-protocol.ts's own comment for the full
   // "why" — sending server-side so a lead form submission is counted even
   // when the consent-gated client GTM script never loaded in time.
@@ -149,6 +153,8 @@ export async function POST(request: Request) {
     utmVisitCampaign,
     utmVisitTerm,
     utmVisitContent,
+    gclid,
+    landing,
     gaClientId,
     consentAccepted,
     website,
@@ -191,6 +197,9 @@ export async function POST(request: Request) {
       utmVisitCampaign: utmVisitCampaign ?? null,
       utmVisitTerm: utmVisitTerm ?? null,
       utmVisitContent: utmVisitContent ?? null,
+      gclid: gclid ?? null,
+      landingContext: landing ?? undefined,
+      notes: landing ? summariseLandingContext(landing) : null,
     },
   });
 

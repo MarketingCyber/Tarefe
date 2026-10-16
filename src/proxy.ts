@@ -43,6 +43,6 @@ export const config = {
      *  - /app and /ops (separate, unprefixed root layouts)
      *  - Next internals, static files, and well-known metadata files
      */
-    "/((?!app|ops|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)",
+    "/((?!app|ops|landing|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)",
   ],
 };

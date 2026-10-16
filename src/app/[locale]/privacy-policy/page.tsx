@@ -55,6 +55,10 @@ const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
       body: `هنگام بازدید از وب‌سایت، مرورگر شما به‌صورت خودکار اطلاعاتی مانند نوع و نسخه مرورگر، سیستم‌عامل، آدرس صفحه ارجاع‌دهنده، تاریخ و ساعت درخواست و آدرس ${"‎"}IP${"‎"} شما را برای ما ارسال می‌کند که در سیاهه‌های سرور ذخیره می‌شود. این داده‌ها معمولا قابل انتساب به یک شخص خاص نیستند و صرفا برای حفظ امنیت و پایداری سایت طبق ${"‎"}Art. 6 Abs. 1 lit. f DSGVO${"‎"} پردازش می‌شوند.`,
     },
     {
+      heading: "شمارش بازدیدها بدون کوکی و کلیک تبلیغاتی",
+      body: "برای اینکه بدانیم چند نفر از صفحه‌های ما بازدید می‌کنند، سرور ما هر بازدید را بدون کوکی و بدون ذخیره‌سازی چیزی روی دستگاه شما می‌شمارد. فقط آدرس صفحه، منبع ورود (مثلا گوگل یا تبلیغ)، نوع کلی دستگاه و مرورگر و یک شناسه رمزنگاری‌شده که هر روز تغییر می‌کند ذخیره می‌شود؛ آدرس IP شما ذخیره نمی‌شود و شناسه به شخص شما قابل انتساب نیست. در صفحه‌های فرود تبلیغاتی نیز به‌همین شکل شمارش می‌شود کدام مرحله از فرایند (انتخاب مصرف، مشاهده تعرفه‌ها، ارسال درخواست) انجام شده است. مبنای حقوقی: ‎Art. 6 Abs. 1 lit. f DSGVO‎ (علاقه مشروع به ارزیابی ساده و کارآمد سایت). اگر با کلیک روی تبلیغ گوگل آمده باشید و درخواست مشاوره بفرستید، شناسه کلیک تبلیغ (‎gclid‎) همراه درخواستتان ذخیره می‌شود تا بتوانیم اثر تبلیغات را بسنجیم؛ همین‌طور تعرفه و مصرفی که انتخاب کرده‌اید تا مشاور بتواند بهتر کمک کند.",
+    },
+    {
       heading: "کوکی‌ها و رضایت شما",
       body: `در اولین بازدید، بنری برای انتخاب کوکی‌ها نمایش داده می‌شود: می‌توانید فقط کوکی‌های ضروری فنی را بپذیرید یا خدمات دیگر (شرح در ادامه) را نیز تایید کنید. تا زمانی که به‌صراحت رضایت ندهید، هیچ سرویس غیرضروری بارگذاری نمی‌شود. انتخاب شما در مرورگرتان ذخیره می‌شود و هر زمان قابل تغییر است. جزئیات هر کوکی در صفحه «سیاست کوکی» ما آمده است.`,
     },
@@ -109,6 +113,10 @@ const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
       body: "Beim Aufruf unserer Website erheben und speichern wir automatisch in Server-Logfiles Zugriffsdaten, die Ihr Browser an uns übermittelt: Browsertyp und -version, verwendetes Betriebssystem, Referrer-URL, Datum und Uhrzeit der Anfrage sowie Ihre IP-Adresse. Ein Personenbezug ist uns dabei im Regelfall nicht möglich und nicht beabsichtigt. Die Verarbeitung erfolgt gemäß Art. 6 Abs. 1 lit. f DSGVO zur Wahrung unseres berechtigten Interesses an der Stabilität und Sicherheit unserer Website.",
     },
     {
+      heading: "Zählung von Aufrufen ohne Cookies und Werbeklick-Kennung",
+      body: "Um zu wissen, wie viele Personen unsere Seiten besuchen, zählt unser Server Aufrufe ohne Cookies und ohne etwas auf Ihrem Gerät zu speichern. Gespeichert werden nur die aufgerufene Seite, die Herkunft (z. B. Google oder eine Anzeige), grobe Geräte- und Browserkategorien sowie eine kryptografisch erzeugte Kennung, die sich täglich ändert. Ihre IP-Adresse wird dabei nicht gespeichert, und die Kennung lässt sich Ihrer Person nicht zuordnen. Auf den Werbe-Landingpages wird auf dieselbe Weise gezählt, welcher Schritt des Ablaufs erreicht wurde (Verbrauch wählen, Tarife ansehen, Anfrage senden). Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer einfachen, wirksamen Auswertung unserer Website). Wenn Sie über eine Google-Anzeige zu uns kommen und eine Beratung anfragen, speichern wir die Klick-Kennung der Anzeige (gclid) zusammen mit Ihrer Anfrage, um die Wirkung der Werbung zu messen, sowie den gewählten Tarif und Verbrauch, damit Ihr Berater Sie besser unterstützen kann.",
+    },
+    {
       heading: "Cookies und Ihre Einwilligung",
       body: "Bei Ihrem ersten Besuch zeigen wir ein Cookie-Banner, über das Sie wählen können, ob Sie nur technisch notwendige Cookies zulassen oder auch weitere Dienste (siehe unten) akzeptieren. Solange Sie nicht ausdrücklich zugestimmt haben, laden wir keine nicht notwendigen Dienste. Ihre Wahl wird in Ihrem Browser gespeichert und kann jederzeit geändert werden; Details zu einzelnen Cookies finden Sie in unserer Cookie-Richtlinie.",
     },
@@ -161,6 +169,10 @@ const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
     {
       heading: "Данные доступа (журналы сервера)",
       body: "При посещении сайта мы автоматически сохраняем в журналах сервера данные, которые передаёт ваш браузер: тип и версия браузера, операционная система, referrer-URL, дата и время запроса, а также ваш IP-адрес. Как правило, эти данные не позволяют и не предназначены для идентификации конкретного лица. Обработка осуществляется на основании ст. 6 (1) (f) GDPR для обеспечения стабильности и безопасности сайта.",
+    },
+    {
+      heading: "Подсчёт посещений без cookie и идентификатор рекламного клика",
+      body: "Чтобы знать, сколько людей посещает наши страницы, наш сервер считает посещения без cookie и ничего не сохраняя на вашем устройстве. Сохраняются только адрес страницы, источник перехода (например, Google или реклама), общие категории устройства и браузера и криптографически созданный идентификатор, который меняется каждый день. Ваш IP-адрес при этом не сохраняется, а идентификатор нельзя отнести к вам лично. На рекламных посадочных страницах таким же образом считается, какого шага процесса достигли (выбор потребления, просмотр тарифов, отправка заявки). Правовое основание: Art. 6 Abs. 1 lit. f DSGVO (законный интерес в простой и эффективной оценке сайта). Если вы пришли по рекламе Google и отправили заявку на консультацию, мы сохраняем идентификатор клика (gclid) вместе с заявкой, чтобы оценивать эффективность рекламы, а также выбранный тариф и потребление, чтобы консультант мог лучше помочь.",
     },
     {
       heading: "Файлы cookie и ваше согласие",

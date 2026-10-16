@@ -156,3 +156,55 @@ export async function serverVisits(f: AnalyticsFilters): Promise<ServerVisits> {
     firstHitAt: first[0]?.t ? first[0].t.toISOString().slice(0, 10) : null,
   };
 }
+
+export interface LandingFunnelRow {
+  kind: string;
+  /** People who opened the landing page (landing_hits, the same counter as the visits section). */
+  views: number;
+  /** Distinct visitors per step (visitor hash rotates daily, so per-day people summed over the range). */
+  steps: Record<"usage" | "results" | "tariff" | "form" | "submitted", number>;
+  /** How many of the people who reached the first step arrived with an ad click id. */
+  fromAds: number;
+}
+
+/**
+ * The Google Ads landing journey's step counts (cookie-free, lib/landing-step route):
+ * how many people got past each screen. A step is counted once per visitor per day.
+ */
+export async function landingFunnel(f: AnalyticsFilters): Promise<LandingFunnelRow[]> {
+  const { range } = resolveRange(f);
+  const rows = await prisma.$queryRaw<{ kind: string; step: string; people: bigint; ads: bigint }[]>(Prisma.sql`
+    SELECT kind, step, count(DISTINCT (visitor, to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD'))) AS people,
+           count(DISTINCT (visitor, to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD'))) FILTER (WHERE ads) AS ads
+    FROM landing_steps
+    WHERE "createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}
+    GROUP BY kind, step`);
+  const views = await prisma.$queryRaw<{ kind: string; people: bigint }[]>(Prisma.sql`
+    SELECT substring(path from '/landing/(electricity|gas) steps: { usage: 0, results: 0, tariff: 0, form: 0, submitted: 0 }, fromAds: 0 };
+    if (r.step in row.steps) row.steps[r.step as keyof LandingFunnelRow["steps"]] = Number(r.people);
+    if (r.step === "usage") row.fromAds = Number(r.ads);
+    byKind.set(r.kind, row);
+  }
+  return [...byKind.values()].sort((a, b) => a.kind.localeCompare(b.kind));
+}
+) AS kind, count(DISTINCT (visitor, to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD'))) AS people
+    FROM landing_hits
+    WHERE path ~ '/landing/(electricity|gas) steps: { usage: 0, results: 0, tariff: 0, form: 0, submitted: 0 }, fromAds: 0 };
+    if (r.step in row.steps) row.steps[r.step as keyof LandingFunnelRow["steps"]] = Number(r.people);
+    if (r.step === "usage") row.fromAds = Number(r.ads);
+    byKind.set(r.kind, row);
+  }
+  return [...byKind.values()].sort((a, b) => a.kind.localeCompare(b.kind));
+}
+ AND "createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}
+    GROUP BY 1`);
+  const byKind = new Map<string, LandingFunnelRow>();
+  for (const v of views) byKind.set(v.kind, { kind: v.kind, views: Number(v.people), steps: { usage: 0, results: 0, tariff: 0, form: 0, submitted: 0 }, fromAds: 0 });
+  for (const r of rows) {
+    const row = byKind.get(r.kind) ?? { kind: r.kind, views: 0, steps: { usage: 0, results: 0, tariff: 0, form: 0, submitted: 0 }, fromAds: 0 };
+    if (r.step in row.steps) row.steps[r.step as keyof LandingFunnelRow["steps"]] = Number(r.people);
+    if (r.step === "usage") row.fromAds = Number(r.ads);
+    byKind.set(r.kind, row);
+  }
+  return [...byKind.values()].sort((a, b) => a.kind.localeCompare(b.kind));
+}

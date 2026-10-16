@@ -28,7 +28,7 @@ import { parseUserAgent } from "@/lib/user-agent";
 const SITE_HOST = "tarefe.de";
 
 /** Crawlers, link-preview fetchers, uptime/perf monitors and scripted clients — none of these are people. */
-const BOT_UA = /bot\b|bot[/;)]|crawl|spider|slurp|adsbot|google-adwords|googleother|google-inspectiontool|storebot|apis-google|mediapartners|feedfetcher|lighthouse|pagespeed|gtmetrix|pingdom|uptime|facebookexternalhit|embedly|whatsapp\/|telegrambot|skypeuripreview|headless|phantomjs|selenium|puppeteer|playwright|curl\/|wget|python|aiohttp|httpx|axios|node-fetch|undici|go-http|okhttp|java\/|scrapy|libwww|httpclient/i;
+export const BOT_UA = /bot\b|bot[/;)]|crawl|spider|slurp|adsbot|google-adwords|googleother|google-inspectiontool|storebot|apis-google|mediapartners|feedfetcher|lighthouse|pagespeed|gtmetrix|pingdom|uptime|facebookexternalhit|embedly|whatsapp\/|telegrambot|skypeuripreview|headless|phantomjs|selenium|puppeteer|playwright|curl\/|wget|python|aiohttp|httpx|axios|node-fetch|undici|go-http|okhttp|java\/|scrapy|libwww|httpclient/i;
 
 /** True only for a person's browser loading a page (not a prefetch, an RSC fetch, an image, a bot…). */
 export function isPageLoadByBrowser(request: NextRequest): boolean {
@@ -59,7 +59,7 @@ function berlinDay(): string {
 }
 
 /** Anonymous per-day visitor id — see the file header for what it can and cannot do. */
-function visitorHash(ip: string, ua: string): string {
+export function visitorHash(ip: string, ua: string): string {
   const key = `${process.env.AUTH_SECRET ?? "tarefe-dev"}:landing:${berlinDay()}`;
   return createHmac("sha256", key).update(`${ip}|${ua}`).digest("hex").slice(0, 20);
 }

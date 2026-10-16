@@ -111,6 +111,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </dl>
 
             <LeadAttributionPanel lead={lead} />
+            {lead.gclid && (
+              <p className="mt-3 text-xs text-secondary">
+                Google Ads click id: <span className="font-latin break-all text-body">{lead.gclid}</span>
+              </p>
+            )}
 
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
               <form action={updateStatus} className="flex items-center gap-2">

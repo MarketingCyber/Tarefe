@@ -1,40 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
 import { gsap } from "gsap";
 import { useReducedMotion } from "motion/react";
 import { Crown, ArrowRight } from "@phosphor-icons/react";
 import type { Locale } from "@/lib/taxonomy";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
 import { track, EVENT } from "@/lib/analytics";
-import evdLogo from "@/assets/logos/evd.png";
-import rheinEnergieLogo from "@/assets/logos/rheinenergie.svg";
-import eWieEinfachLogo from "@/assets/logos/e-wie-einfach.svg";
-import markELogo from "@/assets/logos/mark-e.webp";
-import vattenfallLogo from "@/assets/logos/vattenfall.png";
-import eweLogo from "@/assets/logos/ewe.svg";
-import enviaMLogo from "@/assets/logos/envia-m.svg";
-import eprimoLogo from "@/assets/logos/eprimo.svg";
+import { PROVIDER_LOGOS } from "./provider-logos";
 
-// Keyed by EnergyTariff.provider exactly as stored — see
-// scripts/replace-energy-tariffs.ts and scripts/add-energy-tariffs.ts, the
-// only places that write these strings. A provider not in this map (a
-// hand-entered tariff with no logo on file yet) falls back to its plain
-// name text below, never a broken image. ewe.svg/envia-m.svg pulled
-// 2026-10-08 straight from each provider's own live site (ewe.de's inline
-// header SVG, enviam.de's own logo asset URL) — real brand color confirmed
-// via computed style, not guessed.
-const PROVIDER_LOGOS: Record<string, StaticImageData> = {
-  EVD: evdLogo,
-  RheinEnergie: rheinEnergieLogo,
-  "E WIE EINFACH": eWieEinfachLogo,
-  "Mark-E": markELogo,
-  Vattenfall: vattenfallLogo,
-  EWE: eweLogo,
-  "Envia M": enviaMLogo,
-  Eprimo: eprimoLogo,
-};
 
 export interface TariffCardData {
   id: string;

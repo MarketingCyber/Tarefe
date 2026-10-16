@@ -157,6 +157,12 @@ model Lead {
   utmVisitTerm     String?
   utmVisitContent  String?
 
+  // Google Ads landing journey (2026-10-17): the click id the visitor arrived with (saved with their own
+  // submission so converted leads can be uploaded to Google Ads as offline conversions), and what they chose
+  // on the way — kind, PLZ, assumed usage, the tariff — as JSON (see src/lib/landing-lead.ts).
+  gclid          String?
+  landingContext Json?
+
   assignedAdvisorId String?
   assignedAdvisor   User?   @relation("AssignedAdvisor", fields: [assignedAdvisorId], references: [id])
 
@@ -759,4 +765,20 @@ model LandingHit {
   @@index([createdAt])
   @@index([visitor, createdAt])
   @@map("landing_hits")
+}
+
+/// Step counts of the Google Ads landing journey (/fa/landing/gas, /electricity), written by
+/// POST /api/landing-step — cookie-free, like LandingHit: nothing on the device, `visitor` is the same
+/// daily-rotating anonymous hash. `step`: usage | results | tariff | form | submitted.
+model LandingStep {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  kind      String // "electricity" | "gas"
+  step      String
+  ads       Boolean  @default(false) // arrived with a paid click id
+  visitor   String
+
+  @@index([createdAt])
+  @@index([kind, step, createdAt])
+  @@map("landing_steps")
 }

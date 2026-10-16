@@ -4,11 +4,12 @@ import { auth } from "@/lib/auth";
 import { canAccessAnalytics } from "@/lib/permissions";
 import { METRICS, SRC_DIMS, DEV_DIMS, breakdownFor, filtersToQuery, parseFilters, resolveRange, webVitalSamples, type Dim, type MetricKey, type TrendKpi } from "@/lib/analytics-report";
 import { buildDashboard } from "@/lib/analytics-dashboard";
+import { landingFunnel } from "@/lib/landing-report";
 import { DashboardShell, NavLink } from "@/components/analytics/DashboardShell";
 import { Toolbar } from "@/components/analytics/Toolbar";
 import { StatTiles } from "@/components/analytics/StatTiles";
 import { TrendCard, type Tab } from "@/components/analytics/TrendCard";
-import { DevicesCard, EventsCard, FunnelCard, Insights, LandingCard, ServerVisitsSection, SourcesCard } from "@/components/analytics/Panels";
+import { DevicesCard, EventsCard, FunnelCard, Insights, LandingCard, LandingJourneyCard, ServerVisitsSection, SourcesCard } from "@/components/analytics/Panels";
 import { AdvancedSection } from "@/components/analytics/Advanced";
 import { DIM_LABEL, KPI_PLAIN, dimValueLabel } from "@/components/analytics/labels";
 
@@ -46,10 +47,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   const f = parseFilters(await searchParams);
   const { range } = resolveRange(f);
-  const [d, adv, vitalRows] = await Promise.all([
+  const [d, adv, vitalRows, journey] = await Promise.all([
     buildDashboard(f),
     f.adv ? breakdownFor(f, range) : Promise.resolve(null),
     webVitalSamples(range),
+    landingFunnel(f),
   ]);
 
   // ---------------------------------------------------------------- trend card props
@@ -105,6 +107,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <div className="mt-4">
           <ServerVisitsSection d={d} srcDims={SRC_DIMS} devDims={DEV_DIMS} />
         </div>
+
+        <LandingJourneyCard rows={journey} />
 
         <h2 className="mt-10 text-lg font-bold text-purple-900">Visitors who accepted cookies</h2>
         <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">

@@ -104,6 +104,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  // Google Ads landing journey: its own root layout lives under /landing/..., the public URL keeps the locale prefix.
+  async rewrites() {
+    return [{ source: "/:locale(fa|de|ru)/landing/:kind(electricity|gas)", destination: "/landing/:locale/:kind" }];
+  },
 };
 
 export default nextConfig;

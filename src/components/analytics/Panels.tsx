@@ -2,6 +2,7 @@ import { Lightbulb } from "@phosphor-icons/react/dist/ssr";
 import { formatValue } from "@/lib/analytics-format";
 import { filtersToQuery, type BreakdownRow, type Dim } from "@/lib/analytics-report";
 import type { Dashboard } from "@/lib/analytics-dashboard";
+import type { LandingFunnelRow } from "@/lib/landing-report";
 import { NavLink } from "./DashboardShell";
 import { Hint, Sparkline } from "./StatTiles";
 import { DIM_LABEL, dimValueLabel, eventLabel, CHANNEL_HINT } from "./labels";
@@ -419,6 +420,60 @@ export function ServerVisitsSection({ d, srcDims, devDims }: { d: Dashboard; src
           </section>
         </div>
       )}
+    </section>
+  );
+}
+
+const FUNNEL_STEPS: { key: "views" | "usage" | "results" | "tariff" | "submitted"; label: string }[] = [
+  { key: "views", label: "Opened the page" },
+  { key: "usage", label: "Chose usage + postcode" },
+  { key: "results", label: "Saw tariffs" },
+  { key: "tariff", label: "Picked a tariff" },
+  { key: "submitted", label: "Sent the request" },
+];
+
+/** The Google Ads landing journey, step by step (cookie-free counts). */
+export function LandingJourneyCard({ rows }: { rows: LandingFunnelRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-bold text-purple-900">Ads landing journey</h2>
+      <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
+        How far people get on the two landing pages (/fa/landing/electricity and /fa/landing/gas). Counted on our server without cookies: each person once per step per day, so it covers everyone, not only visitors who accepted cookies.
+      </p>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {rows.map((r) => {
+          const values = { views: r.views, ...r.steps };
+          const top = Math.max(values.views, values.usage, 1);
+          return (
+            <div key={r.kind} className="rounded-2xl border border-border bg-white p-5">
+              <p className="text-sm font-bold capitalize text-purple-900">
+                {r.kind} <span className="font-normal text-secondary">· {r.fromAds} of the people who started came from an ad</span>
+              </p>
+              <ul className="mt-4 flex flex-col gap-3">
+                {FUNNEL_STEPS.map((s, i) => {
+                  const v = values[s.key];
+                  const prev = i > 0 ? values[FUNNEL_STEPS[i - 1].key] : null;
+                  return (
+                    <li key={s.key}>
+                      <div className="flex items-baseline justify-between gap-3 text-xs">
+                        <span className="text-body">{s.label}</span>
+                        <span className="font-latin font-semibold text-purple-900">
+                          {v}
+                          {prev ? <span className="ms-2 font-normal text-secondary">{Math.round((v / prev) * 100)}% of previous</span> : null}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+                        <div className="h-full rounded-full bg-purple-600" style={{ width: `${Math.min(100, (v / top) * 100)}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }

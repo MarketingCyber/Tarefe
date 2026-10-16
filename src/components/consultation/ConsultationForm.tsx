@@ -85,6 +85,11 @@ export function ConsultationForm({
   id,
   heading,
   className,
+  extra,
+  onSuccess,
+  bare,
+  submitLabel,
+  footnote,
 }: {
   locale: Locale;
   serviceLabel?: string;
@@ -96,6 +101,15 @@ export function ConsultationForm({
   /** Optional headline shown above the fields, for contexts where the form is embedded directly on a page rather than being the page's whole reason for existing. */
   heading?: string;
   className?: string;
+  /** Extra fields merged into the POST body — the landing journey sends the click id and the tariff choice this way. */
+  extra?: Record<string, unknown>;
+  /** Called instead of navigating to the success page (the landing journey shows its own final screen). */
+  onSuccess?: () => void;
+  /** No card chrome (border, background, padding) — for forms that sit inside a layout that already provides the whitespace. */
+  bare?: boolean;
+  submitLabel?: string;
+  /** Replaces the small risk-reversal line under the button; pass null to hide it. */
+  footnote?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -170,6 +184,7 @@ export function ConsultationForm({
           utmVisitContent: visit?.content,
           consentAccepted,
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
+          ...extra,
         }),
       });
 
@@ -187,7 +202,8 @@ export function ConsultationForm({
       }
       if (!res.ok) throw new Error("Request failed");
       track(EVENT.CONSULTATION_SUBMITTED, { path: pathname, locale, category, service: serviceSlug });
-      router.push(`/${locale}/consultation/success`);
+      if (onSuccess) onSuccess();
+      else router.push(`/${locale}/consultation/success`);
     } catch {
       setError(true);
       setSubmitting(false);
@@ -199,7 +215,7 @@ export function ConsultationForm({
       id={id}
       onSubmit={handleSubmit}
       onFocus={handleFirstInteraction}
-      className={`relative grid gap-4 rounded-2xl border border-border bg-white p-6 ${className ?? ""}`}
+      className={`relative grid gap-4 ${bare ? "" : "rounded-2xl border border-border bg-white p-6"} ${className ?? ""}`}
     >
       {heading && <p className="text-base font-bold text-purple-900">{heading}</p>}
       {serviceLabel && (
@@ -239,13 +255,13 @@ export function ConsultationForm({
         disabled={submitting}
         className="press mt-1 inline-flex items-center justify-center rounded-full bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-900 disabled:opacity-60"
       >
-        {submitting ? labels.sending : labels.submit}
+        {submitting ? labels.sending : (submitLabel ?? labels.submit)}
       </button>
       {/* Risk reversal right at the point of commitment — the moment
           someone is deciding whether to submit is exactly when "is this
           going to cost me something / get me spammed" is loudest. Both
           claims are real and already used sitewide (see dict.home.heroTrust). */}
-      <p className="text-center text-[11px] text-secondary">{labels.riskReversal}</p>
+      {footnote !== null && <p className="text-center text-[11px] text-secondary">{footnote ?? labels.riskReversal}</p>}
     </form>
   );
 }
