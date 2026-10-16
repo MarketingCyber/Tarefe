@@ -16,6 +16,8 @@ export type DailyPoint = readonly [date: string, value: number];
 export interface MarketSeries {
   commodity: Commodity;
   unit: "ct/kWh";
+  /** "monthly": one point per month (dated the last day of the month) — e.g. gas; the chart then says "last month" instead of a day. */
+  granularity: "daily" | "monthly";
   source: { name: string; url: string; license?: string };
   /** When the server last fetched the upstream API (ISO). */
   updatedAt: string;

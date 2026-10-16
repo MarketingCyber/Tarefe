@@ -126,6 +126,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
   const series = ready ? load.series : null;
   const buckets = useMemo(() => (series ? aggregate(series.points, "monthly", MONTHS) : []), [series]);
   const latest = series ? series.points[series.points.length - 1] : null;
+  const wholeMonths = series?.granularity === "monthly"; // gas: the newest point is a complete month average, not a day
   // Change from last month: the newest month (so far) against the one before it.
   const monthChange = useMemo(() => {
     if (buckets.length < 2) return null;
@@ -251,14 +252,14 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
       {/* the two numbers that matter */}
       <dl className="mt-4 grid grid-cols-2 gap-x-4">
         <div className="min-w-0">
-          <dt className="text-xs font-medium text-secondary">{byLocale(locale, L.latest)}</dt>
+          <dt className="text-xs font-medium text-secondary">{byLocale(locale, wholeMonths ? L.latestMonthly : L.latest)}</dt>
           <dd className="font-latin mt-1 flex items-baseline gap-1.5 leading-none text-purple-900 tabular-nums" dir="ltr">
             <span ref={numRef} className="text-3xl font-bold tracking-tight">
               {latest ? fmt.format(latest[1]) : "—"}
             </span>
             <span className="text-xs font-medium text-secondary">ct/kWh</span>
           </dd>
-          <dd className="mt-1.5 text-[11px] text-secondary">{latest ? dateFmt.day.format(utc(latest[0])) : " "}</dd>
+          <dd className="mt-1.5 text-[11px] text-secondary">{latest ? (wholeMonths ? dateFmt.monthLong : dateFmt.day).format(utc(latest[0])) : " "}</dd>
         </div>
         <div className="min-w-0">
           <dt className="text-xs font-medium text-secondary">{byLocale(locale, L.monthlyChange)}</dt>
@@ -267,7 +268,7 @@ export function MarketPriceChart({ commodity, locale, fallback }: { commodity: C
             {falling && <ArrowDown size={20} weight="bold" aria-hidden />}
             {monthChange === null ? "—" : `${monthChange > 0 ? "+" : ""}${pct.format(monthChange * 100)}%`}
           </dd>
-          <dd className="mt-1.5 text-[11px] leading-snug text-secondary">{byLocale(locale, L.monthlyChangeNote)}</dd>
+          <dd className="mt-1.5 text-[11px] leading-snug text-secondary">{byLocale(locale, wholeMonths ? L.monthlyChangeNoteFull : L.monthlyChangeNote)}</dd>
         </div>
       </dl>
 

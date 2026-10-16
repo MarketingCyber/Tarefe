@@ -19,6 +19,10 @@ export interface MarketChartLabels {
   monthlyChange: LocalizedText;
   /** Small print under the monthly change: what is compared with what. */
   monthlyChangeNote: LocalizedText;
+  /** Same, for a series that only has whole months (gas): the newest month is complete. */
+  monthlyChangeNoteFull: LocalizedText;
+  /** Label of the big number when it is the average of the last complete month (gas). */
+  latestMonthly: LocalizedText;
   /** Tooltip line: what one point on the chart is. */
   monthAverage: LocalizedText;
   toDate: LocalizedText;
@@ -37,6 +41,8 @@ export interface MarketChartLabels {
 const COMMON = {
   monthlyChange: t("تغییر ماهانه", "Monatsänderung", "Изменение за месяц"),
   monthlyChangeNote: t("میانگین این ماه تا امروز نسبت به ماه قبل", "Ø dieser Monat bisher ggü. Vormonat", "среднее за этот месяц к прошлому"),
+  monthlyChangeNoteFull: t("میانگین ماه نسبت به ماه قبل", "Monatsdurchschnitt ggü. Vormonat", "среднее за месяц к прошлому"),
+  latestMonthly: t("میانگین آخرین ماه", "Ø letzter Monat", "Среднее за последний месяц"),
   monthAverage: t("میانگین ماه", "Monatsdurchschnitt", "Среднее за месяц"),
   toDate: t("تا امروز", "bisher", "на сегодня"),
   sourceLead: t("منبع", "Quelle", "Источник"),
