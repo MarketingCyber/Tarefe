@@ -50,13 +50,51 @@ const SEARCH_HOSTS: [RegExp, string][] = [
 /** Google's ad-serving hosts: a click that came through one of these is a paid click even without a gclid. */
 const GOOGLE_ADS_HOSTS = /(^|\.)(googleadservices\.com|doubleclick\.net|googlesyndication\.com)$/;
 
-/** Paid click ids appended by ad platforms' auto-tagging — present even when the ad has NO utm_* params. */
-function clickIdSource(params: URLSearchParams): UtmSnapshot | null {
-  if (params.get("gclid") || params.get("gbraid") || params.get("wbraid") || params.get("dclid")) return { source: "google", medium: "cpc" };
-  if (params.get("msclkid")) return { source: "bing", medium: "cpc" };
-  if (params.get("ttclid")) return { source: "tiktok", medium: "cpc" };
+/**
+ * Paid click ids appended by ad platforms' auto-tagging — present even when the ad has NO utm_* params.
+ * (Meta's fbclid is deliberately NOT here: Facebook/Instagram add it to every outbound link, organic or
+ * paid, so it proves "came from Meta" but not "was an ad". Meta ads need utm_* tags; see classifySource.)
+ */
+const PAID_CLICK_IDS: readonly (readonly [param: string, source: string])[] = [
+  ["gclid", "google"],
+  ["gbraid", "google"],
+  ["wbraid", "google"],
+  ["dclid", "google"],
+  ["msclkid", "bing"], // Microsoft Advertising — also serves Yahoo / AOL search; refined by the referrer in classifySource
+  ["ttclid", "tiktok"],
+  ["yclid", "yahoo"], // Yahoo Ads / Yahoo! JAPAN
+  ["twclid", "twitter"],
+  ["sccid", "snapchat"],
+];
+
+/** The paid click-id parameter present on this URL (case-insensitive), or null. Only the NAME is ever stored, never the value. */
+export function paidClickIdName(params: URLSearchParams): string | null {
+  const present = new Set([...params.keys()].filter((k) => params.get(k)).map((k) => k.toLowerCase()));
+  for (const [param] of PAID_CLICK_IDS) if (present.has(param)) return param;
   return null;
 }
+
+function clickIdSource(params: URLSearchParams): UtmSnapshot | null {
+  const name = paidClickIdName(params);
+  if (!name) return null;
+  return { source: PAID_CLICK_IDS.find(([p]) => p === name)![1], medium: "cpc" };
+}
+
+/** Spellings of the same platform people type into utm_source, folded into one row. */
+const SOURCE_ALIASES: Record<string, string> = {
+  fb: "facebook",
+  "facebook.com": "facebook",
+  ig: "instagram",
+  "instagram.com": "instagram",
+  adwords: "google",
+  googleads: "google",
+  "google ads": "google",
+  "google-ads": "google",
+  "bing ads": "bing",
+  bingads: "bing",
+  "yahoo!": "yahoo",
+  "yahoo ads": "yahoo",
+};
 
 /**
  * Source/medium for a visit from document.referrer — the same buckets Google
@@ -94,7 +132,7 @@ function readUtm(params: URLSearchParams): UtmSnapshot | null {
   };
   // source/medium are lower-cased so "Google" / "google" and "CPC" / "cpc" are one row, not two.
   const snapshot: UtmSnapshot = {
-    source: clean(params.get("utm_source"), true),
+    source: SOURCE_ALIASES[clean(params.get("utm_source"), true) ?? ""] ?? clean(params.get("utm_source"), true),
     medium: clean(params.get("utm_medium"), true),
     campaign: clean(params.get("utm_campaign"), false),
     term: clean(params.get("utm_term"), false),
@@ -132,11 +170,22 @@ export function classifySource(search: string, referrer: string, ownHost: string
     return { snap: { ...utm, medium: utm.medium ?? click?.medium }, fromUrl: true, internal: false };
   }
   if (click) {
-    return { snap: { ...click, campaign: utm?.campaign ?? "(auto-tagged)", term: utm?.term, content: utm?.content }, fromUrl: true, internal: false };
+    // Microsoft Advertising serves Yahoo / AOL / DuckDuckGo search too: if the click came from one of those search pages, say so.
+    let source = click.source;
+    if (source === "bing") {
+      const via = deriveFromReferrer(referrer, ownHost);
+      if (via && via.medium === "organic" && via.source !== "bing") source = via.source;
+    }
+    return { snap: { ...click, source, campaign: utm?.campaign ?? "(auto-tagged)", term: utm?.term, content: utm?.content }, fromUrl: true, internal: false };
   }
   if (utm) return { snap: utm, fromUrl: true, internal: false };
 
   const derived = deriveFromReferrer(referrer, ownHost);
+  // Meta adds fbclid to every outbound link. Its in-app browsers often hide the referrer, so fbclid is still the
+  // only sign the visit came from Facebook / Instagram — organic or paid (paid needs utm_* tags to be told apart).
+  if (params.get("fbclid")) {
+    return { snap: derived && derived.medium === "social" ? derived : { source: "facebook", medium: "social" }, fromUrl: true, internal: false };
+  }
   if (derived) return { snap: derived, fromUrl: false, internal: false };
   let internal = false;
   try {

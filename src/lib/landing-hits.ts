@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
-import { DIRECT, classifySource } from "@/lib/traffic-source";
+import { DIRECT, classifySource, paidClickIdName } from "@/lib/traffic-source";
 import { parseUserAgent } from "@/lib/user-agent";
 
 /**
@@ -26,7 +26,6 @@ import { parseUserAgent } from "@/lib/user-agent";
  */
 
 const SITE_HOST = "tarefe.de";
-const CLICK_IDS = ["gclid", "gbraid", "wbraid", "dclid", "msclkid", "ttclid"] as const;
 
 /** Crawlers, link-preview fetchers, uptime/perf monitors and scripted clients — none of these are people. */
 const BOT_UA = /bot\b|bot[/;)]|crawl|spider|slurp|adsbot|google-adwords|googleother|google-inspectiontool|storebot|apis-google|mediapartners|feedfetcher|lighthouse|pagespeed|gtmetrix|pingdom|uptime|facebookexternalhit|embedly|whatsapp\/|telegrambot|skypeuripreview|headless|phantomjs|selenium|puppeteer|playwright|curl\/|wget|python|aiohttp|httpx|axios|node-fetch|undici|go-http|okhttp|java\/|scrapy|libwww|httpclient/i;
@@ -97,7 +96,7 @@ export async function recordLanding(request: NextRequest): Promise<void> {
         campaign: snap.campaign?.slice(0, 200) ?? null,
         term: snap.term?.slice(0, 200) ?? null,
         content: snap.content?.slice(0, 200) ?? null,
-        clickId: CLICK_IDS.find((k) => searchParams.has(k)) ?? null,
+        clickId: paidClickIdName(searchParams),
         device,
         browser,
         os,
