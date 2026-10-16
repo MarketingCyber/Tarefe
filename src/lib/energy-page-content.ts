@@ -37,7 +37,7 @@ export interface EnergyPageContent {
   situations: {
     title: LT;
     grundversorger: { term: string; label: LT; heading: LT; text: LT; intro: LT; bullets: LT[]; cta: LT };
-    alternative: { term: string; label: LT; heading: LT; text: LT };
+    alternative: { term: string; label: LT; heading: LT; text: LT; intro: LT; bullets: LT[]; cta: LT };
     reassurance: { title: LT; paragraphs: LT[] };
   };
   whyNow: {
@@ -45,7 +45,6 @@ export interface EnergyPageContent {
     /** The LAST entry leads into the Preisgarantie card (rendered above it); everything before it is body text. */
     paragraphs: LT[];
     callout: { term: string; label: LT; body: LT; chart: { today: LT; end: LT; market: LT; yours: LT; note: LT } };
-    closing: LT;
   };
   whyTarefe: {
     title: LT;
@@ -57,6 +56,20 @@ export interface EnergyPageContent {
   whenToCheck: { title: LT; lead: LT; items: LT[]; /** "{n}" is replaced with the count of ticked items. */ result: LT; cta: LT };
   faqTitle: LT;
   faq: { q: LT; a: LT }[];
+  /**
+   * The connective tissue of the page (added 2026-10-17 after the flow after the
+   * calculator results read as unrelated blocks): the section map shown in the
+   * sticky nav, the panel that follows the tariff results, and the lines that
+   * hand one section over to the next.
+   */
+  journey: {
+    nav: { calculator: LT; whyNow: LT; situation: LT; process: LT; trust: LT; faq: LT; cta: LT };
+    afterResults: { title: LT; body: LT; cta: LT; link: LT };
+    /** CTA under the Preisgarantie in "why now": sends the visitor back up to the calculator. */
+    whyNowCta: LT;
+    /** Prompt above the two situation tabs, and the label of the self-check next to them. */
+    situation: { pick: LT; selfCheck: LT };
+  };
 }
 
 const t = (fa: string, de: string, ru: string): LT => ({ fa, de, ru });
@@ -95,7 +108,7 @@ function build(kind: EnergyKind): EnergyPageContent {
     // One block, two situations: what each supply route is AND what the
     // visitor can do about it.
     situations: {
-      title: t(`اول ببینیم الان ${n} خانه‌ات از کجا تأمین می‌شود`, `Zuerst klären wir, woher Ihr ${P} aktuell kommt`, `Сначала посмотрим, откуда сейчас поступает ${r.what} в ваш дом`),
+      title: t(`ببینیم الان ${n} خانه‌ات از کجا تأمین می‌شود`, `Woher kommt Ihr ${P} aktuell?`, `Откуда сейчас поступает ${r.what} в ваш дом?`),
       grundversorger: {
         term: "Stadtwerke",
         label: t("تأمین‌کننده پایه منطقه", "Basisversorger Ihrer Region", "Базовый поставщик региона"),
@@ -125,6 +138,14 @@ function build(kind: EnergyKind): EnergyPageContent {
           `Jeder Vertrag hat eine feste Laufzeit und Kündigungsbedingungen. Auch wenn er noch läuft, prüfen wir Vertragsende und Kündigungsfrist, um den passenden Wechselzeitpunkt zu finden — und übernehmen Kündigung und Start des neuen Vertrags.`,
           `У любого договора есть срок и условия расторжения. Даже если он ещё не закончился, мы проверим дату окончания и Kündigungsfrist, чтобы найти подходящий момент для смены, — и возьмём на себя Kündigung и начало нового договора.`
         ),
+        // Same shape as the Grundversorger card so the two tabs have equal weight; every item restates what the text above already says.
+        intro: t("این کارها را ما انجام می‌دهیم:", "Das übernehmen wir:", "Что мы берём на себя:"),
+        bullets: [
+          t("بررسی پایان قرارداد", "Vertragsende prüfen", "проверка окончания договора"),
+          t("بررسی Kündigungsfrist", "Kündigungsfrist prüfen", "проверка Kündigungsfrist"),
+          t("Kündigung و شروع قرارداد جدید", "Kündigung und Start des neuen Vertrags", "Kündigung и старт нового договора"),
+        ],
+        cta: t("رایگان مقایسه کنید", "Kostenlos vergleichen", "Сравнить бесплатно"),
       },
       reassurance: {
         title: t("مهم‌تر از همه:", "Das Wichtigste:", "Самое важное:"),
@@ -171,11 +192,6 @@ function build(kind: EnergyKind): EnergyPageContent {
           note: t("نمودار نمادین", "Schematische Darstellung", "Схематичное изображение"),
         },
       },
-      closing: t(
-        "یعنی قیمتی که امروز می‌بینی، تا پایان دوره قرارداد همان می‌ماند.",
-        "Der Preis, den Sie heute sehen, bleibt also bis zum Ende der Laufzeit derselbe.",
-        "То есть цена, которую вы видите сегодня, остаётся прежней до конца срока договора."
-      ),
     },
 
     whyTarefe: {
@@ -285,6 +301,32 @@ function build(kind: EnergyKind): EnergyPageContent {
       cta: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
     },
 
+    journey: {
+      nav: {
+        calculator: t("محاسبه", "Rechner", "Расчёт"),
+        whyNow: t("چرا الان", "Warum jetzt", "Почему сейчас"),
+        situation: t("وضعیت تو", "Ihre Situation", "Ваша ситуация"),
+        process: t("مراحل کار", "Ablauf", "Как это работает"),
+        trust: t("چرا تعرفه", "Warum Tarefe", "Почему Tarefe"),
+        faq: t("سوالات", "Fragen", "Вопросы"),
+        cta: t("مشاوره رایگان", "Beratung", "Консультация"),
+      },
+      afterResults: {
+        title: t("تعرفه‌ای را پسندیدی؟", "Tarif gefunden, der passt?", "Нашли подходящий тариф?"),
+        body: t(
+          `تغییر ${n} را ما برایت انجام می‌دهیم: درخواست، Kündigung و شروع قرارداد جدید — رایگان و بدون تعهد.`,
+          `Wir übernehmen den Wechsel für Sie: Antrag, Kündigung und Vertragsstart — kostenlos und unverbindlich.`,
+          `Смену ${r.whatGen} мы оформим за вас: заявку, Kündigung и старт нового договора — бесплатно и без обязательств.`
+        ),
+        cta: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
+        link: t("مراحل تغییر را ببین", "So läuft der Wechsel ab", "Как проходит смена"),
+      },
+      whyNowCta: t("قیمتت را ثابت کن — به محاسبه برو", "Preis sichern – zum Rechner", "Зафиксировать цену — к расчёту"),
+      situation: {
+        pick: t("کدام یک به وضعیت تو نزدیک‌تر است؟", "Was trifft auf Sie zu?", "Что ближе к вашей ситуации?"),
+        selfCheck: t("یا خودت بسنج", "Oder prüfen Sie selbst", "Или проверьте сами"),
+      },
+    },
     faqTitle: t("سوالات متداول", "Häufige Fragen", "Частые вопросы"),
     faq: [
       {

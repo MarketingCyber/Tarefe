@@ -23,13 +23,11 @@ import { FaqAccordion } from "@/components/services/pdp/FaqAccordion";
 import { Reveal } from "@/components/shared/Reveal";
 import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, WHY_NOT_DIY, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
 import { getEnergyPageContent } from "@/lib/energy-page-content";
-import {
-  EnergySituations,
-  EnergyWhyNow,
-  EnergyWhyTarefe,
-  EnergyProcess,
-} from "@/components/services/energy/EnergySections";
-import { EnergyWhenToCheck } from "@/components/services/energy/EnergyWhenToCheck";
+import { EnergyWhyNow, EnergyWhyTarefe, EnergyProcess } from "@/components/services/energy/EnergySections";
+import { EnergySituation } from "@/components/services/energy/EnergySituation";
+import { EnergyJourneyNav } from "@/components/services/energy/EnergyJourneyNav";
+import { JOURNEY_IDS } from "@/components/services/energy/journey";
+import { SectionHead } from "@/components/services/energy/energy-ui";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -158,6 +156,9 @@ export async function PlpView({
         </div>
       </section>
 
+      {/* The map of the page: sticky under the header from here down (see EnergyJourneyNav). */}
+      {energy && <EnergyJourneyNav locale={locale} nav={energy.journey.nav} formId={FORM_ID} />}
+
       {/* 01b — The calculator, right after the hero: this page's real
           value prop comes before any reading material, not after 3
           sections of it. No intro line above it anymore (2026-10-01,
@@ -165,7 +166,7 @@ export async function PlpView({
           calculator's own heading is the first thing here, so there's
           nothing left between landing and the actual value prop. */}
       {isEnergyCalculator && (
-        <section className="border-b border-border bg-tint py-12">
+        <section id={JOURNEY_IDS.calculator} className="scroll-mt-32 border-b border-border bg-tint py-12">
           <div className="container-page">
             <Reveal>
               <EnergyConsumptionCalculator
@@ -174,17 +175,19 @@ export async function PlpView({
                 consultationHref={`#${FORM_ID}`}
                 pricingMode="live"
                 hasAnyTariffs={energyTariffCount > 0}
+                afterResults={
+                  energy
+                    ? {
+                        title: byLocale(locale, energy.journey.afterResults.title),
+                        body: byLocale(locale, energy.journey.afterResults.body),
+                        cta: byLocale(locale, energy.journey.afterResults.cta),
+                        link: byLocale(locale, energy.journey.afterResults.link),
+                        linkHref: `#${JOURNEY_IDS.process}`,
+                      }
+                    : undefined
+                }
               />
             </Reveal>
-            {/* Below the calculator, not above it: the calculator stays the
-                first thing after the hero (see the note above), and this
-                "where does your supply come from today" framing reads as
-                its follow-up. */}
-            {energy && (
-              <div className="mt-14">
-                <EnergySituations locale={locale} content={energy} formId={FORM_ID} />
-              </div>
-            )}
           </div>
         </section>
       )}
@@ -194,6 +197,10 @@ export async function PlpView({
           supporting material, and the heading scale now says so instead
           of every one of the 11 sections reading as equally important. */}
       {energy && <EnergyWhyNow locale={locale} content={energy} />}
+      {/* The rest of the energy path, in reading order: situation → process → trust (the generic sections below are skipped for energy). */}
+      {energy && <EnergySituation locale={locale} content={energy} formId={FORM_ID} />}
+      {energy && <EnergyProcess locale={locale} content={energy} formId={FORM_ID} />}
+      {energy && <EnergyWhyTarefe locale={locale} content={energy} formId={FORM_ID} />}
       {!energy && content?.whatItIs && (
         <section className="container-page py-14">
           <Reveal>
@@ -255,7 +262,6 @@ export async function PlpView({
       {/* 06 — Why Tarefe: sells the brand, not the product. Same 5 points
           on every service page — deliberately category-agnostic. Energy
           pages swap in their own copy (which also absorbs 08 below). */}
-      {energy && <EnergyWhyTarefe locale={locale} content={energy} />}
       {!energy && (
       <section className="container-page py-12">
         <Reveal>
@@ -287,7 +293,6 @@ export async function PlpView({
           Last step's number breaks from purple to gold, same treatment as
           the homepage journey (HowItWorks.tsx) — the one step that isn't
           really a step, since support doesn't end when the process does. */}
-      {energy && <EnergyProcess locale={locale} content={energy} formId={FORM_ID} />}
       {!energy && (
       <section className="border-t border-border bg-tint py-12">
         <div className="container-page">
@@ -343,7 +348,8 @@ export async function PlpView({
           the energy pages (this is where real customer comments will
           appear); they add 09b (when to check) right after it, which has
           no generic counterpart. */}
-      <section className={`border-t border-border py-10 ${energy ? "" : "bg-tint"}`}>
+      {!energy && (
+      <section className="border-t border-border bg-tint py-10">
         <div className="container-page flex flex-col items-center gap-3 text-center">
           <Reveal>
             <div className="flex flex-col items-center gap-3">
@@ -360,17 +366,43 @@ export async function PlpView({
           </Reveal>
         </div>
       </section>
-      {energy && <EnergyWhenToCheck locale={locale} content={energy.whenToCheck} formId={FORM_ID} />}
+      )}
 
       {/* 10 — FAQ: collapsed accordion, not a static open grid — 6-7 Q&A
           pairs all expanded at once is a lot of dense text competing for
           attention this deep into an 11-section page. */}
+      {energy ? (
+        <section id={JOURNEY_IDS.faq} className="scroll-mt-32 border-t border-border py-14 md:py-20">
+          <div className="container-page grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
+            <Reveal className="self-start lg:sticky lg:top-40">
+              <SectionHead locale={locale} eyebrow={byLocale(locale, energy.journey.nav.faq)} title={byLocale(locale, energy.faqTitle)} />
+              {/* still unsure? — a direct line, so the end of the reading path is not a dead end */}
+              <div className="mt-6 flex max-w-[34ch] flex-col gap-3 rounded-2xl border border-border bg-tint p-5">
+                <p className="text-sm font-semibold text-purple-900">{byLocale(locale, { fa: "جوابت را پیدا نکردی؟ مستقیم از ما بپرس.", de: "Antwort nicht gefunden? Fragen Sie uns direkt.", ru: "Не нашли ответ? Спросите нас напрямую." })}</p>
+                <a
+                  href="https://wa.me/4915224318691"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="press inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border-strong bg-white px-5 py-2.5 text-sm font-semibold text-purple-900"
+                >
+                  <WhatsappLogo size={16} weight="fill" />
+                  {dict.cta.whatsappConsultation}
+                </a>
+              </div>
+            </Reveal>
+            <Reveal delay={0.06}>
+              <FaqAccordion locale={locale} items={energy.faq} />
+            </Reveal>
+          </div>
+        </section>
+      ) : (
       <section className="container-page py-10">
         <Reveal>
-          <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, energy ? energy.faqTitle : { fa: "سوالات پرتکرار", de: "Häufige Fragen", ru: "Частые вопросы" })}</h2>
-          <FaqAccordion locale={locale} items={energy ? energy.faq : PDP_FAQ_ITEMS} />
+          <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, { fa: "سوالات پرتکرار", de: "Häufige Fragen", ru: "Частые вопросы" })}</h2>
+          <FaqAccordion locale={locale} items={PDP_FAQ_ITEMS} />
         </Reveal>
       </section>
+      )}
 
       {/* 11 — The one real conversion point on the page. */}
       <section className="border-t border-border bg-purple-900 py-12 md:py-16">

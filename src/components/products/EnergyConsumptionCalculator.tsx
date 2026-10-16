@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calculator, ArrowRight } from "@phosphor-icons/react";
+import { Calculator, ArrowDown, ArrowRight, CheckCircle } from "@phosphor-icons/react";
 import { useReducedMotion } from "motion/react";
 import type { Locale } from "@/lib/taxonomy";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
@@ -263,6 +263,7 @@ export function EnergyConsumptionCalculator({
   tariffs,
   pricingMode = "static",
   hasAnyTariffs,
+  afterResults,
 }: {
   locale: Locale;
   /** Both kinds have an "estimate" quick-pick mode — electricity by
@@ -286,6 +287,12 @@ export function EnergyConsumptionCalculator({
    * registered for this service yet" from "registered, but not in your
    * area" (the latter only becomes known after a lookup). */
   hasAnyTariffs?: boolean;
+  /**
+   * What to do once the tariff cards are showing (live PLP mode): a panel that closes
+   * the loop — "found one? we handle the switch" + the one CTA + a link to how it works.
+   * Without it the results ended abruptly and the page jumped to an unrelated topic.
+   */
+  afterResults?: { title: string; body: string; cta: string; link: string; linkHref: string };
 }) {
   const t = LABELS[locale];
   const reduceMotion = useReducedMotion();
@@ -654,6 +661,33 @@ export function EnergyConsumptionCalculator({
             consultationHref={consultationHref}
             winnerRef={winnerCardRef}
           />
+        </div>
+      )}
+
+      {showCards && afterResults && (
+        <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-purple-600/25 bg-[linear-gradient(135deg,rgba(93,0,137,0.08),#fff_60%)] p-5 md:flex-row md:items-center md:justify-between md:gap-8 md:p-6">
+          <div className="flex items-start gap-3.5">
+            <span aria-hidden className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-500 text-purple-900">
+              <CheckCircle size={22} weight="fill" />
+            </span>
+            <div>
+              <p className="text-base font-bold text-purple-900">{afterResults.title}</p>
+              <p className="mt-1 max-w-[58ch] text-sm leading-relaxed text-body">{afterResults.body}</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-stretch gap-2.5 sm:flex-row sm:items-center md:flex-col md:items-stretch lg:flex-row lg:items-center">
+            <ConsultationCtaLink
+              href={consultationHref}
+              className="press inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-900"
+            >
+              {afterResults.cta}
+              <ArrowRight size={15} weight="bold" className="rtl:rotate-180" />
+            </ConsultationCtaLink>
+            <a href={afterResults.linkHref} className="inline-flex min-h-11 items-center justify-center gap-1.5 px-2 text-sm font-semibold text-purple-600 underline-offset-4 hover:text-purple-900 hover:underline">
+              {afterResults.link}
+              <ArrowDown size={14} weight="bold" />
+            </a>
+          </div>
         </div>
       )}
 
