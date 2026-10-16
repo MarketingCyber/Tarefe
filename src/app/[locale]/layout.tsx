@@ -4,6 +4,7 @@ import { LOCALES, LOCALE_DIR, type Locale } from "@/lib/taxonomy";
 import { getDictionary } from "@/lib/dictionary";
 import { inter, iransansx } from "@/lib/fonts";
 import { Navbar } from "@/components/layout/Navbar";
+import { FreeBar } from "@/components/layout/FreeBar";
 import { Footer } from "@/components/layout/Footer";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import { SessionProvider } from "@/components/providers/SessionProvider";
@@ -65,6 +66,7 @@ export default async function LocaleLayout({
         <PageViewTracker locale={locale} />
         <WebVitalsReporter locale={locale} />
         <SessionProvider>
+          <FreeBar dict={dict} />
           <Navbar locale={locale} dict={dict} />
           <main id="main-content" className="flex-1">
             <PageTransition>{children}</PageTransition>

@@ -28,58 +28,84 @@ export function EnergyJourneyNav({ locale, nav, formId }: { locale: Locale; nav:
   const barRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLUListElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
+  const lockRef = useRef(false);
+  const lockTimer = useRef<number | null>(null);
+  const scheduleRef = useRef<(() => void) | null>(null);
 
-  // which section is "current"
+  // Which stop is "current", and how far the reader is — recomputed from the real section
+  // positions on every scroll frame. (First version used IntersectionObserver ratios; with tall
+  // sections and a thin trigger band it flickered between stops.) The rule is simple and
+  // monotone: the current stop is the LAST one whose top has passed a line a quarter of the way
+  // down the viewport, below the sticky chrome. While the page is scrolling because the visitor
+  // CLICKED a chip (the site scrolls smoothly), the spy is paused so the highlight does not
+  // flash through every stop on the way; it resumes when the scroll ends.
   useEffect(() => {
-    const els = ORDER.map((k) => document.getElementById(JOURNEY_IDS[k])).filter((e): e is HTMLElement => !!e);
-    if (els.length === 0) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!hit) return;
-        const key = ORDER.find((k) => JOURNEY_IDS[k] === hit.target.id);
-        if (key) setActive(key);
-      },
-      { rootMargin: "-40% 0px -55% 0px", threshold: [0, 0.01, 0.1, 0.5, 1] },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-
-  // reading progress, from the first stop to the end of the last
-  useEffect(() => {
-    let frame = 0;
-    const update = () => {
-      frame = 0;
+    // Runs straight from the scroll event (browsers already deliver at most one per frame) — no
+    // requestAnimationFrame hop, which is paused entirely in a hidden tab and added a frame of lag.
+    const compute = () => {
+      // progress hairline: first stop → end of the last stop
       const first = document.getElementById(JOURNEY_IDS.calculator);
-      const last = document.getElementById(JOURNEY_IDS.faq);
+      const last = document.getElementById(JOURNEY_IDS[ORDER[ORDER.length - 1]]);
       const bar = progressRef.current;
-      if (!first || !last || !bar) return;
-      const start = first.getBoundingClientRect().top + window.scrollY;
-      const end = last.getBoundingClientRect().bottom + window.scrollY - window.innerHeight;
-      const p = end > start ? (window.scrollY - start) / (end - start) : 0;
-      bar.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+      if (first && last && bar) {
+        const start = first.getBoundingClientRect().top + window.scrollY;
+        const end = last.getBoundingClientRect().bottom + window.scrollY - window.innerHeight;
+        bar.style.transform = `scaleX(${Math.min(1, Math.max(0, end > start ? (window.scrollY - start) / (end - start) : 0))})`;
+      }
+
+      if (lockRef.current) return;
+      const chromeBottom = barRef.current?.getBoundingClientRect().bottom ?? 120;
+      const line = chromeBottom + window.innerHeight * 0.25;
+      let current: JourneyStop = ORDER[0];
+      for (const key of ORDER) {
+        const el = document.getElementById(JOURNEY_IDS[key]);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= line) current = key;
+        else break;
+      }
+      setActive((prev) => (prev === current ? prev : current));
     };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    const schedule = compute;
+    scheduleRef.current = schedule;
+    compute();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    // sections change height while the page loads (images, the live chart, the calculator results)
+    const ro = new ResizeObserver(schedule);
+    ORDER.forEach((k) => {
+      const el = document.getElementById(JOURNEY_IDS[k]);
+      if (el) ro.observe(el);
+    });
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      ro.disconnect();
+      scheduleRef.current = null;
     };
   }, []);
 
-  // keep the current chip visible inside the (phone-width) scroller
+  // A chip was clicked: highlight it now, hold the spy until the smooth scroll has finished.
+  const onChipClick = (key: JourneyStop) => {
+    setActive(key);
+    lockRef.current = true;
+    if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    const release = () => {
+      lockRef.current = false;
+      scheduleRef.current?.();
+    };
+    window.addEventListener("scrollend", release, { once: true });
+    lockTimer.current = window.setTimeout(release, 1400); // fallback for browsers without scrollend
+  };
+
+  // Keep the current chip visible inside the (phone-width) scroller. Uses screen coordinates, so it is the
+  // same in left-to-right and right-to-left pages (scrollLeft is negative in RTL), and only ever moves the chip row.
   useEffect(() => {
     const track = trackRef.current;
     const chip = track?.querySelector<HTMLElement>(`[data-stop="${active}"]`);
     if (!track || !chip || track.scrollWidth <= track.clientWidth) return;
-    const target = chip.offsetLeft - (track.clientWidth - chip.clientWidth) / 2;
-    track.scrollTo({ left: target, behavior: "smooth" });
+    const t = track.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    track.scrollBy({ left: c.left + c.width / 2 - (t.left + t.width / 2), behavior: "smooth" });
   }, [active]);
 
   return (
@@ -94,6 +120,7 @@ export function EnergyJourneyNav({ locale, nav, formId }: { locale: Locale; nav:
                   <a
                     href={`#${JOURNEY_IDS[key]}`}
                     data-stop={key}
+                    onClick={() => onChipClick(key)}
                     aria-current={on ? "location" : undefined}
                     className={`press inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-150 ${
                       on ? "bg-purple-900 text-white" : "text-secondary hover:bg-tint hover:text-purple-900"

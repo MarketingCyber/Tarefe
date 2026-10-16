@@ -1,4 +1,4 @@
-import { CaretDown, DeviceMobile, FileText, Headset, LockKey, MagnifyingGlass, Translate, UserCircle } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, DeviceMobile, Gift, FileText, Headset, LockKey, MagnifyingGlass, Translate, UserCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { byLocale, type Locale } from "@/lib/taxonomy";
 import type { EnergyPageContent } from "@/lib/energy-page-content";
@@ -35,7 +35,7 @@ import { JOURNEY_IDS } from "./journey";
  * Palette, radius and type stay on the site's existing tokens.
  */
 
-const WHY_ICON: Record<string, PhosphorIcon> = { compare: MagnifyingGlass, human: Translate, dedicated: UserCircle, admin: FileText, support: DeviceMobile };
+const WHY_ICON: Record<string, PhosphorIcon> = { free: Gift, compare: MagnifyingGlass, human: Translate, dedicated: UserCircle, admin: FileText, support: DeviceMobile };
 
 type SectionProps = { locale: Locale; content: EnergyPageContent };
 

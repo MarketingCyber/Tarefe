@@ -50,7 +50,7 @@ export interface EnergyPageContent {
     title: LT;
     /** Empty-string entries are dropped at render — lets one locale omit a sentence without a separate code path. */
     lead: LT[];
-    items: { key: "compare" | "human" | "dedicated" | "admin" | "support"; title: LT; body: LT }[];
+    items: { key: "free" | "compare" | "human" | "dedicated" | "admin" | "support"; title: LT; body: LT }[];
   };
   process: { title: LT; steps: { title: LT; body: LT }[]; cta: LT };
   whenToCheck: { title: LT; lead: LT; items: LT[]; /** "{n}" is replaced with the count of ticked items. */ result: LT; cta: LT };
@@ -203,8 +203,19 @@ function build(kind: EnergyKind): EnergyPageContent {
           "Es geht nicht nur um die günstigere Zahl: Wir helfen Ihnen, die Vertragsbedingungen zu verstehen und die passende Option zu wählen.",
           "Дело не только в цифре поменьше: мы помогаем понять условия договоров и выбрать подходящий вариант — на вашем родном языке."
         ),
+        // The reason to choose us, stated once and plainly (2026-10-17): everything is free for the customer.
+        t(
+          "همه خدمات ما برای تو رایگان است — مقایسه با ما هیچ هزینه‌ای ندارد.",
+          "Alle unsere Leistungen sind für Sie kostenlos — ein Vergleich mit uns kostet Sie nichts.",
+          "Все наши услуги для вас бесплатны — сравнение с нами ничего не стоит."
+        ),
       ],
       items: [
+        {
+          key: "free",
+          title: t("همه خدمات رایگان است", "Alle Leistungen kostenlos", "Все услуги бесплатны"),
+          body: t("مقایسه، مشاوره، تغییر تأمین‌کننده و پشتیبانی — برای تو هیچ هزینه‌ای ندارد.", "Vergleich, Beratung, Anbieterwechsel und Support — für Sie ohne Kosten.", "Сравнение, консультация, смена поставщика и поддержка — для вас без затрат."),
+        },
         {
           key: "compare",
           title: t("مقایسه گزینه‌های مختلف", "Vergleich verschiedener Optionen", "Сравнение разных вариантов"),
@@ -309,14 +320,14 @@ function build(kind: EnergyKind): EnergyPageContent {
         process: t("مراحل کار", "Ablauf", "Как это работает"),
         trust: t("چرا تعرفه", "Warum Tarefe", "Почему Tarefe"),
         faq: t("سوالات", "Fragen", "Вопросы"),
-        cta: t("مشاوره رایگان", "Beratung", "Консультация"),
+        cta: t("مشاوره رایگان", "Kostenlose Beratung", "Бесплатная консультация"),
       },
       afterResults: {
         title: t("تعرفه‌ای را پسندیدی؟", "Tarif gefunden, der passt?", "Нашли подходящий тариф?"),
         body: t(
-          `تغییر ${n} را ما برایت انجام می‌دهیم: درخواست، Kündigung و شروع قرارداد جدید — رایگان و بدون تعهد.`,
-          `Wir übernehmen den Wechsel für Sie: Antrag, Kündigung und Vertragsstart — kostenlos und unverbindlich.`,
-          `Смену ${r.whatGen} мы оформим за вас: заявку, Kündigung и старт нового договора — бесплатно и без обязательств.`
+          `همه خدمات ما رایگان است: تغییر ${n} را — از درخواست و Kündigung تا شروع قرارداد جدید — ما برایت انجام می‌دهیم، بدون تعهد.`,
+          `Alle unsere Leistungen sind kostenlos: Den ${P}wechsel — von Antrag und Kündigung bis zum Vertragsstart — übernehmen wir für Sie, unverbindlich.`,
+          `Все наши услуги бесплатны: смену ${r.whatGen} — от заявки и Kündigung до старта нового договора — мы оформим за вас, без обязательств.`
         ),
         cta: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
         link: t("مراحل تغییر را ببین", "So läuft der Wechsel ab", "Как проходит смена"),
@@ -329,6 +340,14 @@ function build(kind: EnergyKind): EnergyPageContent {
     },
     faqTitle: t("سوالات متداول", "Häufige Fragen", "Частые вопросы"),
     faq: [
+      {
+        q: t("آیا استفاده از خدمات تعرفه هزینه‌ای دارد؟", "Kostet die Nutzung von Tarefe etwas?", "Нужно ли платить за услуги Tarefe?"),
+        a: t(
+          "خیر. همه خدمات ما رایگان است: مقایسه، مشاوره، تغییر تأمین‌کننده و پشتیبانی. تعرفه از طریق کمیسیون شرکت‌های طرف قرارداد تأمین مالی می‌شود، نه از شما.",
+          "Nein. Alle unsere Leistungen sind kostenlos: Vergleich, Beratung, Anbieterwechsel und Support. Tarefe finanziert sich über Provisionen der Partnerunternehmen, nicht über Sie.",
+          "Нет. Все наши услуги бесплатны: сравнение, консультация, смена поставщика и поддержка. Tarefe финансируется за счёт комиссии партнёров, а не за счёт вас."
+        ),
+      },
       {
         q: t(`آیا با تغییر شرکت ${n}، ${n} خانه قطع می‌شود؟`, `Wird meine ${P}versorgung unterbrochen, wenn ich den Anbieter wechsle?`, `Отключат ли ${r.what} в доме при смене компании?`),
         a: t(

@@ -91,6 +91,12 @@ export async function PlpView({
                   <CategoryIcon size={12} weight="fill" />
                   {byLocale(locale, category.title)}
                 </span>
+                {isEnergyCalculator && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2.5 py-0.5 text-[11px] font-semibold text-success">
+                    <CheckCircle size={12} weight="fill" aria-hidden />
+                    {dict.cta.freeClaim}
+                  </span>
+                )}
                 {subcategory.classification && (
                   <span className="inline-block rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
                     {subcategory.classification}
@@ -175,6 +181,7 @@ export async function PlpView({
                 consultationHref={`#${FORM_ID}`}
                 pricingMode="live"
                 hasAnyTariffs={energyTariffCount > 0}
+                freeNote={energy ? dict.cta.freeClaim : undefined}
                 afterResults={
                   energy
                     ? {
@@ -418,7 +425,7 @@ export async function PlpView({
             </p>
             <div className="mt-5 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60 md:justify-start">
               <ShieldCheck size={14} weight="fill" />
-              {byLocale(locale, { fa: "بدون تعهد — مشاوره به زبان فارسی", de: "Unverbindlich — Beratung in Ihrer Sprache", ru: "Без обязательств — консультация на вашем языке" })}
+              {byLocale(locale, { fa: "رایگان و بدون تعهد — مشاوره به زبان فارسی", de: "Kostenlos und unverbindlich — Beratung in Ihrer Sprache", ru: "Бесплатно и без обязательств — консультация на вашем языке" })}
             </div>
           </div>
           <ConsultationForm id={FORM_ID} locale={locale} serviceLabel={title} category={category.slug} serviceSlug={productType.slug || subcategory.slug} />

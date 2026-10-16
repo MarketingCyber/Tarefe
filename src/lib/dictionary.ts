@@ -24,6 +24,9 @@ export interface Dictionary {
     freeConsultation: string;
     whatsappConsultation: string;
     checkEligibility: string;
+    /** The site-wide promise: every service is free for the customer. Shown in the top bar, hero chips, footer, forms. */
+    freeClaim: string;
+    freeDetail: string;
   };
   home: {
     heroEyebrow: string;
@@ -97,18 +100,20 @@ const fa: Dictionary = {
     freeConsultation: "درخواست مشاوره رایگان",
     whatsappConsultation: "مشاوره در واتساپ",
     checkEligibility: "ببینم واجد شرایط هستم",
+    freeClaim: "همه خدمات ما رایگان است",
+    freeDetail: "مقایسه، مشاوره و ثبت قرارداد برای تو هیچ هزینه‌ای ندارد",
   },
   home: {
     heroEyebrow: "پلتفرم تخصصی قراردادها در آلمان",
     heroTitle: "مقایسه، انتخاب و مدیریت قراردادهای شما در آلمان",
-    heroSubtitle: "از بیمه تا انرژی؛ گزینه‌ها را مقایسه کن و با یک مشاور فارسی تصمیم بگیر.",
+    heroSubtitle: "از بیمه تا انرژی؛ گزینه‌ها را مقایسه کن و رایگان با یک مشاور فارسی تصمیم بگیر.",
     heroTrust: ["۱۰۰٪ رایگان و بدون هزینه پنهان", "مشاوران رسمی و دارای تاییدیه IHK", "پشتیبانی کامل به زبان فارسی"],
     partnersTitle: "با شرکت‌های معتبر آلمانی همکاری می‌کنیم",
     categoriesTitle: "سه حوزه کلیدی قراردادهای زندگی در آلمان",
     categoriesSubtitle: "هر آنچه برای آسودگی خاطر در امور بیمه، انرژی و ارتباطات نیاز دارید.",
     popularTitle: "خدمات پرطرفدار تعرفه",
     whyTitle: "فقط قیمت مقایسه نمی‌کنیم",
-    whySubtitle: "کمک می‌کنیم انتخاب درست را ساده و بی‌دردسر انجام بدهی.",
+    whySubtitle: "کمک می‌کنیم انتخاب درست را ساده و بی‌دردسر انجام بدهی — و همه خدمات ما برایت رایگان است.",
     howTitle: "مسیر شما در تعرفه",
     howSubtitle: "یک چرخه شفاف و بدون استرس از اولین ارتباط تا سال‌ها همراهی.",
     storiesTitle: "یک تیم واقعی پشت تعرفه است",
@@ -117,7 +122,7 @@ const fa: Dictionary = {
     portalCta: "آشنایی با My Tarefe",
     faqTitle: "سوالات متداول",
     finalCtaTitle: "انتخاب قرارداد لازم نیست سخت باشد",
-    finalCtaSubtitle: "شرایطت را با ما بررسی کن و ببین کدام گزینه برایت مناسب‌تر است.",
+    finalCtaSubtitle: "شرایطت را رایگان با ما بررسی کن و ببین کدام گزینه برایت مناسب‌تر است.",
   },
   footer: {
     services: "خدمات",
@@ -170,18 +175,20 @@ const de: Dictionary = {
     freeConsultation: "Kostenlose Beratung anfragen",
     whatsappConsultation: "Beratung per WhatsApp",
     checkEligibility: "Anspruch prüfen",
+    freeClaim: "Alle unsere Leistungen sind kostenlos",
+    freeDetail: "Vergleich, Beratung und Vertragsabschluss kosten Sie nichts",
   },
   home: {
     heroEyebrow: "Ihre Vertragsplattform in Deutschland",
     heroTitle: "Verträge in Deutschland vergleichen, wählen und verwalten",
-    heroSubtitle: "Von Versicherung bis Energie — vergleichen Sie Optionen und entscheiden Sie mit einer Beratung in Ihrer Sprache.",
+    heroSubtitle: "Von Versicherung bis Energie — vergleichen Sie Optionen und entscheiden Sie kostenlos mit einer Beratung in Ihrer Sprache.",
     heroTrust: ["100 % kostenlos, keine versteckten Kosten", "Zertifizierte Berater (IHK)", "Vollständiger Support in Ihrer Sprache"],
     partnersTitle: "Wir arbeiten mit renommierten deutschen Unternehmen zusammen",
     categoriesTitle: "Drei zentrale Vertragsbereiche in Deutschland",
     categoriesSubtitle: "Alles, was Sie für Versicherung, Energie und Kommunikation brauchen.",
     popularTitle: "Beliebte Tarefe-Dienstleistungen",
     whyTitle: "Wir vergleichen nicht nur Preise",
-    whySubtitle: "Wir machen die richtige Wahl einfach und stressfrei.",
+    whySubtitle: "Wir machen die richtige Wahl einfach und stressfrei — und alle unsere Leistungen sind für Sie kostenlos.",
     howTitle: "Ihr Weg mit Tarefe",
     howSubtitle: "Ein transparenter, stressfreier Ablauf vom ersten Kontakt bis zur langfristigen Begleitung.",
     storiesTitle: "Ein echtes Team steht hinter Tarefe",
@@ -190,7 +197,7 @@ const de: Dictionary = {
     portalCta: "My Tarefe entdecken",
     faqTitle: "Häufig gestellte Fragen",
     finalCtaTitle: "Die Vertragswahl muss nicht schwer sein",
-    finalCtaSubtitle: "Schildern Sie uns Ihre Situation — wir finden die passende Option.",
+    finalCtaSubtitle: "Schildern Sie uns Ihre Situation — wir finden kostenlos die passende Option.",
   },
   footer: {
     services: "Dienstleistungen",
@@ -243,18 +250,20 @@ const ru: Dictionary = {
     freeConsultation: "Запросить бесплатную консультацию",
     whatsappConsultation: "Консультация в WhatsApp",
     checkEligibility: "Проверить право",
+    freeClaim: "Все наши услуги бесплатны",
+    freeDetail: "Сравнение, консультация и оформление договора вам ничего не стоят",
   },
   home: {
     heroEyebrow: "Ваша платформа договоров в Германии",
     heroTitle: "Сравнивайте, выбирайте и управляйте договорами в Германии",
-    heroSubtitle: "От страхования до энергии — сравните варианты с консультацией на вашем языке.",
+    heroSubtitle: "От страхования до энергии — сравните варианты и получите бесплатную консультацию на вашем языке.",
     heroTrust: ["100% бесплатно, без скрытых платежей", "Сертифицированные консультанты (IHK)", "Полная поддержка на вашем языке"],
     partnersTitle: "Мы сотрудничаем с надёжными немецкими компаниями",
     categoriesTitle: "Три ключевые сферы договоров в Германии",
     categoriesSubtitle: "Всё для страхования, энергии и связи.",
     popularTitle: "Популярные услуги Tarefe",
     whyTitle: "Мы не просто сравниваем цены",
-    whySubtitle: "Мы делаем правильный выбор простым и без стресса.",
+    whySubtitle: "Мы делаем правильный выбор простым и без стресса — и все наши услуги для вас бесплатны.",
     howTitle: "Ваш путь с Tarefe",
     howSubtitle: "Прозрачный процесс без стресса от первого контакта до долгосрочного сопровождения.",
     storiesTitle: "За Tarefe стоит настоящая команда",
@@ -263,7 +272,7 @@ const ru: Dictionary = {
     portalCta: "Узнать о My Tarefe",
     faqTitle: "Часто задаваемые вопросы",
     finalCtaTitle: "Выбор договора не должен быть сложным",
-    finalCtaSubtitle: "Расскажите нам о своей ситуации — мы найдём подходящий вариант.",
+    finalCtaSubtitle: "Расскажите нам о своей ситуации — мы бесплатно найдём подходящий вариант.",
   },
   footer: {
     services: "Услуги",

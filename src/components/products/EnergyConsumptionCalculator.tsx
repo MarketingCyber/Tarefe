@@ -264,6 +264,7 @@ export function EnergyConsumptionCalculator({
   pricingMode = "static",
   hasAnyTariffs,
   afterResults,
+  freeNote,
 }: {
   locale: Locale;
   /** Both kinds have an "estimate" quick-pick mode — electricity by
@@ -292,6 +293,8 @@ export function EnergyConsumptionCalculator({
    * the loop — "found one? we handle the switch" + the one CTA + a link to how it works.
    * Without it the results ended abruptly and the page jumped to an unrelated topic.
    */
+  /** One-line reassurance under the subtitle — all services are free (dict.cta.freeClaim). */
+  freeNote?: string;
   afterResults?: { title: string; body: string; cta: string; link: string; linkHref: string };
 }) {
   const t = LABELS[locale];
@@ -488,6 +491,12 @@ export function EnergyConsumptionCalculator({
         {TITLE[locale][kind]}
       </h2>
       <p className="mt-1.5 text-sm text-secondary">{t.subtitle}</p>
+      {freeNote && (
+        <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-success-bg px-3 py-1 text-xs font-semibold text-success">
+          <CheckCircle size={14} weight="fill" aria-hidden />
+          {freeNote}
+        </p>
+      )}
 
       {/* Single column, deliberately not side-by-side (2026-10-01) — PLZ is
           the first thing a visitor should register, consumption the

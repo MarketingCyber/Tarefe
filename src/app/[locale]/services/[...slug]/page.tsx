@@ -58,7 +58,7 @@ export async function generateMetadata({
             ? byLocale(locale, match.audience.title)
             : formatPdpTitle(match.pdpSlug);
 
-  const description =
+  const baseDescription =
     match.type === "category"
       ? byLocale(locale, match.category.description)
       : match.type === "subcategory"
@@ -68,6 +68,9 @@ export async function generateMetadata({
           : match.type === "audience"
             ? byLocale(locale, match.audience.description)
             : byLocale(locale, match.productType.description);
+
+  // Search snippets: every service is free for the customer, and "kostenlos" is what people search for.
+  const description = `${baseDescription} ${byLocale(locale, { fa: "همه خدمات رایگان است.", de: "Alle Leistungen kostenlos.", ru: "Все услуги бесплатны." })}`;
 
   return { title, description, alternates: buildAlternates(locale, `services/${slug.join("/")}`) };
 }

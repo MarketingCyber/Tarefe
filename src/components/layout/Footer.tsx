@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { InstagramLogo, YoutubeLogo, WhatsappLogo, Phone, MapPin, AppleLogo, GooglePlayLogo } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, InstagramLogo, YoutubeLogo, WhatsappLogo, Phone, MapPin, AppleLogo, GooglePlayLogo } from "@phosphor-icons/react/dist/ssr";
 import type { Locale } from "@/lib/taxonomy";
 import { byLocale, getSubcategory } from "@/lib/taxonomy";
 import type { Dictionary } from "@/lib/dictionary";
@@ -23,6 +23,10 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
               : locale === "de"
                 ? "Vergleichs- und Beratungsplattform für Versicherung und Energie."
                 : "Платформа сравнения и консультаций по страхованию и энергии."}
+          </p>
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-purple-600/10 px-3 py-1 text-xs font-bold text-purple-900">
+            <CheckCircle size={14} weight="fill" className="text-success" aria-hidden />
+            {dict.cta.freeClaim}
           </p>
           <div className="mt-5 flex items-center gap-3 text-secondary">
             <a href="https://www.instagram.com/tarefe_de/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="transition-colors hover:text-purple-600">
