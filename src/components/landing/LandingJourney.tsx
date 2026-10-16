@@ -524,12 +524,10 @@ function StepResults({
                   {c.bonus(fmtEur(parseFloat(winner.bonusEur)), locale)}
                 </li>
               )}
-              {winner.priceGuaranteeMonths !== null && (
-                <li className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3.5 py-1.5 text-sm font-semibold text-purple-900">
-                  <ShieldCheck size={16} weight="fill" className="text-purple-600" aria-hidden />
-                  {pick(c.guarantee, locale)}
-                </li>
-              )}
+              <li className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3.5 py-1.5 text-sm font-semibold text-purple-900">
+                <ShieldCheck size={16} weight="fill" className="text-purple-600" aria-hidden />
+                {winner.priceGuaranteeMonths ? c.guaranteeMonths(winner.priceGuaranteeMonths, locale) : pick(c.guarantee, locale)}
+              </li>
             </ul>
             <button type="button" onClick={() => onChoose(winner.id)} className="press winner-cta-glow inline-flex min-h-14 items-center justify-center gap-2.5 rounded-full bg-purple-600 px-8 text-base font-bold text-white transition-colors hover:bg-purple-900">
               {pick(c.continueWith, locale)}
@@ -550,6 +548,10 @@ function StepResults({
                     </p>
                     <p className="mt-1 text-xs text-secondary">{pick(c.perMonthShort, locale)}</p>
                     {t.bonusEur && <p className="mt-3 text-xs font-semibold text-success">{c.bonus(fmtEur(parseFloat(t.bonusEur)), locale)}</p>}
+                    <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-purple-900">
+                      <ShieldCheck size={14} weight="fill" className="mt-px shrink-0 text-purple-600" aria-hidden />
+                      {t.priceGuaranteeMonths ? c.guaranteeMonths(t.priceGuaranteeMonths, locale) : pick(c.guarantee, locale)}
+                    </p>
                   </div>
                   <button type="button" onClick={() => onChoose(t.id)} className="press inline-flex min-h-11 items-center justify-center rounded-full border border-purple-600 px-5 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-600 hover:text-white">
                     {pick(c.choose, locale)}
