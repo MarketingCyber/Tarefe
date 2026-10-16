@@ -99,6 +99,15 @@ function eachDay(range: DateRange): string[] {
   return out;
 }
 
+/** Visits in an arbitrary range with the same filters — used to compare like with like against the cookie-based sessions. */
+export async function serverVisitCount(f: AnalyticsFilters, range: DateRange): Promise<number> {
+  const { where } = whereFor(f);
+  const rows = await prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+    WITH ${visitsCte(range)}
+    SELECT count(*) AS n FROM v ${where}`);
+  return num(rows[0]?.n);
+}
+
 export async function serverVisits(f: AnalyticsFilters): Promise<ServerVisits> {
   const { range, previous } = resolveRange(f);
   const { where, ignored } = whereFor(f);

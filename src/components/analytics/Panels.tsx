@@ -322,7 +322,7 @@ export function ServerVisitsSection({ d, srcDims, devDims }: { d: Dashboard; src
   const s = d.server;
   const f = d.filters;
   const change = s.previousVisits > 0 ? (s.visits - s.previousVisits) / s.previousVisits : null;
-  const coverage = !s.ignoredFilters.length && s.visits > 0 ? Math.min(1, d.totals.values.sessions / s.visits) : null;
+  const coverage = d.coverage;
   const srcRows = asRows(s.sources);
   const landingRows = asRows(s.landing);
   const devRows = asRows(s.devices);
@@ -378,7 +378,7 @@ export function ServerVisitsSection({ d, srcDims, devDims }: { d: Dashboard; src
               <div className="rounded-xl bg-tint p-4">
                 <dt className="flex items-center gap-1.5 text-xs text-secondary">
                   Also in cookie tracking
-                  <Hint text="Share of these visits that were also recorded by the cookie-based tracking below. The rest declined or ignored the cookie banner. Shown only when no filter hides part of the data." />
+                  <Hint text="Share of these visits that were also recorded by the cookie-based tracking below; the rest declined or ignored the cookie banner. Compared over full days only, with at least 10 visits, so it shows a dash for the first day after release or when a filter hides part of the data." />
                 </dt>
                 <dd className="font-latin mt-1 text-3xl font-bold tracking-tight text-purple-900">{coverage === null ? "—" : formatValue("percent", coverage)}</dd>
               </div>

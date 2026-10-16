@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { serverVisits, type ServerVisits } from "@/lib/landing-report";
+import { serverVisitCount, serverVisits, type ServerVisits } from "@/lib/landing-report";
 import {
   DEFAULT_FUNNEL,
   LEADS_KEY,
@@ -59,6 +59,11 @@ export interface Dashboard {
   insights: string[];
   /** Cookie-free landing counter — everyone, not only visitors who accepted cookies. */
   server: ServerVisits;
+  /**
+   * Share of server-counted visits that cookie tracking also saw — computed ONLY over days when the server counter
+   * was running for the whole day (it began mid-day on 2026-10-16), otherwise the two would not be comparable. null = not available yet.
+   */
+  coverage: number | null;
   /** CRM leads total in range regardless of filters that the leads table cannot answer. */
   hasData: boolean;
 }
@@ -77,7 +82,7 @@ const CHANNEL_NAME: Record<string, string> = {
   "(not set)": "(not set)",
 };
 
-function buildInsights(d: Pick<Dashboard, "totals" | "previousTotals" | "sources" | "landing" | "devices" | "range" | "filters" | "server">): string[] {
+function buildInsights(d: Pick<Dashboard, "totals" | "previousTotals" | "sources" | "landing" | "devices" | "range" | "filters" | "server" | "coverage">): string[] {
   const out: string[] = [];
   const t = d.totals.values;
   const s = d.server;
@@ -85,7 +90,7 @@ function buildInsights(d: Pick<Dashboard, "totals" | "previousTotals" | "sources
   if (s.visits > 0) {
     let line = `${int(s.visits)} ${s.visits === 1 ? "visit" : "visits"} reached the site in this period (counted without cookies)`;
     if (s.paidVisits > 0) line += `, ${int(s.paidVisits)} from ads`;
-    if (!s.ignoredFilters.length && t.sessions > 0) line += `. Cookie tracking saw ${pct(Math.min(1, t.sessions / s.visits), 0)} of them; the rest declined or ignored the cookie banner`;
+    if (d.coverage !== null) line += `. Cookie tracking saw ${pct(d.coverage, 0)} of them; the rest declined or ignored the cookie banner`;
     out.push(`${line}.`);
   }
   if (t.sessions === 0) return out;
@@ -105,11 +110,13 @@ function buildInsights(d: Pick<Dashboard, "totals" | "previousTotals" | "sources
   const known = d.sources.filter((r) => r.keys[0] !== "(not set)");
   const notSet = d.sources.find((r) => r.keys[0] === "(not set)");
   const total = d.sources.reduce((a, r) => a + (r.values.sessions ?? 0), 0);
-  // (skipped when that same dimension is already filtered — "most visits came from X" would be circular)
-  if (known.length && total > 0 && !d.filters.dims[d.filters.srcDim]) {
+  const knownTotal = known.reduce((a, r) => a + (r.values.sessions ?? 0), 0);
+  // (skipped when that same dimension is already filtered — "most visits came from X" would be circular;
+  //  and the share is among visits WITH a recorded source, so a big "(not set)" bucket cannot make it look tiny)
+  if (known.length && knownTotal >= 10 && !d.filters.dims[d.filters.srcDim]) {
     const top = known[0];
     const label = d.filters.srcDim === "channel" ? (CHANNEL_NAME[top.keys[0]] ?? top.keys[0]) : top.keys[0];
-    out.push(`Most visits came from "${label}" (${pct((top.values.sessions ?? 0) / total, 0)} of visits).`);
+    out.push(`Of visits with a recorded source, most came from "${label}" (${pct((top.values.sessions ?? 0) / knownTotal, 0)}).`);
   }
   if (notSet && total > 0 && (notSet.values.sessions ?? 0) / total > 0.3) {
     out.push(`${pct((notSet.values.sessions ?? 0) / total, 0)} of visits have no recorded source. They are from before source tracking started, or the visitor had not yet accepted cookies. The share shrinks as new data comes in.`);
@@ -122,10 +129,11 @@ function buildInsights(d: Pick<Dashboard, "totals" | "previousTotals" | "sources
     out.push(`The best landing page for form submissions is "${best.keys[0]}" (${pct(best.values.conv_rate ?? 0)} of ${int(best.values.sessions ?? 0)} visits).`);
   }
 
-  const devTotal = d.devices.reduce((a, r) => a + (r.values.sessions ?? 0), 0);
-  const dev = d.devices.find((r) => r.keys[0] !== "(not set)");
-  if (d.filters.devDim === "device" && !d.filters.dims.device && dev && devTotal > 0) {
-    out.push(`Most visits were on ${dev.keys[0]} (${pct((dev.values.sessions ?? 0) / devTotal, 0)}).`);
+  const knownDevices = d.devices.filter((r) => r.keys[0] !== "(not set)");
+  const devTotal = knownDevices.reduce((a, r) => a + (r.values.sessions ?? 0), 0);
+  const dev = knownDevices[0];
+  if (d.filters.devDim === "device" && !d.filters.dims.device && dev && devTotal >= 10) {
+    out.push(`Of visits with a known device, most were on ${dev.keys[0]} (${pct((dev.values.sessions ?? 0) / devTotal, 0)}).`);
   }
   return out;
 }
@@ -169,6 +177,20 @@ export async function buildDashboard(f: AnalyticsFilters): Promise<Dashboard> {
   const tiles: Dashboard["tiles"] = { buckets: tileTrend.buckets, unit: tileTrend.unit, series: {} };
   for (const s of tileTrend.series) tiles.series[s.kpi] = s.values;
 
+  // Coverage over full days only (see Dashboard.coverage).
+  let coverage: number | null = null;
+  if (server.visits > 0 && !server.ignoredFilters.length && server.firstHitAt) {
+    const d0 = new Date(`${server.firstHitAt}T00:00:00Z`);
+    d0.setUTCDate(d0.getUTCDate() + 1);
+    const fullDaysFrom = d0.toISOString().slice(0, 10);
+    const from = fullDaysFrom > range.from ? fullDaysFrom : range.from;
+    if (from <= range.to) {
+      const sub = { from, to: range.to, days: 1 };
+      const [cookie, srv] = await Promise.all([totalsFor(f, sub), serverVisitCount(f, sub)]);
+      if (srv >= 10) coverage = Math.min(1, cookie.values.sessions / srv);
+    }
+  }
+
   const dash: Dashboard = {
     filters: f,
     range,
@@ -188,6 +210,7 @@ export async function buildDashboard(f: AnalyticsFilters): Promise<Dashboard> {
     lowSample: LOW_SAMPLE,
     insights: [],
     server,
+    coverage,
     hasData: totals.values.sessions > 0,
   };
   dash.insights = buildInsights(dash);
