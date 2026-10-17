@@ -782,3 +782,21 @@ model LandingStep {
   @@index([kind, step, createdAt])
   @@map("landing_steps")
 }
+
+/**
+ * A cookie-free count of the actions the all-visitors funnel needs (used the
+ * calculator, clicked a tariff button, started the form, …). Same idea and the
+ * same anonymous daily-rotating visitor hash as LandingHit, so a visitor's arrival
+ * and their actions line up without any cookie, storage or IP being kept.
+ */
+model SiteEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  path      String
+  visitor   String
+
+  @@index([createdAt])
+  @@index([name, createdAt])
+  @@map("site_events")
+}

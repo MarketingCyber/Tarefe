@@ -2,7 +2,7 @@ import { Lightbulb } from "@phosphor-icons/react/dist/ssr";
 import { formatValue } from "@/lib/analytics-format";
 import { filtersToQuery, type BreakdownRow, type Dim } from "@/lib/analytics-report";
 import type { Dashboard } from "@/lib/analytics-dashboard";
-import type { LandingFunnelRow } from "@/lib/landing-report";
+import type { LandingFunnelRow, SiteFunnel } from "@/lib/landing-report";
 import { NavLink } from "./DashboardShell";
 import { Hint, Sparkline } from "./StatTiles";
 import { DIM_LABEL, dimValueLabel, eventLabel, CHANNEL_HINT } from "./labels";
@@ -473,6 +473,50 @@ export function LandingJourneyCard({ rows }: { rows: LandingFunnelRow[] }) {
             </div>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+/** The funnel for everyone, counted on our server without cookies — so it needs nobody's consent. */
+export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
+  const steps = [
+    { label: "Arrived on the site", value: f.visitors },
+    { label: "Used the calculator", value: f.usedCalculator },
+    { label: "Clicked a tariff button", value: f.clickedTariff },
+    { label: "Started the consultation form", value: f.startedForm },
+    { label: "Sent a consultation request", value: f.requests },
+  ];
+  const top = Math.max(f.visitors, 1);
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-bold text-purple-900">Funnel for all visitors (no cookies needed)</h2>
+      <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
+        Counted on our server for everyone, whether or not they accepted the cookie banner: each person once per step per day. Each step stands on its own (someone can send a request without using the calculator). The Ads landing pages have their own table below. Action counts started on {f.firstEventAt ?? "—"}; earlier days show 0 for the middle steps. &quot;Sent a request&quot; is the real number of leads.
+      </p>
+      <div className="mt-4 max-w-2xl rounded-2xl border border-border bg-white p-5">
+        <ul className="flex flex-col gap-3.5">
+          {steps.map((s, i) => (
+            <li key={s.label}>
+              <div className="flex items-baseline justify-between gap-3 text-xs">
+                <span className="text-body">
+                  <span className="font-latin me-2 text-secondary">{i + 1}</span>
+                  {s.label}
+                </span>
+                <span className="font-latin font-semibold text-purple-900">
+                  {s.value}
+                  {i > 0 && f.visitors > 0 ? <span className="ms-2 font-normal text-secondary">{((s.value / f.visitors) * 100).toFixed(1)}% of arrivals</span> : null}
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-purple-600" style={{ width: `${Math.min(100, Math.max(s.value > 0 ? 1.5 : 0, (s.value / top) * 100))}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 border-t border-border pt-3 text-xs text-secondary">
+          Also: <span className="font-latin font-semibold text-purple-900">{f.whatsapp}</span> WhatsApp clicks · <span className="font-latin font-semibold text-purple-900">{f.phone}</span> phone clicks
+        </p>
       </div>
     </section>
   );

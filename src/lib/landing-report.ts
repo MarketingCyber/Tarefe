@@ -212,3 +212,44 @@ export async function landingFunnel(f: AnalyticsFilters): Promise<LandingFunnelR
   }
   return [...byKind.values()].sort((a, b) => a.kind.localeCompare(b.kind));
 }
+
+export interface SiteFunnel {
+  /** Arrivals on pages other than the Ads landing pages, distinct visitors per day (landing_hits). */
+  visitors: number;
+  usedCalculator: number;
+  clickedTariff: number;
+  startedForm: number;
+  /** Real leads created (the database, not an estimate), excluding the Ads landing pages. */
+  requests: number;
+  whatsapp: number;
+  phone: number;
+  firstEventAt: string | null;
+}
+
+/** The funnel for ALL visitors — no cookie consent needed. Each step is counted on its own (people per day). */
+export async function siteFunnel(f: AnalyticsFilters): Promise<SiteFunnel> {
+  const { range } = resolveRange(f);
+  const day = Prisma.sql`to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD')`;
+  const between = Prisma.sql`"createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}`;
+  const [arrivals, events, leads, first] = await Promise.all([
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+      SELECT count(DISTINCT (visitor, ${day})) AS n FROM landing_hits
+      WHERE ${between} AND path NOT LIKE '%/landing/%' AND NOT (device = 'desktop' AND browser = 'Other')`),
+    prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
+      SELECT name, count(DISTINCT (visitor, ${day})) AS n FROM site_events WHERE ${between} GROUP BY name`),
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+      SELECT count(*) AS n FROM leads WHERE ${between} AND COALESCE("sourcePage", '') NOT LIKE '%/landing/%'`),
+    prisma.$queryRaw<{ t: Date | null }[]>(Prisma.sql`SELECT min("createdAt") AS t FROM site_events`),
+  ]);
+  const by = new Map(events.map((e) => [e.name, num(e.n)]));
+  return {
+    visitors: num(arrivals[0]?.n),
+    usedCalculator: by.get("energy_calculator_used") ?? 0,
+    clickedTariff: by.get("tariff_cta_clicked") ?? 0,
+    startedForm: by.get("consultation_form_started") ?? 0,
+    requests: num(leads[0]?.n),
+    whatsapp: by.get("whatsapp_clicked") ?? 0,
+    phone: by.get("phone_clicked") ?? 0,
+    firstEventAt: first[0]?.t ? first[0].t.toISOString().slice(0, 10) : null,
+  };
+}

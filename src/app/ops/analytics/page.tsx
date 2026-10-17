@@ -4,12 +4,12 @@ import { auth } from "@/lib/auth";
 import { canAccessAnalytics } from "@/lib/permissions";
 import { METRICS, SRC_DIMS, DEV_DIMS, breakdownFor, filtersToQuery, parseFilters, resolveRange, webVitalSamples, type Dim, type MetricKey, type TrendKpi } from "@/lib/analytics-report";
 import { buildDashboard } from "@/lib/analytics-dashboard";
-import { landingFunnel } from "@/lib/landing-report";
+import { landingFunnel, siteFunnel } from "@/lib/landing-report";
 import { DashboardShell, NavLink } from "@/components/analytics/DashboardShell";
 import { Toolbar } from "@/components/analytics/Toolbar";
 import { StatTiles } from "@/components/analytics/StatTiles";
 import { TrendCard, type Tab } from "@/components/analytics/TrendCard";
-import { DevicesCard, EventsCard, FunnelCard, Insights, LandingCard, LandingJourneyCard, ServerVisitsSection, SourcesCard } from "@/components/analytics/Panels";
+import { DevicesCard, EventsCard, FunnelCard, Insights, LandingCard, LandingJourneyCard, ServerVisitsSection, SiteFunnelCard, SourcesCard } from "@/components/analytics/Panels";
 import { AdvancedSection } from "@/components/analytics/Advanced";
 import { DIM_LABEL, KPI_PLAIN, dimValueLabel } from "@/components/analytics/labels";
 
@@ -47,11 +47,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   const f = parseFilters(await searchParams);
   const { range } = resolveRange(f);
-  const [d, adv, vitalRows, journey] = await Promise.all([
+  const [d, adv, vitalRows, journey, allFunnel] = await Promise.all([
     buildDashboard(f),
     f.adv ? breakdownFor(f, range) : Promise.resolve(null),
     webVitalSamples(range),
     landingFunnel(f),
+    siteFunnel(f),
   ]);
 
   // ---------------------------------------------------------------- trend card props
@@ -107,6 +108,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <div className="mt-4">
           <ServerVisitsSection d={d} srcDims={SRC_DIMS} devDims={DEV_DIMS} />
         </div>
+
+        <SiteFunnelCard f={allFunnel} />
 
         <LandingJourneyCard rows={journey} />
 

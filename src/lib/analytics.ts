@@ -240,9 +240,33 @@ function getSessionId(): string | null {
   }
 }
 
+/** The actions the all-visitors funnel counts without cookies (see /api/funnel-event). */
+const COUNTED_WITHOUT_CONSENT = new Set<string>([EVENT.ENERGY_CALCULATOR_USED, EVENT.TARIFF_CTA_CLICKED, EVENT.CONSULTATION_FORM_STARTED, EVENT.WHATSAPP_CLICKED, EVENT.PHONE_CLICKED]);
+
+/**
+ * Counts the action on our own server, cookie-free and for everyone: nothing is
+ * stored in the browser and nothing identifies the person (the server keeps only
+ * a daily-rotating anonymous hash). The Ads landing pages are counted by their own
+ * journey table, so they are left out here.
+ */
+function countWithoutConsent(name: string, path: string | undefined) {
+  try {
+    if (!COUNTED_WITHOUT_CONSENT.has(name)) return;
+    const p = path ?? window.location.pathname;
+    if (p.includes("/landing/")) return;
+    const body = JSON.stringify({ name, path: p.slice(0, 300) });
+    if (!navigator.sendBeacon?.("/api/funnel-event", new Blob([body], { type: "application/json" }))) {
+      fetch("/api/funnel-event", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+    }
+  } catch {
+    // counting must never be the reason a real user action fails
+  }
+}
+
 export function track(name: EventName, props: { path?: string; locale?: string; category?: string; service?: string; metadata?: Record<string, unknown> } = {}) {
-  if (getConsent() !== "accepted") return;
   if (isInternalTraffic()) return; // a team member who opted out with ?internal=1
+  countWithoutConsent(name, props.path);
+  if (getConsent() !== "accepted") return;
 
   const sessionId = getSessionId();
   if (!sessionId) return;
