@@ -262,3 +262,38 @@ export async function siteFunnel(f: AnalyticsFilters): Promise<SiteFunnel> {
     firstEventAt: first[0]?.t ? first[0].t.toISOString().slice(0, 10) : null,
   };
 }
+
+export interface ConsentShare {
+  /** Everyone who arrived (distinct visitors per day, scripts removed). */
+  visitors: number;
+  /** Visitors the cookie tracking also saw, i.e. people who have accepted cookies (distinct browsers per day). */
+  accepted: number;
+  /** Banner clicks counted since the click counter was added. */
+  clickedAccept: number;
+  clickedDecline: number;
+  clickCountingSince: string | null;
+}
+
+/** How many visitors accepted the cookie banner, measured against everyone who arrived. */
+export async function consentShare(f: AnalyticsFilters): Promise<ConsentShare> {
+  const { range } = resolveRange(f);
+  const day = Prisma.sql`to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD')`;
+  const between = Prisma.sql`"createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}`;
+  const [visitors, accepted, clicks, since] = await Promise.all([
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+      SELECT count(DISTINCT (visitor, ${day})) AS n FROM landing_hits WHERE ${between} AND NOT (device = 'desktop' AND browser = 'Other')`),
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+      SELECT count(DISTINCT ("sessionId", ${day})) AS n FROM analytics_events WHERE ${between} AND "sessionId" IS NOT NULL`),
+    prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
+      SELECT name, count(DISTINCT (visitor, ${day})) AS n FROM site_events WHERE ${between} AND name IN ('consent_accepted', 'consent_declined') GROUP BY name`),
+    prisma.$queryRaw<{ t: Date | null }[]>(Prisma.sql`SELECT min("createdAt") AS t FROM site_events WHERE name IN ('consent_accepted', 'consent_declined')`),
+  ]);
+  const by = new Map(clicks.map((c) => [c.name, num(c.n)]));
+  return {
+    visitors: num(visitors[0]?.n),
+    accepted: num(accepted[0]?.n),
+    clickedAccept: by.get("consent_accepted") ?? 0,
+    clickedDecline: by.get("consent_declined") ?? 0,
+    clickCountingSince: since[0]?.t ? since[0].t.toISOString().slice(0, 10) : null,
+  };
+}

@@ -2,7 +2,7 @@ import { Lightbulb } from "@phosphor-icons/react/dist/ssr";
 import { formatValue } from "@/lib/analytics-format";
 import { filtersToQuery, type BreakdownRow, type Dim } from "@/lib/analytics-report";
 import type { Dashboard } from "@/lib/analytics-dashboard";
-import type { LandingFunnelRow, SiteFunnel } from "@/lib/landing-report";
+import type { ConsentShare, LandingFunnelRow, SiteFunnel } from "@/lib/landing-report";
 import { NavLink } from "./DashboardShell";
 import { Hint, Sparkline } from "./StatTiles";
 import { DIM_LABEL, dimValueLabel, eventLabel, CHANNEL_HINT } from "./labels";
@@ -137,7 +137,7 @@ function CardHead({ title, subtitle, hint }: { title: string; subtitle?: string;
   );
 }
 
-const tabsFor = (d: Dashboard, param: "src" | "dev", dims: readonly Dim[], current: Dim): Tab[] =>
+const tabsFor = (d: Pick<Dashboard, "filters">, param: "src" | "dev", dims: readonly Dim[], current: Dim): Tab[] =>
   dims.map((dim) => ({
     label: DIM_LABEL[dim],
     active: current === dim,
@@ -319,11 +319,10 @@ function asRows(rows: { key: string; visits: number }[]): BreakdownRow[] {
  * invisible to everything else on this page. Sits first because it is the only
  * place a Google Ads click is guaranteed to show up.
  */
-export function ServerVisitsSection({ d, srcDims, devDims }: { d: Dashboard; srcDims: readonly Dim[]; devDims: readonly Dim[] }) {
+export function ServerVisitsSection({ d, srcDims, devDims }: { d: Pick<Dashboard, "filters" | "server">; srcDims: readonly Dim[]; devDims: readonly Dim[] }) {
   const s = d.server;
   const f = d.filters;
   const change = s.previousVisits > 0 ? (s.visits - s.previousVisits) / s.previousVisits : null;
-  const coverage = d.coverage;
   const srcRows = asRows(s.sources);
   const landingRows = asRows(s.landing);
   const devRows = asRows(s.devices);
@@ -375,13 +374,6 @@ export function ServerVisitsSection({ d, srcDims, devDims }: { d: Dashboard; src
                   <Hint text="Distinct visitors per day, added up over the period. The anonymous visitor code changes daily, so someone returning on another day is counted again." />
                 </dt>
                 <dd className="font-latin mt-1 text-3xl font-bold tracking-tight text-purple-900">{formatValue("int", s.visitors)}</dd>
-              </div>
-              <div className="rounded-xl bg-tint p-4">
-                <dt className="flex items-center gap-1.5 text-xs text-secondary">
-                  Also in cookie tracking
-                  <Hint text="Share of these visits that were also recorded by the cookie-based tracking below; the rest declined or ignored the cookie banner. Compared over full days only, with at least 10 visits, so it shows a dash for the first day after release or when a filter hides part of the data." />
-                </dt>
-                <dd className="font-latin mt-1 text-3xl font-bold tracking-tight text-purple-900">{coverage === null ? "—" : formatValue("percent", coverage)}</dd>
               </div>
             </dl>
             <div className="rounded-xl border border-border p-4">
@@ -519,6 +511,29 @@ export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
           Also: <span className="font-latin font-semibold text-purple-900">{f.pagesPerVisitor ? f.pagesPerVisitor.toFixed(1) : "—"}</span> pages per visitor · <span className="font-latin font-semibold text-purple-900">{f.whatsapp}</span> WhatsApp clicks · <span className="font-latin font-semibold text-purple-900">{f.phone}</span> phone clicks
         </p>
       </div>
+    </section>
+  );
+}
+
+/** How many visitors accepted the cookie banner, against everyone who arrived. */
+export function ConsentCard({ c }: { c: ConsentShare }) {
+  const share = c.visitors > 0 ? Math.min(1, c.accepted / c.visitors) : null;
+  const decided = c.clickedAccept + c.clickedDecline;
+  return (
+    <section className="mt-6 max-w-2xl rounded-2xl border border-border bg-white p-5">
+      <h2 className="text-lg font-bold text-purple-900">Cookie banner</h2>
+      <div className="mt-3 flex items-baseline gap-3">
+        <span className="font-latin text-4xl font-bold tracking-tight text-purple-900">{share === null ? "—" : formatValue("percent", share)}</span>
+        <span className="text-sm text-secondary">of visitors have accepted cookies</span>
+      </div>
+      <p className="font-latin mt-1 text-xs text-secondary">
+        {c.accepted} of {c.visitors} visitors
+      </p>
+      {decided > 0 && (
+        <p className="mt-3 border-t border-border pt-3 text-xs text-secondary">
+          Banner clicks since <span className="font-latin">{c.clickCountingSince}</span>: <span className="font-latin font-semibold text-purple-900">{c.clickedAccept}</span> accepted, <span className="font-latin font-semibold text-purple-900">{c.clickedDecline}</span> chose &quot;necessary only&quot;.
+        </p>
+      )}
     </section>
   );
 }

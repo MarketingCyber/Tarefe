@@ -29,7 +29,23 @@ export function getConsent(): ConsentValue | null {
   }
 }
 
+/**
+ * Counts the banner decision on our own server (cookie-free, nothing stored, no id sent —
+ * see /api/funnel-event), only so the analytics page can show how many visitors accept.
+ */
+function countDecision(value: ConsentValue) {
+  try {
+    const body = JSON.stringify({ name: value === "accepted" ? "consent_accepted" : "consent_declined", path: window.location.pathname.slice(0, 300) });
+    if (!navigator.sendBeacon?.("/api/funnel-event", new Blob([body], { type: "application/json" }))) {
+      fetch("/api/funnel-event", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+    }
+  } catch {
+    // counting must never get in the way of the visitor's choice
+  }
+}
+
 export function setConsent(value: ConsentValue) {
+  countDecision(value);
   try {
     window.localStorage.setItem(CONSENT_KEY, value);
     window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: value }));

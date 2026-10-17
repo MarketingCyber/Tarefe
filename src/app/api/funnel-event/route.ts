@@ -12,7 +12,7 @@ import { BOT_UA, visitorHash } from "@/lib/landing-hits";
  * answer is always 204 so a counting beacon never looks like an error.
  */
 const Body = z.object({
-  name: z.enum(["page_view", "energy_calculator_used", "tariff_cta_clicked", "consultation_form_started", "whatsapp_clicked", "phone_clicked"]),
+  name: z.enum(["consent_accepted", "consent_declined", "page_view", "energy_calculator_used", "tariff_cta_clicked", "consultation_form_started", "whatsapp_clicked", "phone_clicked"]),
   path: z.string().max(300),
 });
 
