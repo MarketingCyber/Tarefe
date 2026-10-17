@@ -675,7 +675,7 @@ export const WHY_NOT_DIY = [
  * closing "support all the way" line, so the list still ends on support.
  */
 const CLAIMS_ITEM = t(
-  "ثبت خسارت و پیگیری آن تا دریافت مبلغ از شرکت بیمه",
+  "ثبت و پیگیری خسارت تا دریافت مبلغ",
   "Schadenmeldung und Abwicklung bis zur Auszahlung durch die Versicherung",
   "Подача заявления о страховом случае и сопровождение до получения выплаты от страховой компании"
 );
