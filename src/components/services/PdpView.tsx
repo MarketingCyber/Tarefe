@@ -302,7 +302,7 @@ export function PdpView({
       <section className="border-t border-border bg-tint py-12">
         <div className="container-page">
           <Reveal>
-            <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, { fa: "چطور با تعرفه پیش می‌رود؟", de: "Wie läuft es mit Tarefe ab?", ru: "Как проходит работа с Tarefe?" })}</h2>
+            <h2 className="text-lg font-bold text-purple-900">{byLocale(locale, { fa: "مراحل کار با تعرفه", de: "Wie läuft es mit Tarefe ab?", ru: "Как проходит работа с Tarefe?" })}</h2>
             <ol className="mt-6 grid gap-x-4 gap-y-6 sm:grid-cols-3">
               {PROCESS_STEPS.map((step, i) => (
                 <li key={step.fa} className="flex items-start gap-3">
