@@ -62,12 +62,25 @@ export interface ServerVisits {
 
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 
+/**
+ * Hits that are not a person, for hits stored before lib/landing-hits.ts stopped recording them:
+ *  - a desktop whose browser is not Chrome, Safari, Firefox, Edge or Opera (every real desktop
+ *    browser says one of those; scripts that only pretend to be a browser say nothing recognisable);
+ *  - a "visitor" with more than 60 full page loads in a day (the id rotates daily).
+ */
+export const NOT_A_PERSON = Prisma.sql`(lh.device = 'desktop' AND lh.browser = 'Other')`;
+
 function visitsCte(range: DateRange): Prisma.Sql {
   return Prisma.sql`
-  h AS (
-    SELECT lh.*, lag(lh."createdAt") OVER (PARTITION BY lh.visitor ORDER BY lh."createdAt") AS prev
+  raw AS (
+    SELECT lh.*, count(*) OVER (PARTITION BY lh.visitor) AS day_hits
     FROM landing_hits lh
     WHERE lh."createdAt" >= ${tsFrom(range.from)} AND lh."createdAt" < ${tsToExclusive(range.to)}
+      AND NOT ${NOT_A_PERSON}
+  ),
+  h AS (
+    SELECT raw.*, lag(raw."createdAt") OVER (PARTITION BY raw.visitor ORDER BY raw."createdAt") AS prev
+    FROM raw WHERE raw.day_hits <= 60
   ),
   v AS (
     SELECT h.*, ${Prisma.raw(CHANNEL)} AS channel FROM h
@@ -186,7 +199,7 @@ export async function landingFunnel(f: AnalyticsFilters): Promise<LandingFunnelR
     SELECT substring(path from '/landing/(electricity|gas)$') AS kind,
            count(DISTINCT (visitor, to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD'))) AS people
     FROM landing_hits
-    WHERE path ~ '/landing/(electricity|gas)$'
+    WHERE path ~ '/landing/(electricity|gas)$' AND NOT (device = 'desktop' AND browser = 'Other')
       AND "createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}
     GROUP BY 1`);
   const byKind = new Map<string, LandingFunnelRow>();

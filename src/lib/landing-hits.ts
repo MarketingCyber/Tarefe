@@ -86,6 +86,9 @@ export async function recordLanding(request: NextRequest): Promise<void> {
     const forwarded = request.headers.get("x-forwarded-for");
     const ip = (forwarded ? forwarded.split(",")[0] : request.headers.get("x-real-ip") ?? "unknown").trim();
     const { device, browser, os } = parseUserAgent(ua);
+    // Every real desktop browser identifies as Chrome, Safari, Firefox, Edge or Opera. A desktop that does not is a
+    // script (on 2026-10-17 about 200 of one day's 287 visits were this, hitting /fa/consultation once each).
+    if (device === "desktop" && browser === "Other") return;
 
     await prisma.landingHit.create({
       data: {
