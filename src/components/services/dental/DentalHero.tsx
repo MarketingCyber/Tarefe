@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle, ShieldCheck, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CheckCircle, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import type { Locale } from "@/lib/taxonomy";
 import type { Dictionary } from "@/lib/dictionary";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
@@ -9,8 +9,7 @@ import { InsuranceSlider, type SliderCopy } from "./InsuranceSlider";
  * The dental page's hero: "with dental insurance vs without", a before / after slider.
  * A missing front tooth, and the same smile with it implanted — the point being that an
  * implant is just ONE of the things the insurance pays for, so the other covered services
- * sit beside it. No prices are quoted: what is paid, up to which amount and after which
- * waiting period depends on the tariff, and the note says so.
+ * sit beside it. No prices are quoted: what is paid and after which waiting period depends on the tariff.
  *
  * Phone order: heading → slider → the rest, so the slider is on the first screen.
  * Desktop: text on one side, the slider spanning both rows on the other.
@@ -19,7 +18,6 @@ type L = Record<Locale, string>;
 const t = (fa: string, de: string, ru: string): L => ({ fa, de, ru });
 
 const COPY = {
-  product: t("بیمه دندان", "Zahnzusatzversicherung", "Стоматологическая страховка"),
   title: t("با بیمه دندان، لبخندت کامل می‌ماند", "Mit Zahnzusatzversicherung bleibt Ihr Lächeln komplett", "Со страховкой улыбка остаётся полной"),
   body: t(
     "ایمپلنت فقط یکی از خدماتی است که بیمه تکمیلی دندان پوشش می‌دهد. نوار را بکش و خودت تفاوت را ببین.",
@@ -32,7 +30,6 @@ const COPY = {
     t("جرم‌گیری سالانه", "Professionelle Zahnreinigung", "Ежегодную чистку"),
     t("درمان ریشه", "Wurzelbehandlung", "Лечение корней"),
   ],
-  note: t("میزان پوشش، سقف و دوره انتظار به تعرفه بستگی دارد؛ مشاور ما بهترین گزینه را برایت پیدا می‌کند.", "Umfang, Höchstbeträge und Wartezeiten hängen vom Tarif ab; unser Berater findet die passende Option für Sie.", "Объём покрытия, лимиты и сроки ожидания зависят от тарифа; наш консультант подберёт подходящий вариант."),
   slider: {
     without: t("بدون بیمه", "Ohne Versicherung", "Без страховки"),
     with: t("با بیمه", "Mit Versicherung", "Со страховкой"),
@@ -45,7 +42,7 @@ const COPY = {
   },
 };
 
-export function DentalHero({ locale, dict, categoryLabel, germanTerm, formId }: { locale: Locale; dict: Dictionary; categoryLabel: string; germanTerm?: string; formId: string }) {
+export function DentalHero({ locale, dict, formId }: { locale: Locale; dict: Dictionary; formId: string }) {
   const s = COPY.slider;
   const slider: SliderCopy = {
     without: s.without[locale],
@@ -62,15 +59,7 @@ export function DentalHero({ locale, dict, categoryLabel, germanTerm, formId }: 
     <section className="border-b border-border bg-tint">
       <div className="container-page grid gap-x-16 gap-y-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[1fr_auto]">
         <Reveal className="lg:col-start-1 lg:row-start-1 lg:self-end">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
-              <ShieldCheck size={12} weight="fill" aria-hidden />
-              {categoryLabel}
-            </span>
-            <span className="text-sm font-semibold text-purple-600">{COPY.product[locale]}</span>
-            {germanTerm && <span className="font-latin text-xs text-secondary">{germanTerm}</span>}
-          </div>
-          <h1 className="mt-4 max-w-[20ch] text-balance text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl lg:text-[2.6rem]">{COPY.title[locale]}</h1>
+          <h1 className="max-w-[20ch] text-balance text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl lg:text-[2.6rem]">{COPY.title[locale]}</h1>
           <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-secondary">{COPY.body[locale]}</p>
         </Reveal>
 
@@ -102,15 +91,10 @@ export function DentalHero({ locale, dict, categoryLabel, germanTerm, formId }: 
             </a>
           </div>
 
-          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
-            {dict.home.heroTrust.map((claim) => (
-              <li key={claim} className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-                <CheckCircle size={13} weight="fill" className="shrink-0 text-success" aria-hidden />
-                {claim}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-5 max-w-[46ch] text-xs leading-relaxed text-secondary">{COPY.note[locale]}</p>
+          <p className="mt-6 flex items-center gap-1.5 text-sm font-semibold text-purple-900">
+            <CheckCircle size={16} weight="fill" className="shrink-0 text-success" aria-hidden />
+            {dict.cta.freeClaim}
+          </p>
         </Reveal>
       </div>
     </section>

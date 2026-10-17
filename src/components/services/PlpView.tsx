@@ -88,8 +88,6 @@ export async function PlpView({
         <DentalHero
           locale={locale}
           dict={dict}
-          categoryLabel={byLocale(locale, category.title)}
-          germanTerm={content?.germanTerm}
           formId={FORM_ID}
         />
       ) : (
