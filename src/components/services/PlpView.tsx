@@ -28,7 +28,7 @@ import { EnergySituation } from "@/components/services/energy/EnergySituation";
 import { EnergyJourneyNav } from "@/components/services/energy/EnergyJourneyNav";
 import { JOURNEY_IDS } from "@/components/services/energy/journey";
 import { SectionHead } from "@/components/services/energy/energy-ui";
-import { DentalWithWithout } from "@/components/services/dental/DentalWithWithout";
+import { DentalHero } from "@/components/services/dental/DentalHero";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -60,6 +60,7 @@ export async function PlpView({
   const heroImage = getSubcategoryImage(category.slug, subcategory.slug);
   const CategoryIcon = CATEGORY_ICON[category.slug] ?? CATEGORY_ICON.insurance;
 
+  const isDental = category.slug === "insurance" && subcategory.slug === "health" && productType.slug === "dental";
   const isEnergyCalculator = category.slug === "energy" && (subcategory.slug === "electricity" || subcategory.slug === "gas");
   // Real prices vary by postal code and usage tier (see EnergyTariffPriceRow
   // in schema.prisma) — this page only needs to know whether ANY published
@@ -83,88 +84,95 @@ export async function PlpView({
           round) — same grid shape as the homepage Hero.tsx, one verified
           photo per subcategory (see pdp-images.ts), not a generic category
           stock shot reused across every one of its products. */}
-      <section className="border-b border-border bg-tint">
-        <div className={`container-page grid items-center gap-10 py-12 md:py-16 ${heroImage ? "md:grid-cols-2" : ""}`}>
-          <div>
-            <Reveal>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
-                  <CategoryIcon size={12} weight="fill" />
-                  {byLocale(locale, category.title)}
-                </span>
-                {isEnergyCalculator && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2.5 py-0.5 text-[11px] font-semibold text-success">
-                    <CheckCircle size={12} weight="fill" aria-hidden />
-                    {dict.cta.freeClaim}
+      {isDental ? (
+        <DentalHero
+          locale={locale}
+          dict={dict}
+          categoryLabel={byLocale(locale, category.title)}
+          germanTerm={content?.germanTerm}
+          formId={FORM_ID}
+        />
+      ) : (
+        <section className="border-b border-border bg-tint">
+          <div className={`container-page grid items-center gap-10 py-12 md:py-16 ${heroImage ? "md:grid-cols-2" : ""}`}>
+            <div>
+              <Reveal>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
+                    <CategoryIcon size={12} weight="fill" />
+                    {byLocale(locale, category.title)}
                   </span>
-                )}
-                {subcategory.classification && (
-                  <span className="inline-block rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
-                    {subcategory.classification}
-                  </span>
-                )}
-              </div>
-            </Reveal>
-            <Reveal delay={0.08}>
-              <h1 className={`max-w-[24ch] text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl ${categoryHeadingTracking(category.slug)}`}>{title}</h1>
-            </Reveal>
-            <Reveal delay={0.16}>
-              {content?.germanTerm && <p className="font-latin mt-1.5 text-sm text-secondary">{content.germanTerm}</p>}
-              <p className="mt-3 max-w-[56ch] text-secondary">{byLocale(locale, productType.description)}</p>
-            </Reveal>
+                  {isEnergyCalculator && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2.5 py-0.5 text-[11px] font-semibold text-success">
+                      <CheckCircle size={12} weight="fill" aria-hidden />
+                      {dict.cta.freeClaim}
+                    </span>
+                  )}
+                  {subcategory.classification && (
+                    <span className="inline-block rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
+                      {subcategory.classification}
+                    </span>
+                  )}
+                </div>
+              </Reveal>
+              <Reveal delay={0.08}>
+                <h1 className={`max-w-[24ch] text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl ${categoryHeadingTracking(category.slug)}`}>{title}</h1>
+              </Reveal>
+              <Reveal delay={0.16}>
+                {content?.germanTerm && <p className="font-latin mt-1.5 text-sm text-secondary">{content.germanTerm}</p>}
+                <p className="mt-3 max-w-[56ch] text-secondary">{byLocale(locale, productType.description)}</p>
+              </Reveal>
 
-            {/* Hero CTAs and trust badges are deliberately skipped for the
-                energy calculator pages (2026-10-01) — this hero's only job
-                there is to frame the category before the calculator, which
-                follows immediately below and carries its own CTA; every
-                extra element here is scroll depth between landing and the
-                actual value prop. Every other PLP keeps the normal hero
-                with its own conversion path, since it has no calculator to
-                hand off to. */}
-            {!isEnergyCalculator && (
-              <>
-                <Reveal delay={0.24}>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <ConsultationCtaLink href={`#${FORM_ID}`} className="press inline-flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-900">
-                      {dict.cta.freeConsultation}
-                      <ArrowRight size={15} weight="bold" className="rtl:rotate-180" />
-                    </ConsultationCtaLink>
-                    <a
-                      href="https://wa.me/4915224318691"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="press inline-flex items-center gap-2 rounded-full border border-border-strong bg-white px-6 py-3 text-sm font-semibold text-purple-900"
-                    >
-                      <WhatsappLogo size={16} weight="fill" />
-                      {dict.cta.whatsappConsultation}
-                    </a>
-                  </div>
-                </Reveal>
+              {/* Hero CTAs and trust badges are deliberately skipped for the
+                  energy calculator pages (2026-10-01) — this hero's only job
+                  there is to frame the category before the calculator, which
+                  follows immediately below and carries its own CTA; every
+                  extra element here is scroll depth between landing and the
+                  actual value prop. Every other PLP keeps the normal hero
+                  with its own conversion path, since it has no calculator to
+                  hand off to. */}
+              {!isEnergyCalculator && (
+                <>
+                  <Reveal delay={0.24}>
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <ConsultationCtaLink href={`#${FORM_ID}`} className="press inline-flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-900">
+                        {dict.cta.freeConsultation}
+                        <ArrowRight size={15} weight="bold" className="rtl:rotate-180" />
+                      </ConsultationCtaLink>
+                      <a
+                        href="https://wa.me/4915224318691"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="press inline-flex items-center gap-2 rounded-full border border-border-strong bg-white px-6 py-3 text-sm font-semibold text-purple-900"
+                      >
+                        <WhatsappLogo size={16} weight="fill" />
+                        {dict.cta.whatsappConsultation}
+                      </a>
+                    </div>
+                  </Reveal>
 
-                <Reveal delay={0.32}>
-                  <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
-                    {dict.home.heroTrust.map((claim) => (
-                      <li key={claim} className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-                        <CheckCircle size={13} weight="fill" className="shrink-0 text-success" />
-                        {claim}
-                      </li>
-                    ))}
-                  </ul>
-                </Reveal>
-              </>
+                  <Reveal delay={0.32}>
+                    <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+                      {dict.home.heroTrust.map((claim) => (
+                        <li key={claim} className="flex items-center gap-1.5 text-xs font-medium text-secondary">
+                          <CheckCircle size={13} weight="fill" className="shrink-0 text-success" />
+                          {claim}
+                        </li>
+                      ))}
+                    </ul>
+                  </Reveal>
+                </>
+              )}
+            </div>
+
+            {heroImage && (
+              <Reveal delay={0.12} className="order-first md:order-none">
+                <CategoryHeroFrame categorySlug={category.slug} image={heroImage} />
+              </Reveal>
             )}
           </div>
-
-          {heroImage && (
-            <Reveal delay={0.12} className="order-first md:order-none">
-              <CategoryHeroFrame categorySlug={category.slug} image={heroImage} />
-            </Reveal>
-          )}
-        </div>
-      </section>
-
-      {/* Dental only: the with / without insurance slider, straight after the hero. */}
-      {category.slug === "insurance" && subcategory.slug === "health" && productType.slug === "dental" && <DentalWithWithout locale={locale} ctaLabel={dict.cta.freeConsultation} formId={FORM_ID} />}
+        </section>
+      )}
 
       {/* The map of the page: sticky under the header from here down (see EnergyJourneyNav). */}
       {energy && <EnergyJourneyNav locale={locale} nav={energy.journey.nav} formId={FORM_ID} />}

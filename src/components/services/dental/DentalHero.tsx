@@ -1,21 +1,25 @@
-import { ArrowRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CheckCircle, ShieldCheck, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import type { Locale } from "@/lib/taxonomy";
+import type { Dictionary } from "@/lib/dictionary";
 import { ConsultationCtaLink } from "@/components/conversion/ConsultationCtaLink";
 import { Reveal } from "@/components/shared/Reveal";
 import { InsuranceSlider, type SliderCopy } from "./InsuranceSlider";
 
 /**
- * "With dental insurance vs without" — the first extra section on the dental page, right
- * after the hero. A missing front tooth, and the same smile with it implanted; the point
- * is that an implant is just ONE of the things the insurance pays for, so the other
- * covered services are listed beside it. No prices are quoted: what is paid, up to which
- * amount and after which waiting period depends on the tariff, and the note says so.
+ * The dental page's hero: "with dental insurance vs without", a before / after slider.
+ * A missing front tooth, and the same smile with it implanted — the point being that an
+ * implant is just ONE of the things the insurance pays for, so the other covered services
+ * sit beside it. No prices are quoted: what is paid, up to which amount and after which
+ * waiting period depends on the tariff, and the note says so.
+ *
+ * Phone order: heading → slider → the rest, so the slider is on the first screen.
+ * Desktop: text on one side, the slider spanning both rows on the other.
  */
 type L = Record<Locale, string>;
 const t = (fa: string, de: string, ru: string): L => ({ fa, de, ru });
 
 const COPY = {
-  eyebrow: t("با بیمه و بدون بیمه", "Mit und ohne Versicherung", "Со страховкой и без"),
+  product: t("بیمه دندان", "Zahnzusatzversicherung", "Стоматологическая страховка"),
   title: t("با بیمه دندان، لبخندت کامل می‌ماند", "Mit Zahnzusatzversicherung bleibt Ihr Lächeln komplett", "Со страховкой улыбка остаётся полной"),
   body: t(
     "ایمپلنت فقط یکی از خدماتی است که بیمه تکمیلی دندان پوشش می‌دهد. نوار را بکش و خودت تفاوت را ببین.",
@@ -41,7 +45,7 @@ const COPY = {
   },
 };
 
-export function DentalWithWithout({ locale, ctaLabel, formId }: { locale: Locale; ctaLabel: string; formId: string }) {
+export function DentalHero({ locale, dict, categoryLabel, germanTerm, formId }: { locale: Locale; dict: Dictionary; categoryLabel: string; germanTerm?: string; formId: string }) {
   const s = COPY.slider;
   const slider: SliderCopy = {
     without: s.without[locale],
@@ -55,12 +59,18 @@ export function DentalWithWithout({ locale, ctaLabel, formId }: { locale: Locale
   };
 
   return (
-    <section className="container-page py-16 md:py-20">
-      {/* Phone order: heading → slider → the rest. Desktop: text on one side, the slider spanning both rows on the other. */}
-      <div className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[1fr_auto]">
+    <section className="border-b border-border bg-tint">
+      <div className="container-page grid gap-x-16 gap-y-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[1fr_auto]">
         <Reveal className="lg:col-start-1 lg:row-start-1 lg:self-end">
-          <p className="text-sm font-semibold text-purple-600">{COPY.eyebrow[locale]}</p>
-          <h2 className="mt-3 max-w-[20ch] text-balance text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl">{COPY.title[locale]}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-white px-2.5 py-0.5 text-[11px] font-semibold text-purple-600">
+              <ShieldCheck size={12} weight="fill" aria-hidden />
+              {categoryLabel}
+            </span>
+            <span className="text-sm font-semibold text-purple-600">{COPY.product[locale]}</span>
+            {germanTerm && <span className="font-latin text-xs text-secondary">{germanTerm}</span>}
+          </div>
+          <h1 className="mt-4 max-w-[20ch] text-balance text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl lg:text-[2.6rem]">{COPY.title[locale]}</h1>
           <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-secondary">{COPY.body[locale]}</p>
         </Reveal>
 
@@ -73,7 +83,7 @@ export function DentalWithWithout({ locale, ctaLabel, formId }: { locale: Locale
             <p className="text-xs font-semibold text-secondary">{COPY.alsoCovers[locale]}</p>
             <ul className="mt-3 flex flex-wrap gap-2.5">
               {COPY.covered.map((c) => (
-                <li key={c.fa} className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3.5 py-2 text-sm font-semibold text-purple-900">
+                <li key={c.fa} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-purple-900">
                   <CheckCircle size={16} weight="fill" className="text-success" aria-hidden />
                   {c[locale]}
                 </li>
@@ -81,10 +91,25 @@ export function DentalWithWithout({ locale, ctaLabel, formId }: { locale: Locale
             </ul>
           </div>
 
-          <ConsultationCtaLink href={`#${formId}`} className="press mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-purple-600 px-7 text-sm font-semibold text-white transition-colors hover:bg-purple-900">
-            {ctaLabel}
-            <ArrowRight size={15} weight="bold" className="rtl:rotate-180" />
-          </ConsultationCtaLink>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <ConsultationCtaLink href={`#${formId}`} className="press inline-flex min-h-12 items-center gap-2 rounded-full bg-purple-600 px-7 text-sm font-semibold text-white transition-colors hover:bg-purple-900">
+              {dict.cta.freeConsultation}
+              <ArrowRight size={15} weight="bold" className="rtl:rotate-180" />
+            </ConsultationCtaLink>
+            <a href="https://wa.me/4915224318691" target="_blank" rel="noopener noreferrer" className="press inline-flex min-h-12 items-center gap-2 rounded-full border border-border-strong bg-white px-6 text-sm font-semibold text-purple-900">
+              <WhatsappLogo size={16} weight="fill" />
+              {dict.cta.whatsappConsultation}
+            </a>
+          </div>
+
+          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+            {dict.home.heroTrust.map((claim) => (
+              <li key={claim} className="flex items-center gap-1.5 text-xs font-medium text-secondary">
+                <CheckCircle size={13} weight="fill" className="shrink-0 text-success" aria-hidden />
+                {claim}
+              </li>
+            ))}
+          </ul>
           <p className="mt-5 max-w-[46ch] text-xs leading-relaxed text-secondary">{COPY.note[locale]}</p>
         </Reveal>
       </div>
