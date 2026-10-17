@@ -1,6 +1,5 @@
-import { Quotes } from "@phosphor-icons/react/dist/ssr";
 import type { Locale } from "@/lib/taxonomy";
-import { Reveal } from "@/components/shared/Reveal";
+import { ReviewSlider, type ReviewItem } from "@/components/shared/ReviewSlider";
 
 /**
  * Real comments from our customers, shown on the dental page. Persian is what they wrote;
@@ -12,8 +11,9 @@ import { Reveal } from "@/components/shared/Reveal";
 type L = Record<Locale, string>;
 const t = (fa: string, de: string, ru: string): L => ({ fa, de, ru });
 
-const ITEMS: { name: L; quote: L }[] = [
+const ITEMS: { title: L; name: L; quote: L }[] = [
   {
+    title: t("پوشش هزینه‌های دندانپزشکی", "Übernahme der Zahnarztkosten", "Покрытие стоматологических расходов"),
     name: t("مریم رضایی", "Maryam Rezaei", "Maryam Rezaei"),
     quote: t(
       "من از طریق تعرفه بیمه دندانپزشکی گرفتم و وقتی برای درمان دندونم مجبور شدم چند تا کار انجام بدم، تازه فهمیدم بیمه چقدر می‌تونه کمک‌کننده باشه. بخشی از هزینه‌هام تحت پوشش قرار گرفت و واقعاً فشار مالی رو کمتر کرد. ممنون از تعرفه 🙏🏻",
@@ -22,6 +22,7 @@ const ITEMS: { name: L; quote: L }[] = [
     ),
   },
   {
+    title: t("پشتیبانی و راهنمایی", "Support und Beratung", "Поддержка и консультации"),
     name: t("علی احمدی", "Ali Ahmadi", "Ali Ahmadi"),
     quote: t(
       "چیزی که برای من خیلی خوب بود پشتیبانی تعرفه بود. کلی سوال داشتم و نمی‌دونستم کدوم بیمه بیشتر به دردم می‌خوره. تیم پشتیبانی خیلی با حوصله راهنمایی کردن و کمک کردن بهترین گزینه رو انتخاب کنم. 👌🏻",
@@ -30,6 +31,7 @@ const ITEMS: { name: L; quote: L }[] = [
     ),
   },
   {
+    title: t("بدون هزینه برای مشتری", "Kostenlos für Kunden", "Бесплатно для клиентов"),
     name: t("سارا محمدی", "Sara Mohammadi", "Sara Mohammadi"),
     quote: t(
       "من اول فکر می‌کردم برای استفاده از خدمات تعرفه باید هزینه جداگانه‌ای پرداخت کنم، ولی فهمیدم خدماتشون برای مشتری بدون هزینه‌ست. همین موضوع خیلی برام جالب بود و باعث شد با خیال راحت ازشون کمک بگیرم.",
@@ -38,6 +40,7 @@ const ITEMS: { name: L; quote: L }[] = [
     ),
   },
   {
+    title: t("ساده و بدون دردسر", "Einfach und unkompliziert", "Просто и без хлопот"),
     name: t("امیرحسین کریمی", "Amirhossein Karimi", "Amirhossein Karimi"),
     quote: t(
       "تجربه من با تعرفه خیلی راحت‌تر از چیزی بود که فکر می‌کردم. اطلاعات بیمه‌ها رو گرفتم، سوال‌هام رو پرسیدم و بدون اینکه درگیر کلی مراحل و تماس مختلف بشم، تونستم گزینه مناسبم رو پیدا کنم. واقعاً کار رو راحت‌تر کردن.",
@@ -46,6 +49,7 @@ const ITEMS: { name: L; quote: L }[] = [
     ),
   },
   {
+    title: t("ارزش خرید و مقایسه گزینه‌ها", "Preis-Leistung und Vergleich der Optionen", "Выгода и сравнение вариантов"),
     name: t("نسترن موسوی", "Nastaran Mousavi", "Nastaran Mousavi"),
     quote: t(
       "به نظرم بهترین قسمت تعرفه اینه که می‌تونی گزینه‌های مختلف رو بررسی کنی و ببینی کدوم بیمه برای شرایط خودت مناسب‌تره. من برای هزینه‌های دندانپزشکی دنبال یه گزینه منطقی بودم و راهنمایی‌های تعرفه خیلی کمکم کرد. 🌷",
@@ -61,41 +65,22 @@ const COPY = {
   translated: t("", "Aus dem Persischen übersetzt", "Перевод с персидского"),
 };
 
-// A few fixed, calm tint pairs for the initials badge, cycled by position (same set as the homepage carousel).
-const BADGE_TINTS = ["bg-purple-600/10 text-purple-600", "bg-yellow-500/15 text-purple-900", "bg-success-bg text-success"];
-
 export function DentalTestimonials({ locale }: { locale: Locale }) {
+  const items: ReviewItem[] = ITEMS.map((it) => ({ id: it.name.fa, title: it.title[locale], quote: it.quote[locale], name: it.name[locale] }));
   return (
     <section className="border-t border-border bg-tint py-14 md:py-16">
       <div className="container-page">
-        <Reveal>
-          <h2 className="text-xl font-bold text-purple-900 md:text-2xl">{COPY.title[locale]}</h2>
-          <p className="mt-2 max-w-[56ch] text-sm text-secondary">{COPY.sub[locale]}</p>
-        </Reveal>
-
-        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {ITEMS.map((item, i) => {
-            const name = item.name[locale];
-            return (
-              <Reveal key={item.name.fa} delay={Math.min(i * 0.06, 0.3)} className="h-full">
-                <figure className="flex h-full flex-col gap-4 rounded-3xl border border-border bg-white p-6 shadow-card">
-                  <Quotes size={30} weight="fill" className="text-yellow-500/70" aria-hidden />
-                  <blockquote className="text-sm leading-relaxed text-body" dir={locale === "fa" ? "rtl" : "ltr"}>
-                    {item.quote[locale]}
-                  </blockquote>
-                  <figcaption className="mt-auto flex items-center gap-3 border-t border-border pt-4">
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${BADGE_TINTS[i % BADGE_TINTS.length]}`} aria-hidden>
-                      {name.trim().charAt(0)}
-                    </span>
-                    <span className="text-sm font-semibold text-purple-900">{name}</span>
-                  </figcaption>
-                </figure>
-              </Reveal>
-            );
-          })}
-        </div>
-
-        {locale !== "fa" && <p className="mt-2 text-xs text-secondary">{COPY.translated[locale]}</p>}
+        <ReviewSlider
+          locale={locale}
+          items={items}
+          header={
+            <>
+              <h2 className="text-xl font-bold text-purple-900 md:text-2xl">{COPY.title[locale]}</h2>
+              <p className="mt-2 max-w-[56ch] text-sm text-secondary">{COPY.sub[locale]}</p>
+            </>
+          }
+        />
+        {locale !== "fa" && <p className="mt-3 text-center text-xs text-secondary">{COPY.translated[locale]}</p>}
       </div>
     </section>
   );
