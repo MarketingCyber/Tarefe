@@ -241,7 +241,7 @@ function getSessionId(): string | null {
 }
 
 /** The actions the all-visitors funnel counts without cookies (see /api/funnel-event). */
-const COUNTED_WITHOUT_CONSENT = new Set<string>([EVENT.ENERGY_CALCULATOR_USED, EVENT.TARIFF_CTA_CLICKED, EVENT.CONSULTATION_FORM_STARTED, EVENT.WHATSAPP_CLICKED, EVENT.PHONE_CLICKED]);
+const COUNTED_WITHOUT_CONSENT = new Set<string>([EVENT.PAGE_VIEW, EVENT.ENERGY_CALCULATOR_USED, EVENT.TARIFF_CTA_CLICKED, EVENT.CONSULTATION_FORM_STARTED, EVENT.WHATSAPP_CLICKED, EVENT.PHONE_CLICKED]);
 
 /**
  * Counts the action on our own server, cookie-free and for everyone: nothing is

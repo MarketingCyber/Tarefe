@@ -216,6 +216,10 @@ export async function landingFunnel(f: AnalyticsFilters): Promise<LandingFunnelR
 export interface SiteFunnel {
   /** Arrivals on pages other than the Ads landing pages, distinct visitors per day (landing_hits). */
   visitors: number;
+  /** Visitors who opened a service page (counted from the page views we count without cookies). */
+  viewedService: number;
+  /** Page views per visitor per day. */
+  pagesPerVisitor: number;
   usedCalculator: number;
   clickedTariff: number;
   startedForm: number;
@@ -231,19 +235,24 @@ export async function siteFunnel(f: AnalyticsFilters): Promise<SiteFunnel> {
   const { range } = resolveRange(f);
   const day = Prisma.sql`to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD')`;
   const between = Prisma.sql`"createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}`;
-  const [arrivals, events, leads, first] = await Promise.all([
+  const [arrivals, events, service, leads, first] = await Promise.all([
     prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
       SELECT count(DISTINCT (visitor, ${day})) AS n FROM landing_hits
       WHERE ${between} AND path NOT LIKE '%/landing/%' AND NOT (device = 'desktop' AND browser = 'Other')`),
-    prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
-      SELECT name, count(DISTINCT (visitor, ${day})) AS n FROM site_events WHERE ${between} GROUP BY name`),
+    prisma.$queryRaw<{ name: string; n: bigint; hits: bigint }[]>(Prisma.sql`
+      SELECT name, count(DISTINCT (visitor, ${day})) AS n, count(*) AS hits FROM site_events WHERE ${between} AND path NOT LIKE '%/landing/%' GROUP BY name`),
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
+      SELECT count(DISTINCT (visitor, ${day})) AS n FROM site_events WHERE ${between} AND name = 'page_view' AND path LIKE '%/services/%'`),
     prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`
       SELECT count(*) AS n FROM leads WHERE ${between} AND COALESCE("sourcePage", '') NOT LIKE '%/landing/%'`),
     prisma.$queryRaw<{ t: Date | null }[]>(Prisma.sql`SELECT min("createdAt") AS t FROM site_events`),
   ]);
   const by = new Map(events.map((e) => [e.name, num(e.n)]));
+  const pv = events.find((e) => e.name === "page_view");
   return {
     visitors: num(arrivals[0]?.n),
+    viewedService: num(service[0]?.n),
+    pagesPerVisitor: pv && num(pv.n) > 0 ? num(pv.hits) / num(pv.n) : 0,
     usedCalculator: by.get("energy_calculator_used") ?? 0,
     clickedTariff: by.get("tariff_cta_clicked") ?? 0,
     startedForm: by.get("consultation_form_started") ?? 0,

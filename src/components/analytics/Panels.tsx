@@ -482,6 +482,7 @@ export function LandingJourneyCard({ rows }: { rows: LandingFunnelRow[] }) {
 export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
   const steps = [
     { label: "Arrived on the site", value: f.visitors },
+    { label: "Viewed a service page", value: f.viewedService },
     { label: "Used the calculator", value: f.usedCalculator },
     { label: "Clicked a tariff button", value: f.clickedTariff },
     { label: "Started the consultation form", value: f.startedForm },
@@ -492,7 +493,7 @@ export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
     <section className="mt-10">
       <h2 className="text-lg font-bold text-purple-900">Funnel for all visitors (no cookies needed)</h2>
       <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
-        Counted on our server for everyone, whether or not they accepted the cookie banner: each person once per step per day. Each step stands on its own (someone can send a request without using the calculator). The Ads landing pages have their own table below. Action counts started on {f.firstEventAt ?? "—"}; earlier days show 0 for the middle steps. &quot;Sent a request&quot; is the real number of leads.
+        Counted on our server for everyone, whether or not they accepted the cookie banner: each person once per step per day. Each step stands on its own (someone can send a request without using the calculator). The Ads landing pages have their own table below. Action counts started on {f.firstEventAt ?? "—"}; earlier days show 0 for the middle steps (service pages included). &quot;Sent a request&quot; is the real number of leads.
       </p>
       <div className="mt-4 max-w-2xl rounded-2xl border border-border bg-white p-5">
         <ul className="flex flex-col gap-3.5">
@@ -515,7 +516,7 @@ export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
           ))}
         </ul>
         <p className="mt-4 border-t border-border pt-3 text-xs text-secondary">
-          Also: <span className="font-latin font-semibold text-purple-900">{f.whatsapp}</span> WhatsApp clicks · <span className="font-latin font-semibold text-purple-900">{f.phone}</span> phone clicks
+          Also: <span className="font-latin font-semibold text-purple-900">{f.pagesPerVisitor ? f.pagesPerVisitor.toFixed(1) : "—"}</span> pages per visitor · <span className="font-latin font-semibold text-purple-900">{f.whatsapp}</span> WhatsApp clicks · <span className="font-latin font-semibold text-purple-900">{f.phone}</span> phone clicks
         </p>
       </div>
     </section>
