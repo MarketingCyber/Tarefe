@@ -54,9 +54,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <ServerVisitsSection d={view} srcDims={SRC_DIMS} devDims={DEV_DIMS} />
         </div>
 
-        <SiteFunnelCard f={allFunnel} />
-
-        <LandingJourneyCard rows={journey} />
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-x-6 gap-y-10 lg:grid-cols-2">
+          <SiteFunnelCard f={allFunnel} />
+          <LandingJourneyCard rows={journey} />
+        </div>
 
         <ConsentCard c={consent} />
 

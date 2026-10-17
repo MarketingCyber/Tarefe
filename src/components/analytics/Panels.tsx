@@ -428,12 +428,12 @@ const FUNNEL_STEPS: { key: "views" | "usage" | "results" | "tariff" | "submitted
 export function LandingJourneyCard({ rows }: { rows: LandingFunnelRow[] }) {
   if (rows.length === 0) return null;
   return (
-    <section className="mt-10">
+    <section>
       <h2 className="text-lg font-bold text-purple-900">Ads landing journey</h2>
       <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
         How far people get on the two landing pages (/fa/landing/electricity and /fa/landing/gas). Counted on our server without cookies: each person once per step per day, so it covers everyone, not only visitors who accepted cookies.
       </p>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4">
         {rows.map((r) => {
           const values = { views: r.views, ...r.steps };
           const top = Math.max(values.views, values.usage, 1);
@@ -482,12 +482,12 @@ export function SiteFunnelCard({ f }: { f: SiteFunnel }) {
   ];
   const top = Math.max(f.visitors, 1);
   return (
-    <section className="mt-10">
+    <section>
       <h2 className="text-lg font-bold text-purple-900">Funnel for all visitors (no cookies needed)</h2>
       <p className="mt-0.5 max-w-[85ch] text-xs leading-relaxed text-secondary">
         Counted on our server for everyone, whether or not they accepted the cookie banner: each person once per step per day. Each step stands on its own (someone can send a request without using the calculator). The Ads landing pages have their own table below. Action counts started on {f.firstEventAt ?? "—"}; earlier days show 0 for the middle steps (service pages included). &quot;Sent a request&quot; is the real number of leads.
       </p>
-      <div className="mt-4 max-w-2xl rounded-2xl border border-border bg-white p-5">
+      <div className="mt-4 rounded-2xl border border-border bg-white p-5">
         <ul className="flex flex-col gap-3.5">
           {steps.map((s, i) => (
             <li key={s.label}>
