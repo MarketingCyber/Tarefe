@@ -39,6 +39,7 @@ const LABEL = {
 export function ReviewSlider({ locale, items, header }: { locale: Locale; items: ReviewItem[]; header?: React.ReactNode }) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  const [stops, setStops] = useState(0); // 0 until measured, so the dots never flash a wrong count
   const [edge, setEdge] = useState({ start: true, end: false });
 
   const step = useCallback(() => {
@@ -47,14 +48,28 @@ export function ReviewSlider({ locale, items, header }: { locale: Locale; items:
     return card ? card.offsetWidth + parseFloat(getComputedStyle(t!).columnGap || "20") : 320;
   }, []);
 
-  const sync = useCallback(() => {
+  /**
+   * Where the track can actually rest. On a wide screen several cards are visible at once, so the
+   * track runs out of room before the last card reaches the start edge: a dot per card would leave
+   * the last few dots unreachable. Instead there is one stop per step plus a final stop at the very end.
+   */
+  const geometry = useCallback(() => {
     const t = track.current;
-    if (!t) return;
-    const pos = Math.abs(t.scrollLeft);
-    const max = t.scrollWidth - t.clientWidth;
-    setEdge({ start: pos <= 2, end: pos >= max - 2 });
-    setIndex(Math.min(items.length - 1, Math.max(0, Math.round(pos / step()))));
-  }, [items.length, step]);
+    const st = step();
+    const max = t ? Math.max(0, t.scrollWidth - t.clientWidth) : 0;
+    const pos = t ? Math.abs(t.scrollLeft) : 0;
+    const count = max <= 2 ? 1 : Math.ceil((max - 2) / st) + 1;
+    const atEnd = max > 2 && pos >= max - 2;
+    const at = atEnd ? count - 1 : Math.min(Math.max(0, count - 2), Math.round(pos / st));
+    return { st, max, pos, count, at };
+  }, [step]);
+
+  const sync = useCallback(() => {
+    const g = geometry();
+    setEdge({ start: g.pos <= 2, end: g.max <= 2 || g.pos >= g.max - 2 });
+    setStops(g.count);
+    setIndex(g.at);
+  }, [geometry]);
 
   // read the scroll position back into state, at most once per frame
   useEffect(() => {
@@ -102,8 +117,12 @@ export function ReviewSlider({ locale, items, header }: { locale: Locale; items:
   // under RTL the scroll axis is mirrored: ask the track which way "forward" is instead of assuming
   const dirSign = () => (track.current && getComputedStyle(track.current).direction === "rtl" ? -1 : 1);
   // Absolute targets (the next card from the one in view), not relative nudges: repeated clicks can never drift off the snap points.
-  const goTo = (i: number) => track.current?.scrollTo({ left: dirSign() * Math.min(items.length - 1, Math.max(0, i)) * step(), behavior: behavior() });
-  const by = (dir: 1 | -1) => goTo(Math.round(Math.abs(track.current?.scrollLeft ?? 0) / step()) + dir); // read the live position, not the (frame-delayed) state
+  const goTo = (i: number) => {
+    const g = geometry();
+    const stop = Math.min(g.count - 1, Math.max(0, i));
+    track.current?.scrollTo({ left: dirSign() * (stop === g.count - 1 ? g.max : stop * g.st), behavior: behavior() });
+  };
+  const by = (dir: 1 | -1) => goTo(geometry().at + dir); // from the live position, not the (frame-delayed) state
 
   const btn = "press flex h-11 w-11 items-center justify-center rounded-full border border-border-strong bg-white text-purple-900 transition-[color,border-color,opacity] duration-150 hover:border-purple-600 hover:text-purple-600 disabled:pointer-events-none disabled:opacity-35";
 
@@ -144,9 +163,9 @@ export function ReviewSlider({ locale, items, header }: { locale: Locale; items:
         ))}
       </div>
 
-      <div className="mt-2 flex items-center justify-center gap-1">
-        {items.map((it, i) => (
-          <button key={it.id} type="button" onClick={() => goTo(i)} aria-label={`${LABEL.go[locale]} ${i + 1}`} aria-current={i === index} className="group flex h-6 w-6 items-center justify-center">
+      <div className="mt-2 flex min-h-6 items-center justify-center gap-1">
+        {Array.from({ length: stops > 1 ? stops : 0 }, (_, i) => (
+          <button key={i} type="button" onClick={() => goTo(i)} aria-label={`${LABEL.go[locale]} ${i + 1}`} aria-current={i === index} className="group flex h-6 w-6 items-center justify-center">
             <span className={`block h-2 rounded-full transition-[width,background-color] duration-200 ease-out ${i === index ? "w-6 bg-purple-600" : "w-2 bg-border-strong group-hover:bg-purple-600/50"}`} />
           </button>
         ))}
