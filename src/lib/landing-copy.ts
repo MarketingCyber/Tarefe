@@ -66,7 +66,7 @@ export const LANDING_COPY = {
     t("قیمت تضمینی", "Preisgarantie", "Гарантия цены"),
     t("ارزان‌ترین تعرفه", "Günstigster Tarif", "Самый выгодный тариф"),
     t("پشتیبانی فارسی", "Beratung auf Persisch", "Поддержка на вашем языке"),
-    t("کاغذبازی با ما، رایگان", "Papierkram erledigen wir, kostenlos", "Бумаги берём на себя, бесплатно"),
+    t("انجام کارهای اداری", "Wir erledigen die Formalitäten", "Оформление документов берём на себя"),
   ],
   yourTariff: t("تعرفه انتخابی", "Gewählter Tarif", "Выбранный тариф"),
   submit: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
