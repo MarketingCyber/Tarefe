@@ -297,3 +297,104 @@ export async function consentShare(f: AnalyticsFilters): Promise<ConsentShare> {
     clickCountingSince: since[0]?.t ? since[0].t.toISOString().slice(0, 10) : null,
   };
 }
+
+// ======================================================================== events table
+
+/** Dimensions the events table can group by. Each describes the visitor's FIRST page load of the day (their arrival). */
+export const EVENT_TABLE_DIMS = ["channel", "source", "medium", "campaign", "content", "term", "landing", "landing_group", "device", "browser", "os", "locale"] as const satisfies readonly Dim[];
+
+export const EVENT_TABLE_COLUMNS = [
+  { key: "visits", label: "Visits", hint: "A visit is one or more page loads by the same visitor less than 30 minutes apart." },
+  { key: "visitors", label: "Visitors", hint: "Distinct visitors per day." },
+  { key: "page_views", label: "Page views", hint: "Every page the visitor opened, including moving around inside the site." },
+  { key: "service_views", label: "Viewed a service page", hint: "Visitors who opened a service page." },
+  { key: "calculator", label: "Used the calculator", hint: "Visitors who used the electricity or gas calculator." },
+  { key: "tariff_clicks", label: "Tariff button clicks", hint: "Visitors who clicked a tariff button." },
+  { key: "form_starts", label: "Form starts", hint: "Visitors who started the consultation form." },
+  { key: "whatsapp", label: "WhatsApp clicks", hint: "Visitors who clicked a WhatsApp button." },
+  { key: "phone", label: "Phone clicks", hint: "Visitors who clicked a phone number." },
+  { key: "accepted", label: "Accepted cookies", hint: "Visitors who clicked Accept on the banner (counted from the day the click counter was added)." },
+  { key: "declined", label: "Necessary only", hint: "Visitors who clicked \"necessary only\" on the banner." },
+  { key: "requests", label: "Requests (leads)", hint: "Real consultation requests from the database. Only available when grouping by source, medium, campaign, content or term, because a request cannot be matched to a channel or device." },
+] as const;
+export type EventTableColumn = (typeof EVENT_TABLE_COLUMNS)[number]["key"];
+
+export interface EventTableRow {
+  keys: string[];
+  values: Record<EventTableColumn, number | null>;
+}
+
+const LEAD_DIM_COLUMN: Partial<Record<Dim, string>> = {
+  source: `COALESCE("utmVisitSource", "utmLastSource", '(not set)')`,
+  medium: `COALESCE("utmVisitMedium", "utmLastMedium", '(not set)')`,
+  campaign: `COALESCE("utmVisitCampaign", "utmLastCampaign", '(not set)')`,
+  content: `COALESCE("utmVisitContent", "utmLastContent", '(not set)')`,
+  term: `COALESCE("utmVisitTerm", "utmLastTerm", '(not set)')`,
+};
+
+/**
+ * Every action counted without cookie consent, grouped by up to three dimensions of how the
+ * visitor arrived. An action carries no source of its own: it is matched to the same visitor's
+ * first page load of that day (the anonymous visitor code is the same in both tables), and shows
+ * "(not set)" when that arrival was not recorded.
+ * SECURITY: dimension and column names come only from the whitelists above; values are bound.
+ */
+export async function eventTable(f: AnalyticsFilters, groupBy: Dim[]): Promise<{ rows: EventTableRow[]; totals: Record<EventTableColumn, number | null> }> {
+  const { range } = resolveRange(f);
+  const dims = groupBy.filter((d) => (EVENT_TABLE_DIMS as readonly string[]).includes(d) && DIM_EXPR[d]).slice(0, 3);
+  const useDims: Dim[] = dims.length ? dims : ["channel"];
+  const dimSelect = useDims.map((d, i) => `COALESCE(${DIM_EXPR[d]}, '(not set)') AS d${i}`).join(", ");
+  const groupCols = useDims.map((_, i) => `d${i}`).join(", ");
+  const between = Prisma.sql`"createdAt" >= ${tsFrom(range.from)} AND "createdAt" < ${tsToExclusive(range.to)}`;
+
+  const agg = (grouped: boolean) => Prisma.sql`
+    WITH ${visitsCte(range)},
+    prof AS (
+      SELECT DISTINCT ON (h.visitor) h.visitor, ${Prisma.raw(CHANNEL)} AS channel, h.source, h.medium, h.campaign, h.content, h.term, h.path, h.locale, h.device, h.browser, h.os
+      FROM h ORDER BY h.visitor, h."createdAt"
+    ),
+    u AS (
+      SELECT visitor, 'visit' AS ev, '' AS epath, channel, source, medium, campaign, content, term, path, locale::text AS locale, device, browser, os FROM v
+      UNION ALL
+      SELECT e.visitor, e.name, e.path, p.channel, p.source, p.medium, p.campaign, p.content, p.term, p.path, p.locale::text, p.device, p.browser, p.os
+      FROM site_events e LEFT JOIN prof p ON p.visitor = e.visitor
+      WHERE e.${between}
+    ),
+    t AS (SELECT u.*, ${Prisma.raw(grouped ? dimSelect : "1 AS d0")} FROM u)
+    SELECT ${Prisma.raw(grouped ? groupCols + "," : "")}
+      count(*) FILTER (WHERE ev = 'visit') AS visits,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'visit') AS visitors,
+      count(*) FILTER (WHERE ev = 'page_view') AS page_views,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'page_view' AND epath LIKE '%/services/%') AS service_views,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'energy_calculator_used') AS calculator,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'tariff_cta_clicked') AS tariff_clicks,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'consultation_form_started') AS form_starts,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'whatsapp_clicked') AS whatsapp,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'phone_clicked') AS phone,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'consent_accepted') AS accepted,
+      count(DISTINCT visitor) FILTER (WHERE ev = 'consent_declined') AS declined
+    FROM t ${Prisma.raw(grouped ? `GROUP BY ${groupCols} ORDER BY visits DESC, ${groupCols} LIMIT 200` : "")}`;
+
+  const leadsGroupable = useDims.every((d) => LEAD_DIM_COLUMN[d]);
+  const [rows, total, leadRows, leadTotal] = await Promise.all([
+    prisma.$queryRaw<Record<string, unknown>[]>(agg(true)),
+    prisma.$queryRaw<Record<string, unknown>[]>(agg(false)),
+    leadsGroupable
+      ? prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
+          SELECT ${Prisma.raw(useDims.map((d, i) => `${LEAD_DIM_COLUMN[d]} AS d${i}`).join(", "))}, count(*) AS n
+          FROM leads WHERE ${between} GROUP BY ${Prisma.raw(groupCols)}`)
+      : Promise.resolve([]),
+    prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`SELECT count(*) AS n FROM leads WHERE ${between}`),
+  ]);
+
+  const leadsBy = new Map(leadRows.map((r) => [useDims.map((_, i) => String(r[`d${i}`])).join("\u0000"), num(r.n)]));
+  const cols = EVENT_TABLE_COLUMNS.map((c) => c.key).filter((k) => k !== "requests");
+  const pick = (r: Record<string, unknown>) => Object.fromEntries(cols.map((k) => [k, num(r[k])])) as Record<Exclude<EventTableColumn, "requests">, number>;
+  return {
+    rows: rows.map((r) => {
+      const keys = useDims.map((_, i) => String(r[`d${i}`]));
+      return { keys, values: { ...pick(r), requests: leadsGroupable ? (leadsBy.get(keys.join("\u0000")) ?? 0) : null } };
+    }),
+    totals: { ...pick(total[0] ?? {}), requests: num(leadTotal[0]?.n) },
+  };
+}

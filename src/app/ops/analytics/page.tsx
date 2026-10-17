@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { canAccessAnalytics } from "@/lib/permissions";
 import { SRC_DIMS, DEV_DIMS, parseFilters, resolveRange } from "@/lib/analytics-report";
-import { consentShare, landingFunnel, serverVisits, siteFunnel } from "@/lib/landing-report";
+import { EVENT_TABLE_DIMS, consentShare, eventTable, landingFunnel, serverVisits, siteFunnel } from "@/lib/landing-report";
 import { DashboardShell } from "@/components/analytics/DashboardShell";
+import { EventsTable } from "@/components/analytics/EventsTable";
 import { Toolbar } from "@/components/analytics/Toolbar";
 import { ConsentCard, LandingJourneyCard, ServerVisitsSection, SiteFunnelCard } from "@/components/analytics/Panels";
 
@@ -26,7 +27,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   const f = parseFilters(await searchParams);
   const { range } = resolveRange(f);
-  const [server, journey, allFunnel, consent] = await Promise.all([serverVisits(f), landingFunnel(f), siteFunnel(f), consentShare(f)]);
+  const groupBy = f.groupBy.filter((d) => (EVENT_TABLE_DIMS as readonly string[]).includes(d));
+  if (groupBy.length === 0) groupBy.push("channel");
+  const [server, journey, allFunnel, consent, events] = await Promise.all([serverVisits(f), landingFunnel(f), siteFunnel(f), consentShare(f), eventTable(f, groupBy)]);
   const view = { filters: f, range, server };
 
   return (
@@ -56,6 +59,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <LandingJourneyCard rows={journey} />
 
         <ConsentCard c={consent} />
+
+        <EventsTable filters={f} groupBy={groupBy} rows={events.rows} totals={events.totals} />
       </DashboardShell>
 
       <details className="group mt-6 rounded-2xl border border-border bg-white">
