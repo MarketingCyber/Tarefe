@@ -12,7 +12,8 @@ import { InsuranceSlider, type SliderCopy } from "./InsuranceSlider";
  * sit beside it. No prices are quoted: what is paid and after which waiting period depends on the tariff.
  *
  * Phone order: heading → slider → the rest, so the slider is on the first screen.
- * Desktop: text on one side, the slider spanning both rows on the other.
+ * Desktop: the text is ONE block, centred vertically beside the slider (the two empty 1fr rows
+ * soak up the extra height, so the heading and the chips never drift apart).
  */
 type L = Record<Locale, string>;
 const t = (fa: string, de: string, ru: string): L => ({ fa, de, ru });
@@ -57,17 +58,17 @@ export function DentalHero({ locale, dict, formId }: { locale: Locale; dict: Dic
 
   return (
     <section className="border-b border-border bg-tint">
-      <div className="container-page grid gap-x-16 gap-y-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[1fr_auto]">
-        <Reveal className="lg:col-start-1 lg:row-start-1 lg:self-end">
+      <div className="container-page grid gap-x-16 gap-y-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[1fr_auto_auto_1fr] lg:gap-y-0">
+        <Reveal className="lg:col-start-1 lg:row-start-2">
           <h1 className="max-w-[20ch] text-balance text-3xl font-extrabold leading-tight text-purple-900 md:text-4xl lg:text-[2.6rem]">{COPY.title[locale]}</h1>
           <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-secondary">{COPY.body[locale]}</p>
         </Reveal>
 
-        <Reveal delay={0.1} className="lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+        <Reveal delay={0.1} className="lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:self-center">
           <InsuranceSlider copy={slider} />
         </Reveal>
 
-        <Reveal delay={0.05} className="lg:col-start-1 lg:row-start-2 lg:self-start">
+        <Reveal delay={0.05} className="lg:col-start-1 lg:row-start-3 lg:mt-10">
           <div>
             <p className="text-xs font-semibold text-secondary">{COPY.alsoCovers[locale]}</p>
             <ul className="mt-3 flex flex-wrap gap-2.5">
