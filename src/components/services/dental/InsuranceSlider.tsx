@@ -14,6 +14,8 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
  * React only learns which side is winning, to swap the caption. The slider itself is a
  * left-to-right island even on RTL pages, so left/right always mean the same thing.
  *
+ * The grip sits low (over the chin), not at mid-height, so it never covers the teeth.
+ *
  * Input: pointer down anywhere on the photo moves the handle there and starts a drag
  * (touch-action: pan-y keeps vertical page scrolling working on phones); the handle is a
  * keyboard slider (arrows ±5, Home/End). Motion: one introduction on first view — the handle
@@ -192,7 +194,7 @@ export function InsuranceSlider({ copy }: { copy: SliderCopy }) {
           <span className="pointer-events-none absolute inset-y-0 left-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_14px_rgba(36,20,38,0.35)]" />
           <span
             ref={grip}
-            className="pointer-events-none absolute left-0 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-full bg-white text-purple-600 shadow-[0_10px_26px_-6px_rgba(36,20,38,0.55)] ring-purple-600/40 transition-transform duration-150 ease-out group-focus-visible:ring-4"
+            className="pointer-events-none absolute left-0 top-[78%] flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-full bg-white text-purple-600 shadow-[0_10px_26px_-6px_rgba(36,20,38,0.55)] ring-purple-600/40 transition-transform duration-150 ease-out group-focus-visible:ring-4"
           >
             <CaretLeft size={14} weight="bold" />
             <CaretRight size={14} weight="bold" />
