@@ -663,12 +663,28 @@ export const PROCESS_STEPS = [
 
 /** 08 — the real differentiator from a bare comparison table: everything a comparison SITE stops doing the moment it shows a price. */
 export const WHY_NOT_DIY = [
-  t("مقایسه گزینه‌های مختلف برایت", "Vergleich der Optionen für Sie", "Сравнение вариантов за вас"),
+  t("مقایسه گزینه‌های مختلف، مناسب تو", "Vergleich der Optionen, passend für Sie", "Сравнение вариантов, подходящих именно вам"),
   t("توضیح تفاوت تعرفه‌ها به زبان ساده", "Erklärung der Tarifunterschiede in einfachen Worten", "Объяснение различий тарифов простыми словами"),
   t("کمک در بررسی مدارک", "Unterstützung bei den Unterlagen", "Помощь с документами"),
   t("پیگیری مراحل قرارداد", "Nachverfolgung des Vertragsprozesses", "Сопровождение процесса оформления"),
   t("پشتیبانی فارسی در تمام مسیر", "Support in Ihrer Sprache auf dem gesamten Weg", "Поддержка на вашем языке на всём пути"),
 ];
+
+/**
+ * Insurance only: we also file the claim and chase the payout for the customer. Placed before the
+ * closing "support all the way" line, so the list still ends on support.
+ */
+const CLAIMS_ITEM = t(
+  "ثبت خسارت و پیگیری آن تا دریافت مبلغ از شرکت بیمه",
+  "Schadenmeldung und Abwicklung bis zur Auszahlung durch die Versicherung",
+  "Подача заявления о страховом случае и сопровождение до получения выплаты от страховой компании"
+);
+
+/** The "what we do for you" list for a page of this category. */
+export function whyNotDiyFor(categorySlug: string) {
+  if (categorySlug !== "insurance") return WHY_NOT_DIY;
+  return [...WHY_NOT_DIY.slice(0, -1), CLAIMS_ITEM, WHY_NOT_DIY[WHY_NOT_DIY.length - 1]];
+}
 
 export const PDP_FAQ_ITEMS = [
   { q: t("آیا من واجد شرایط هستم؟", "Erfülle ich die Voraussetzungen?", "Подхожу ли я по условиям?"), a: t("این دقیقا همان چیزی است که مشاور در تماس اول با تو بررسی می‌کند — رایگان و بدون تعهد.", "Genau das prüft der Berater im ersten Gespräch mit Ihnen — kostenlos und unverbindlich.", "Именно это консультант проверит при первом звонке — бесплатно и ни к чему не обязывает.") },

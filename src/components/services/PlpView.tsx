@@ -21,7 +21,7 @@ import { EnergyConsumptionCalculator } from "@/components/products/EnergyConsump
 import { CoverageAccordion } from "@/components/services/pdp/CoverageAccordion";
 import { FaqAccordion } from "@/components/services/pdp/FaqAccordion";
 import { Reveal } from "@/components/shared/Reveal";
-import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, WHY_NOT_DIY, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
+import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, whyNotDiyFor, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
 import { getEnergyPageContent } from "@/lib/energy-page-content";
 import { EnergyWhyNow, EnergyWhyTarefe, EnergyProcess } from "@/components/services/energy/EnergySections";
 import { EnergySituation } from "@/components/services/energy/EnergySituation";
@@ -350,7 +350,7 @@ export async function PlpView({
             })}
           </h2>
           <ul className="mt-5 grid max-w-xl gap-2.5">
-            {WHY_NOT_DIY.map((item) => (
+            {whyNotDiyFor(category.slug).map((item) => (
               <li key={item.fa} className="flex items-center gap-2.5 text-sm text-body">
                 <CheckCircle size={16} weight="fill" className="shrink-0 text-success" />
                 {byLocale(locale, item)}

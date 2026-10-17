@@ -14,7 +14,7 @@ import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { byLocale, type Category, type Subcategory, type ProductType, type Locale } from "@/lib/taxonomy";
 import type { Dictionary } from "@/lib/dictionary";
 import { KNOWN_TARIFFS } from "@/lib/pdp-data";
-import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, WHY_NOT_DIY, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
+import { getPdpContent, WHY_TAREFE, PROCESS_STEPS, whyNotDiyFor, PDP_FAQ_ITEMS } from "@/lib/pdp-content";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -335,7 +335,7 @@ export function PdpView({
             })}
           </h2>
           <ul className="mt-5 grid max-w-xl gap-2.5">
-            {WHY_NOT_DIY.map((item) => (
+            {whyNotDiyFor(category.slug).map((item) => (
               <li key={item.fa} className="flex items-center gap-2.5 text-sm text-body">
                 <CheckCircle size={16} weight="fill" className="shrink-0 text-success" />
                 {byLocale(locale, item)}
