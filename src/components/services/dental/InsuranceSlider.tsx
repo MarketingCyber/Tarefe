@@ -60,7 +60,9 @@ export function InsuranceSlider({ copy }: { copy: SliderCopy }) {
     }
     if (labelL.current) labelL.current.style.opacity = v > 16 ? "1" : "0";
     if (labelR.current) labelR.current.style.opacity = v < 84 ? "1" : "0";
-    setSide(v >= 50 ? "without" : "with");
+    // A little hysteresis around the middle, so a handle resting near 50 cannot flicker the caption.
+    if (v > 53) setSide("without");
+    else if (v < 47) setSide("with");
   }, []);
 
   const markTouched = useCallback(() => {
@@ -208,10 +210,16 @@ export function InsuranceSlider({ copy }: { copy: SliderCopy }) {
         </span>
       </div>
 
-      {/* what you are looking at, swapping as the handle crosses the middle */}
-      <p key={side} aria-live="polite" dir="auto" className="caption-in mt-5 min-h-[3.25rem] text-center text-base font-semibold leading-snug text-purple-900">
-        {side === "with" ? copy.captionWith : copy.captionWithout}
-      </p>
+      {/* What you are looking at. Both captions are always in the DOM, stacked in one grid cell, and cross-fade
+          (opacity only, interruptible): no remount, and the block is as tall as the taller caption, so nothing below moves. */}
+      <div className="mt-5 grid text-center text-base font-semibold leading-snug text-purple-900" aria-live="polite" dir="auto">
+        <p aria-hidden={side !== "without"} className={`col-start-1 row-start-1 transition-opacity duration-200 ease-out motion-reduce:transition-none ${side === "without" ? "opacity-100" : "opacity-0"}`}>
+          {copy.captionWithout}
+        </p>
+        <p aria-hidden={side !== "with"} className={`col-start-1 row-start-1 transition-opacity duration-200 ease-out motion-reduce:transition-none ${side === "with" ? "opacity-100" : "opacity-0"}`}>
+          {copy.captionWith}
+        </p>
+      </div>
     </div>
   );
 }

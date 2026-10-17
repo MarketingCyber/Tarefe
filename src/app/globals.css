@@ -261,26 +261,6 @@
     }
   }
 
-  /* The before/after caption (dental page): a short fade + 6px rise each time the winning side changes. */
-  @keyframes caption-in {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  .caption-in {
-    animation: caption-in 0.28s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .caption-in {
-      animation: none;
-    }
-  }
-
   /* The Ads landing journey's winner-card button: a mild, slow yellow halo so the one recommended action is the first thing the eye finds. */
   @keyframes winner-cta-glow {
     0%, 100% {
