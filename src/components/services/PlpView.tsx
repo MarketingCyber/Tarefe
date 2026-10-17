@@ -28,6 +28,7 @@ import { EnergySituation } from "@/components/services/energy/EnergySituation";
 import { EnergyJourneyNav } from "@/components/services/energy/EnergyJourneyNav";
 import { JOURNEY_IDS } from "@/components/services/energy/journey";
 import { SectionHead } from "@/components/services/energy/energy-ui";
+import { DentalWithWithout } from "@/components/services/dental/DentalWithWithout";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -161,6 +162,9 @@ export async function PlpView({
           )}
         </div>
       </section>
+
+      {/* Dental only: the with / without insurance slider, straight after the hero. */}
+      {category.slug === "insurance" && subcategory.slug === "health" && productType.slug === "dental" && <DentalWithWithout locale={locale} ctaLabel={dict.cta.freeConsultation} formId={FORM_ID} />}
 
       {/* The map of the page: sticky under the header from here down (see EnergyJourneyNav). */}
       {energy && <EnergyJourneyNav locale={locale} nav={energy.journey.nav} formId={FORM_ID} />}
