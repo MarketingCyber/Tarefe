@@ -30,6 +30,7 @@ import { JOURNEY_IDS } from "@/components/services/energy/journey";
 import { SectionHead } from "@/components/services/energy/energy-ui";
 import { DentalHero } from "@/components/services/dental/DentalHero";
 import { DentalTestimonials } from "@/components/services/dental/DentalTestimonials";
+import { CustomerReviews } from "@/components/shared/CustomerReviews";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
 import { CATEGORY_ICON, categoryHeadingTracking } from "@/lib/category-theme";
@@ -367,6 +368,7 @@ export async function PlpView({
           appear); they add 09b (when to check) right after it, which has
           no generic counterpart. */}
       {isDental && <DentalTestimonials locale={locale} />}
+      {energy && <CustomerReviews locale={locale} />}
       {!energy && !isDental && (
       <section className="border-t border-border bg-tint py-10">
         <div className="container-page flex flex-col items-center gap-3 text-center">
