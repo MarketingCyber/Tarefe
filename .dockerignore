@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.env
+.env.*
+test-results
+playwright-report
+tsconfig.tsbuildinfo
+xl2
+zzz-*
+*.png
+!public/**/*.png
+private-uploads
+deploy
+e2e
+docs
+skills-lock.json

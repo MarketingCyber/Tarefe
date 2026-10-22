@@ -10,10 +10,15 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // The advisor / customer / MFA-test accounts below are TEST FIXTURES with passwords that are
+  // written in this file, so they are created only when SEED_TEST_USERS=1 (local development and
+  // the E2E suite). A production database must never get them: leave the flag unset there and use
+  // ADMIN_EMAIL / ADMIN_PASSWORD for the one real account.
+  const withFixtures = process.env.SEED_TEST_USERS === "1";
   const advisorPassword = await bcrypt.hash("Tarefe-Advisor-2026!", 10);
   const customerPassword = await bcrypt.hash("Tarefe-Customer-2026!", 10);
 
-  const advisor = await prisma.user.upsert({
+  const advisor = !withFixtures ? null : await prisma.user.upsert({
     where: { email: "advisor@tarefe.de" },
     update: {},
     create: {
@@ -25,7 +30,7 @@ async function main() {
     },
   });
 
-  const customer = await prisma.user.upsert({
+  const customer = !withFixtures ? null : await prisma.user.upsert({
     where: { email: "customer@tarefe.de" },
     update: {},
     create: {
@@ -42,7 +47,7 @@ async function main() {
   // mfaEnabled on and off can never race with or leave stray state on the
   // plain-login tests, which assert advisor@tarefe.de has no MFA.
   const mfaTestPassword = await bcrypt.hash("Tarefe-MfaTest-2026!", 10);
-  const mfaTestAdvisor = await prisma.user.upsert({
+  const mfaTestAdvisor = !withFixtures ? null : await prisma.user.upsert({
     where: { email: "mfa-test@tarefe.de" },
     update: {},
     create: {
@@ -248,9 +253,9 @@ async function main() {
   }
 
   console.log("Seeded:", {
-    advisor: advisor.email,
-    customer: customer.email,
-    mfaTestAdvisor: mfaTestAdvisor.email,
+    advisor: advisor?.email ?? "(skipped — SEED_TEST_USERS is not 1)",
+    customer: customer?.email ?? "(skipped — SEED_TEST_USERS is not 1)",
+    mfaTestAdvisor: mfaTestAdvisor?.email ?? "(skipped — SEED_TEST_USERS is not 1)",
     admin: admin?.email ?? "(skipped — no ADMIN_EMAIL/ADMIN_PASSWORD)",
     faqItems: faqSeeds.length,
     guides: guideSeeds.length,

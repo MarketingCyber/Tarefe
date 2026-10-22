@@ -1,0 +1,77 @@
+# The Tarefe website stack. Lives in /opt/tarefe.de on the main server and touches nothing outside it:
+# its own network, its own database, and everything it stores sits in folders next to this file.
+#
+#   web      the Next.js site, published ONLY on 127.0.0.1:3100 (the web server in front of it,
+#            or an SSH tunnel, reaches it there; it is not exposed to the internet by itself)
+#   db       PostgreSQL 16, not published at all (only the web container can reach it)
+#   backup   writes a compressed database dump every night to ./backups and keeps 14 days
+name: tarefe-next
+
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: ../Dockerfile
+    image: tarefe-next-web:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://tarefe:${POSTGRES_PASSWORD}@db:5432/tarefe_prod
+      DOCUMENT_UPLOAD_DIR: /data/uploads
+    ports:
+      - "127.0.0.1:3100:3000"
+    volumes:
+      - ./uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tarefe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: tarefe_prod
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tarefe -d tarefe_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: tarefe
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: tarefe_prod
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          f=/backups/tarefe_prod_$$(date +%Y-%m-%d_%H%M).dump
+          pg_dump -Fc -f "$$f" && pg_restore --list "$$f" >/dev/null && echo "backup ok: $$f" || echo "BACKUP FAILED: $$f"
+          find /backups -name 'tarefe_prod_*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
