@@ -1,0 +1,25 @@
+# Local development database for the laptop (Docker Desktop).
+# The website runs on the laptop itself with `npm run dev` (fast reload); only Postgres runs in Docker,
+# the same version as on the server. Test data only — never real customer data.
+#
+#   docker compose -f deploy/docker-compose.local.yml up -d      start
+#   docker compose -f deploy/docker-compose.local.yml down       stop (data is kept in the volume)
+#
+# .env.local in the project root:  DATABASE_URL=postgresql://tarefe:tarefe-local@localhost:5434/tarefe_dev
+name: tarefe-local
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tarefe
+      POSTGRES_PASSWORD: tarefe-local
+      POSTGRES_DB: tarefe_dev
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - tarefe-local-pgdata:/var/lib/postgresql/data
+
+volumes:
+  tarefe-local-pgdata:
