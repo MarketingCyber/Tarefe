@@ -14,7 +14,14 @@ Company needs
 5. Introduce our products and stay in the customer's mind
 6. Encourage referrals (marketing helper)
 
-Rule: a feature of the old app stays only if it serves one of these six. Everything else is cut or parked (see 02-old-app-inventory.md).
+Rule: a feature of the old app stays only if it serves one of these six. Everything else is cut or parked (see 02-old-app-inventory.md). Cut so far: letters (Briefe) and meter readings.
+
+## Two messages on every screen where it fits
+- All Tarefe services are free of charge: the customer is never charged for anything.
+- We find the lowest price for each service, based on each person's own situation.
+
+## Referral (owner's rules)
+10 € voucher for the referrer when: the referrer has an active Tarefe contract, AND the referred person signs a contract and does not cancel it within 14 days.
 
 ## Decisions taken (2026-10-23)
 
