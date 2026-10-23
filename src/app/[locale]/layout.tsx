@@ -12,7 +12,6 @@ import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { WebVitalsReporter } from "@/components/providers/WebVitalsReporter";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { GtmScript } from "@/components/providers/GoogleTagManager";
-import { MetaPixel } from "@/components/providers/MetaPixel";
 import { PageTransition } from "@/components/providers/PageTransition";
 import "../globals.css";
 
@@ -56,7 +55,6 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${iransansx.variable}`} suppressHydrationWarning>
       <GtmScript />
-      <MetaPixel />
       <body className="flex min-h-screen flex-col antialiased selection:bg-purple-600/15">
         <a
           href="#main-content"

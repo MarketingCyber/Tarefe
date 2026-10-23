@@ -6,7 +6,6 @@ import { inter, iransansx } from "@/lib/fonts";
 import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { GtmScript } from "@/components/providers/GoogleTagManager";
-import { MetaPixel } from "@/components/providers/MetaPixel";
 import "../../globals.css";
 
 /**
@@ -37,7 +36,6 @@ export default async function LandingLayout({ children, params }: { children: Re
   return (
     <html lang={locale} dir={LOCALE_DIR[locale]} className={`${inter.variable} ${iransansx.variable}`} suppressHydrationWarning>
       <GtmScript />
-      <MetaPixel />
       <body className="min-h-screen bg-white antialiased selection:bg-purple-600/15">
         <PageViewTracker locale={locale} />
         {children}
