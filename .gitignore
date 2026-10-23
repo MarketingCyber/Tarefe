@@ -48,3 +48,6 @@ next-env.d.ts
 # a leftover unzipped spreadsheet and a debug screenshot (2026-10-03)
 /xl2
 /zzz-empty-customers.png
+
+# local copies of provider tariff exports (never commit)
+/data
