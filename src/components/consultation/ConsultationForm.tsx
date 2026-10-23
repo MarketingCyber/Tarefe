@@ -1,5 +1,6 @@
 "use client";
 
+import { newMetaEventId, trackMetaLead } from "@/lib/meta-pixel";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
@@ -151,6 +152,7 @@ export function ConsultationForm({
     const form = new FormData(e.currentTarget);
     const { first, last, visit } = getAttribution();
     const consentAccepted = getConsent() === "accepted";
+    const metaEventId = newMetaEventId();
     try {
       const send = (formToken: string | null) =>
         fetch("/api/leads", {
@@ -184,6 +186,7 @@ export function ConsultationForm({
           utmVisitContent: visit?.content,
           consentAccepted,
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
+          metaEventId,
           ...extra,
         }),
       });
@@ -202,6 +205,7 @@ export function ConsultationForm({
       }
       if (!res.ok) throw new Error("Request failed");
       track(EVENT.CONSULTATION_SUBMITTED, { path: pathname, locale, category, service: serviceSlug });
+      trackMetaLead(metaEventId, { category, service: serviceSlug });
       if (onSuccess) onSuccess();
       else router.push(`/${locale}/consultation/success`);
     } catch {

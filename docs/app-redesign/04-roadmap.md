@@ -9,9 +9,10 @@
 - [ ] Docker Desktop on the laptop; local stack running
 
 ## Phase 1 — Design (1–2 weeks)
-- Information architecture: 5 tabs — Home, Contracts, Documents, Support, Profile (+ referral inside Profile/Home)
-- Flows for the six goals; wireframes -> clickable prototype; test with 3–5 customers
-- Notification catalogue: which events, which channel, what text (fa/de/ru)
+- [x] Information architecture: 5 tabs — Home, Contracts, Offers, Documents, Support (Profile + referral behind the avatar); support is per contract (own chat + own requests)
+- [x] Flows for the six goals -> clickable prototype (prototype/index.html, design canvas with 11 boards at Galaxy A55 size)
+- [ ] Test with 3–5 customers (script: 07-customer-test.md) — owner runs it
+- [x] Notification catalogue: events, channels, texts fa/de/ru (06-notifications.md; de/ru need a native-speaker review)
 
 ## Phase 2 — Foundation (back end first)
 - Token API (sign-in, refresh, devices), data model additions (devices, referrals, offers, notification preferences)
@@ -19,6 +20,7 @@
 - Staging stack on the VPS
 
 ## Phase 3 — App first release
+- **Owner's choice (2026-10-23): build the app back end (the API part of phase 2) and the Expo project together.** Migration of old CRM data and the VPS staging stack follow later.
 - Expo project, sign-in with biometric unlock, contracts hub, documents (download, upload, camera scan), support threads, push notifications
 - Internal test (TestFlight / Play internal track), then store release replacing the old listing (same store entries, so existing users update)
 

@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<title>Tarefe app prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Tarefe app prototype. Sample data only. One file, no build step: open it in any browser. */
+:root{
+  --brand:#5d0089;--ink:#241426;--ink-2:#4a3d4c;--tint:#faf6fc;--tint-2:#f1e8f5;--lilac:#efe3f5;
+  --card:#fffdff;--line:#ece2f1;--line-strong:#ddcce4;--field:#8f7d95;--muted:#6e6171;
+  --sun:#f7c800;--sun-soft:#fff6cc;--sun-ink:#6b5600;--wa:#128c7e;--danger:#a3122a;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);--ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  --stage:#efe6f3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:"Vazirmatn",system-ui,sans-serif;color:var(--ink);background:var(--stage);-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* stage: guide panel + phone */
+.stage{min-height:100dvh;display:flex;align-items:center;justify-content:center;gap:56px;padding:24px}
+.guide{width:300px;display:flex;flex-direction:column;gap:18px}
+.guide h1{margin:0;font-size:26px;font-weight:800;line-height:1.4}
+.guide p{margin:0;font-size:14px;line-height:1.9;color:var(--muted)}
+.guide ol{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.guide a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border-radius:14px;text-decoration:none;color:var(--ink);font-size:15px;font-weight:500}
+.guide a:hover{background:var(--tint-2)}
+.guide a[aria-current="true"]{background:var(--card);font-weight:800;box-shadow:0 6px 20px -14px rgba(93,0,137,.5)}
+.guide a span{width:24px;font-size:12px;color:var(--muted)}
+.guide .note{font-size:12px;padding:12px 14px;border-radius:14px;background:var(--sun-soft);color:var(--ink-2);line-height:1.9}
+.phone{position:relative;height:min(852px,calc(100dvh - 48px));aspect-ratio:404/852;border-radius:40px;background:var(--ink);padding:10px;box-shadow:0 40px 80px -40px rgba(36,20,38,.55)}
+.screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;background:var(--tint);display:flex;flex-direction:column;isolation:isolate}
+@media (max-width:899px){
+  .guide{display:none}
+  .stage{padding:0;display:block}
+  .phone{height:100dvh;width:100%;aspect-ratio:auto;border-radius:0;padding:0;box-shadow:none}
+  .screen{border-radius:0}
+}
+
+/* views */
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:20px 20px 28px;display:flex;flex-direction:column;gap:16px;overscroll-behavior:contain}
+.scroll > *{flex-shrink:0}
+.view.pushed{animation:push 260ms var(--ease-out) both}
+@keyframes push{from{opacity:0;transform:translateX(-28px)}}
+.enter{animation:rise 420ms var(--ease-out) both;animation-delay:calc(var(--i,0) * 45ms)}
+.view.seen .enter{animation:none}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* building blocks */
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px}
+.press{transition:transform 160ms var(--ease-out);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.press:active{transform:scale(0.97)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:999px;background:var(--brand);color:var(--card);font-size:15px;font-weight:700;text-decoration:none;border:0;cursor:pointer;white-space:nowrap}
+.btn.block{display:flex;width:100%}
+.btn.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--line-strong);min-height:44px}
+.btn.sm{min-height:44px;padding:0 16px;font-size:14px}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none}
+.icon-btn.flat{border:0;background:transparent;color:var(--muted)}
+.logo{width:42px;height:42px;border-radius:12px;background:var(--tint);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--brand);flex-shrink:0;direction:ltr}
+.row{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);min-height:52px}
+.col{display:flex;flex-direction:column}
+.grow{flex:1;min-width:0}
+.t-h1{margin:0;font-size:24px;font-weight:800}
+.t-h2{margin:0;font-size:16px;font-weight:800}
+.t-b{font-size:14px;font-weight:700}
+.t-s{font-size:12px;color:var(--muted);line-height:1.8}
+.t-m{font-size:13px;color:var(--muted);line-height:1.8}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.price{font-size:15px;font-weight:800;direction:ltr;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;background:var(--sun-soft);color:var(--sun-ink);font-size:11px;font-weight:700;text-decoration:none;align-self:flex-start}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-size:13px;font-weight:500;display:inline-flex;align-items:center;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card);font-weight:700}
+.back{display:flex;align-items:center;gap:12px}
+.back span{font-size:15px;font-weight:700;color:var(--muted)}
+.sun-card{background:var(--sun-soft);border:2px solid var(--sun);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.fact{background:var(--tint);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.fact span{font-size:12px;color:var(--muted)}
+.fact b{font-size:15px;font-weight:800}
+.doc-ic{width:40px;height:40px;border-radius:12px;background:var(--tint);display:flex;align-items:center;justify-content:center;color:var(--brand);flex-shrink:0}
+svg{flex-shrink:0}
+
+/* tab bar */
+.tabbar{display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;padding:10px 0 12px;font-size:11px;font-weight:500;color:var(--muted);text-decoration:none;min-height:56px}
+.tab[aria-current="page"]{color:var(--brand);font-weight:700}
+
+/* login */
+.lang{min-height:36px;min-width:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);font-size:13px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.lang[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card);font-weight:700}
+.stack{position:relative;height:200px}
+.mini{position:absolute;inset-inline:0;margin:0 auto;width:min(286px,86%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 30px -18px rgba(93,0,137,.35)}
+.field{display:flex;align-items:stretch;min-height:52px;border:1.5px solid var(--field);border-radius:16px;background:var(--card);overflow:hidden;direction:ltr}
+.field:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,0,137,.14)}
+.field[data-invalid="true"]{border-color:var(--danger)}
+.field input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:17px;padding:0 14px;color:var(--ink);background:transparent}
+.field input::placeholder{color:#8a7c8d}
+.field .pre{display:flex;align-items:center;padding:0 14px;color:var(--muted);background:var(--tint);border-right:1px solid var(--line-strong)}
+.code input{text-align:center;letter-spacing:.5em;font-size:22px;font-weight:800}
+.err{font-size:13px;color:var(--danger);font-weight:700}
+
+/* contracts timeline */
+.axis{position:relative;height:22px}
+.axis::before{content:"";position:absolute;top:50%;right:0;left:0;height:2px;margin-top:-1px;background:var(--line-strong);border-radius:2px}
+.marker{position:absolute;top:50%;width:14px;height:14px;margin-top:-7px;margin-right:-7px;border-radius:50%;border:3px solid var(--card);background:var(--brand)}
+.marker.now{width:18px;height:18px;margin-top:-9px;margin-right:-9px;background:var(--sun)}
+.events{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.events li{display:flex;gap:12px;align-items:flex-start}
+.events b{width:72px;flex-shrink:0;font-size:13px}
+.pending{border:1.5px dashed var(--line-strong);border-radius:20px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start}
+
+/* offers */
+.seg-wrap{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--tint-2)}
+.seg{flex:1;min-height:44px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer}
+.seg[aria-selected="true"]{background:var(--card);color:var(--ink);font-weight:800;box-shadow:0 2px 8px -4px rgba(36,20,38,.25)}
+.current{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--tint-2)}
+.offer{display:flex;flex-direction:column;gap:12px}
+.offer.best{border:2px solid var(--sun)}
+.badge{align-self:flex-start;min-height:26px;padding:0 12px;border-radius:999px;background:var(--sun);color:var(--ink);font-size:12px;font-weight:800;display:inline-flex;align-items:center}
+.saving{background:var(--sun-soft);border-radius:14px;padding:10px 14px;font-size:14px;font-weight:800;color:var(--sun-ink)}
+.perk{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.7}
+.perk svg{color:var(--brand)}
+.glow{position:relative}
+.glow::after{content:"";position:absolute;inset:-4px;border-radius:inherit;box-shadow:0 0 0 3px rgba(247,200,0,.55),0 0 16px rgba(247,200,0,.45);opacity:.35;animation:glow 2.6s ease-in-out infinite;pointer-events:none}
+@keyframes glow{50%{opacity:1}}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:8px;text-align:right;cursor:pointer}
+.tile .ic{width:40px;height:40px;border-radius:12px;background:var(--lilac);color:var(--brand);display:flex;align-items:center;justify-content:center}
+.tile b{font-size:14px;line-height:1.6}
+.tile small{font-size:12px;line-height:1.7;color:var(--muted)}
+.tile em{font-style:normal;font-size:12px;font-weight:700;color:var(--brand);margin-top:auto}
+
+/* documents */
+.bar{height:6px;border-radius:999px;background:var(--lilac);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:inherit;transform-origin:right;transform:scaleX(0);transition:transform 2400ms linear}
+.group-h{margin:0 0 2px;font-size:13px;font-weight:800;color:var(--muted)}
+
+/* chat */
+.chat-head{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--lilac);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0}
+.log{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;padding:12px 14px;font-size:14px;line-height:1.85;border-radius:20px;white-space:pre-line}
+.them{align-self:flex-end;background:var(--card);border:1px solid var(--line);border-start-end-radius:6px}
+.me{align-self:flex-start;background:var(--brand);color:var(--card);border-start-start-radius:6px}
+.msg.new{animation:rise 300ms var(--ease-out) both}
+.time{font-size:11px;color:var(--muted);margin-top:-4px}
+.day{align-self:center;font-size:12px;color:var(--muted);padding:4px 12px;border-radius:999px;background:var(--tint-2)}
+.reply{min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--brand);background:var(--card);color:var(--brand);font-size:14px;font-weight:700;cursor:pointer}
+.typing{display:inline-flex;gap:4px;align-items:center}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1s ease-in-out infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{opacity:.25;transform:translateY(-3px)}}
+.composer{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;min-height:44px;border:1.5px solid var(--field);border-radius:999px;padding:0 16px;font:inherit;font-size:14px;color:var(--ink);background:var(--card)}
+.composer input:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,0,137,.14)}
+.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--brand);color:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+
+/* support: one conversation + its own requests per contract */
+.thread{display:flex;align-items:flex-start;gap:12px;text-decoration:none;color:var(--ink)}
+.thread.flagged{border:2px solid var(--sun)}
+.th-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.th-title{font-size:15px;font-weight:800}
+.th-prev{font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.th-tags:empty{display:none}
+.tag{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;background:var(--lilac);color:var(--brand);font-size:11px;font-weight:700}
+.unread{min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:var(--brand);color:var(--card);font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;align-self:center;flex-shrink:0}
+.tab{position:relative}
+.tab-badge{position:absolute;top:5px;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--sun);color:var(--ink);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
+.c-tabs{padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.c-panel{flex:1;min-height:0;display:flex;flex-direction:column}
+.sys{align-self:center;display:flex;align-items:center;gap:8px;max-width:92%;padding:8px 14px;border-radius:999px;border:1px dashed var(--line-strong);background:var(--card);color:var(--ink-2);font-size:12px;font-weight:700;cursor:pointer;text-align:right}
+.sys svg{color:var(--brand)}
+.msg .att{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,253,255,.16);font-size:13px;margin-bottom:8px}
+.them .att{background:var(--tint)}
+.ticket{display:flex;flex-direction:column;gap:6px}
+.tk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.status{flex-shrink:0;min-height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center}
+.status.s0{background:var(--lilac);color:var(--brand)}
+.status.s1{background:var(--sun-soft);color:var(--sun-ink)}
+.status.s2{background:var(--tint-2);color:var(--muted)}
+.steps{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.steps li{font-size:11px;color:var(--muted);padding-top:8px;border-top:3px solid var(--line-strong)}
+.steps li.on{color:var(--ink);font-weight:700;border-top-color:var(--brand)}
+textarea.input{width:100%;min-height:84px;border:1.5px solid var(--field);border-radius:16px;padding:12px 14px;font:inherit;font-size:14px;line-height:1.8;color:var(--ink);background:var(--card);resize:none}
+textarea.input:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,0,137,.14)}
+
+/* profile */
+.code-box{display:flex;align-items:center;gap:10px;padding:8px;border-radius:16px;background:var(--card);border:1.5px dashed var(--field)}
+.set{display:flex;align-items:center;gap:12px;min-height:56px;text-decoration:none;color:var(--ink);font-size:15px;cursor:pointer}
+.set + .set{border-top:1px solid var(--line)}
+.set > svg{color:var(--muted)}
+.switch{appearance:none;-webkit-appearance:none;position:relative;width:50px;height:30px;margin:0;border-radius:999px;background:var(--line-strong);cursor:pointer;transition:background-color 200ms ease;flex-shrink:0}
+.switch::before{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(36,20,38,.25);transition:transform 200ms var(--ease-out)}
+.switch:checked{background:var(--brand)}
+.switch:checked::before{transform:translateX(-20px)}
+.av{width:36px;height:36px;border-radius:50%;background:var(--tint);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--brand);flex-shrink:0}
+
+/* sheet + toast */
+.backdrop{position:absolute;inset:0;z-index:20;background:rgba(36,20,38,.38);opacity:0;transition:opacity 240ms ease;pointer-events:none}
+.backdrop.open{opacity:1;pointer-events:auto}
+.sheet{position:absolute;inset-inline:0;bottom:0;z-index:21;max-height:92%;overflow-y:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;transform:translateY(105%);transition:transform 300ms var(--ease-drawer);visibility:hidden}
+.sheet.open{transform:translateY(0);visibility:visible}
+.sheet.closing{transition-duration:200ms}
+.grab{align-self:center;width:40px;height:5px;border-radius:999px;background:var(--line-strong);margin-bottom:6px}
+.sheet-opt{display:flex;align-items:center;gap:14px;min-height:60px;padding:0 14px;border-radius:16px;border:1px solid var(--line);background:var(--tint);text-align:right;cursor:pointer;font-size:15px;font-weight:700;text-decoration:none;color:var(--ink)}
+.toast{position:absolute;inset-inline:20px;bottom:84px;z-index:30;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:16px;background:var(--ink);color:var(--card);font-size:14px;font-weight:500;box-shadow:0 16px 30px -16px rgba(36,20,38,.6);opacity:0;transform:translateY(12px);transition:opacity 200ms ease,transform 260ms var(--ease-out);pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media (prefers-reduced-motion:reduce){
+  .enter,.view.pushed,.msg.new{animation:fade 200ms ease both}
+  .press:active{transform:none}
+  .glow::after{animation:none;opacity:.7}
+  .typing i{animation:none}
+  .sheet{transition:opacity 200ms ease;transform:none;opacity:0}
+  .sheet.open{opacity:1}
+  .toast{transform:none}
+  .switch::before{transition:none}
+  .bar i{transition-duration:1200ms}
+}
+@keyframes fade{from{opacity:0}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-contracts" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></symbol>
+    <symbol id="i-offers" viewBox="0 0 24 24"><path d="M4 7h10"/><path d="M4 17h16"/><circle cx="17" cy="7" r="3"/><circle cx="8" cy="17" r="3"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></symbol>
+    <symbol id="i-file-ok" viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 14l2 2 4-4"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 8"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M5 7h2l2-3h6l2 3h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+    <symbol id="i-shield-ok" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.7 10.7l6.6-3.4"/><path d="M8.7 13.3l6.6 3.4"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M10 14L21 3"/><path d="M21 3l-6.5 18a.55 .55 0 0 1-1 0L10 14l-7-3.5a.55 .55 0 0 1 0-1z"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3L18 10a3 3 0 0 0-6-6l-6.5 6.5a4.5 4.5 0 0 0 9 9L21 13"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></symbol>
+    <symbol id="i-wa" viewBox="0 0 24 24"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9l-5.05.9"/><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0-1h-1a.5 .5 0 0 0 0 1"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/><path d="M9 12h12"/><path d="M18 9l3 3-3 3"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19.5 12.6L12 20l-7.5-7.4A5 5 0 1 1 12 6a5 5 0 1 1 7.5 6.6"/></symbol>
+    <symbol id="i-grow" viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M6 15l4-4 3 3 5-6"/><path d="M15 8h3v3"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3v7h6l-8 11v-7H5z"/></symbol>
+  </defs>
+</svg>
+
+<div class="stage">
+
+  <aside class="guide" aria-label="راهنمای نمونه">
+    <h1>اپ جدید تعرفه</h1>
+    <p>نمونه قابل کلیک. روی صفحه بزن، مثل اپ واقعی کار می‌کند.</p>
+    <ol id="guide-list">
+      <li><a href="#login"><span>۱</span>ورود</a></li>
+      <li><a href="#home"><span>۲</span>خانه</a></li>
+      <li><a href="#contracts"><span>۳</span>قراردادها</a></li>
+      <li><a href="#detail"><span>۴</span>جزئیات قرارداد</a></li>
+      <li><a href="#offers"><span>۵</span>پیشنهادها و مقایسه</a></li>
+      <li><a href="#documents"><span>۶</span>مدارک</a></li>
+      <li><a href="#support"><span>۷</span>پشتیبانی: انتخاب قرارداد</a></li>
+      <li><a href="#chat/vf"><span>۸</span>گفتگوی یک قرارداد</a></li>
+      <li><a href="#chat/vf/requests"><span>۹</span>درخواست‌های یک قرارداد</a></li>
+      <li><a href="#profile"><span>۱۰</span>پروفایل و معرفی دوستان</a></li>
+    </ol>
+    <div class="note">همه نام‌ها، قیمت‌ها و قراردادها نمونه هستند. همه خدمات تعرفه رایگان است.</div>
+  </aside>
+
+  <div class="phone">
+    <div class="screen" id="screen">
+
+      <!-- ورود -->
+      <section class="view" data-view="login" aria-label="ورود">
+        <div class="scroll" style="padding: 20px 24px 28px; gap: 0">
+          <div class="enter" style="--i:0; display:flex; align-items:center; justify-content:space-between">
+            <span style="font-size:26px; font-weight:800; color:var(--brand)">تعرفه</span>
+            <div role="group" aria-label="زبان" style="display:flex; gap:6px" id="langs">
+              <button type="button" class="lang press" aria-pressed="true">فارسی</button>
+              <button type="button" class="lang press" aria-pressed="false" lang="de" data-soon="نسخه آلمانی بعداً اضافه می‌شود">Deutsch</button>
+              <button type="button" class="lang press" aria-pressed="false" lang="ru" data-soon="نسخه روسی بعداً اضافه می‌شود">Русский</button>
+            </div>
+          </div>
+
+          <div class="stack enter" aria-hidden="true" style="--i:1; margin-top:24px">
+            <div class="mini" style="top:0; transform:rotate(-3deg) translateX(-10px); opacity:.85">
+              <span class="logo">AR</span><span class="grow col"><span class="t-b" style="font-size:13px">بیمه حقوقی · ARAG</span><span class="t-s">فعال</span></span><span class="price" style="font-size:13px">€ 19</span>
+            </div>
+            <div class="mini" style="top:62px; transform:rotate(2deg) translateX(8px)">
+              <span class="logo">BA</span><span class="grow col"><span class="t-b" style="font-size:13px">بیمه دندان · Barmenia</span><span class="t-s">فعال</span></span><span class="price" style="font-size:13px">€ 24</span>
+            </div>
+            <div class="mini" style="top:124px; border:2px solid var(--sun)">
+              <span class="logo">VF</span><span class="grow col"><span class="t-b" style="font-size:13px">برق · Vattenfall</span><span style="font-size:11px; font-weight:700; color:var(--sun-ink)">قابل فسخ تا ۴ نوامبر</span></span><span class="price" style="font-size:13px">€ 58</span>
+            </div>
+          </div>
+
+          <div class="enter" style="--i:2; margin-top:28px; display:flex; flex-direction:column; gap:8px">
+            <h2 style="margin:0; font-size:30px; line-height:1.4; font-weight:800">همه قراردادهایت، یک جا</h2>
+            <p style="margin:0; font-size:15px; line-height:1.9; color:var(--muted)">رایگان و به زبان خودت. کمترین قیمت را بر اساس شرایط تو پیدا می‌کنیم.</p>
+          </div>
+
+          <form id="f-email" class="enter" style="--i:3; margin-top:auto; padding-top:24px; display:flex; flex-direction:column; gap:8px" novalidate>
+            <label for="email" style="font-size:14px; font-weight:700">ایمیل</label>
+            <div class="field" id="email-field">
+              <span class="pre"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-mail"/></svg></span>
+              <input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@example.de" aria-describedby="email-help email-err">
+            </div>
+            <span id="email-help" class="t-m">یک کد ۶ رقمی به ایمیلت می‌فرستیم. رمز عبور لازم نیست.</span>
+            <span id="email-err" class="err" hidden>ایمیل را کامل بنویس، مثل name@example.de</span>
+            <button type="submit" class="btn block press" style="margin-top:10px; min-height:52px; font-size:16px">دریافت کد</button>
+            <p style="margin:6px 0 0; font-size:12px; line-height:1.9; color:var(--muted); text-align:center">با ادامه، <a href="#login">شرایط استفاده</a> و <a href="#login">حریم خصوصی</a> را می‌پذیری.</p>
+          </form>
+
+          <form id="f-code" style="margin-top:auto; padding-top:24px; display:flex; flex-direction:column; gap:8px" hidden novalidate>
+            <label for="code" style="font-size:14px; font-weight:700">کد ۶ رقمی</label>
+            <div class="field code" id="code-field">
+              <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------" aria-describedby="code-help code-err">
+            </div>
+            <span id="code-help" class="t-m">کد را به <b class="ltr" id="sent-to" style="color:var(--ink)"></b> فرستادیم. در نمونه، هر ۶ رقمی کار می‌کند.</span>
+            <span id="code-err" class="err" hidden>کد ۶ رقم دارد. دوباره نگاه کن.</span>
+            <button type="submit" class="btn block press" style="margin-top:10px; min-height:52px; font-size:16px">ورود</button>
+            <div style="display:flex; justify-content:space-between">
+              <button type="button" id="change-email" class="press" style="min-height:44px; border:0; background:none; color:var(--brand); font-weight:700; font-size:13px; cursor:pointer">تغییر ایمیل</button>
+              <button type="button" id="resend" class="press" style="min-height:44px; border:0; background:none; color:var(--brand); font-weight:700; font-size:13px; cursor:pointer">ارسال دوباره کد</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- خانه -->
+      <section class="view" data-view="home" aria-label="خانه" hidden>
+        <div class="scroll">
+          <div class="enter" style="--i:0; display:flex; align-items:center; justify-content:space-between">
+            <a href="#profile" class="row press" aria-label="پروفایل و معرفی دوستان">
+              <span style="width:44px; height:44px; border-radius:50%; background:var(--brand); color:var(--card); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px">م</span>
+              <span class="col"><span class="t-s">سلام</span><span style="font-size:17px; font-weight:800">مریم رضایی</span></span>
+            </a>
+            <button type="button" class="icon-btn press" data-sheet="sheet-notes" aria-label="اعلان‌ها، ۲ اعلان تازه" style="position:relative">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bell"/></svg>
+              <span style="position:absolute; top:9px; left:10px; width:9px; height:9px; border-radius:50%; background:var(--sun); border:2px solid var(--card)"></span>
+            </button>
+          </div>
+
+          <div class="enter" style="--i:1; background:var(--brand); color:var(--card); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:18px; font-weight:800">همه خدمات تعرفه رایگان است</span>
+            <span style="font-size:13px; line-height:1.9; opacity:.92">کمترین قیمت هر خدمت را بر اساس شرایط خودت پیدا می‌کنیم. هیچ هزینه‌ای از تو گرفته نمی‌شود.</span>
+          </div>
+
+          <a href="#offers" class="card press enter" style="--i:2; display:flex; gap:14px; align-items:center; text-decoration:none; color:var(--ink); border:2px solid var(--sun)">
+            <span style="width:44px; height:44px; border-radius:14px; background:var(--sun-soft); display:flex; align-items:center; justify-content:center"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clock"/></svg></span>
+            <span class="grow col" style="gap:3px"><span style="font-size:14px; font-weight:800">قرارداد برقت تا ۱۲ روز دیگر قابل فسخ است</span><span class="t-s">یک تعرفه ارزان‌تر پیدا کرده‌ایم: حدود ۱۴۲ یورو کمتر در سال</span></span>
+            <svg width="18" height="18" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-fwd"/></svg>
+          </a>
+
+          <div class="card enter" style="--i:3; display:flex; flex-direction:column; gap:4px">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <h2 class="t-h2">قراردادهای من</h2>
+              <a href="#contracts" style="font-size:13px; font-weight:700; text-decoration:none; padding:10px 0">همه ۴ قرارداد</a>
+            </div>
+            <a href="#detail" class="row press"><span class="logo">VF</span><span class="grow col"><span class="t-b">برق · Vattenfall</span><span class="t-s">قابل فسخ تا ۴ نوامبر</span></span><span class="price">€ 58 / ماه</span></a>
+            <a href="#contracts" class="row press"><span class="logo">BA</span><span class="grow col"><span class="t-b">بیمه دندان · Barmenia</span><span class="t-s">فعال</span></span><span class="price">€ 24 / ماه</span></a>
+          </div>
+
+          <div class="card enter" style="--i:4; display:flex; flex-direction:column; gap:10px">
+            <span style="font-size:12px; font-weight:700; color:var(--brand)">برای تو</span>
+            <span style="font-size:16px; font-weight:800; line-height:1.7">بیمه دندان: ایمپلنت هم پوشش داده می‌شود</span>
+            <span class="t-m">مشاور فارسی‌زبان ما بهترین تعرفه را برای شرایط تو پیدا می‌کند.</span>
+            <button type="button" class="btn press" style="align-self:flex-start" data-chat="برای بیمه دندان مشاوره رایگان می‌خواهم.">درخواست مشاوره رایگان</button>
+          </div>
+
+          <a href="#profile" class="card press enter" style="--i:5; display:flex; align-items:center; gap:16px; text-decoration:none; color:var(--ink); background:var(--sun-soft); border-color:var(--sun)">
+            <span style="font-size:28px; font-weight:800; direction:ltr">€10</span>
+            <span class="col" style="gap:3px"><span style="font-size:14px; font-weight:800">دوستت را معرفی کن</span><span style="font-size:12px; line-height:1.8; color:var(--ink-2)">وقتی قراردادش را امضا کند، ۱۰ یورو کارت هدیه می‌گیری</span></span>
+          </a>
+        </div>
+      </section>
+
+      <!-- قراردادها -->
+      <section class="view" data-view="contracts" aria-label="قراردادها" hidden>
+        <div class="scroll">
+          <div class="enter" style="--i:0; display:flex; align-items:center; justify-content:space-between; gap:12px">
+            <div class="col"><h1 class="t-h1">قراردادها</h1><span class="t-m">۴ قرارداد فعال، مجموع <b class="ltr" style="color:var(--ink)">€ 142</b> در ماه</span></div>
+            <button type="button" class="btn ghost sm press" data-sheet="sheet-upload"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-plus"/></svg>افزودن قرارداد</button>
+          </div>
+
+          <section class="card enter" aria-labelledby="ahead" style="--i:1; display:flex; flex-direction:column; gap:14px">
+            <h2 id="ahead" class="t-h2">۱۲ ماه پیش رو</h2>
+            <div aria-hidden="true">
+              <div class="axis"><span class="marker now" style="right:1%"></span><span class="marker" style="right:19%"></span><span class="marker" style="right:46%"></span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px"><span>امروز</span><span>اکتبر ۲۰۲۷</span></div>
+            </div>
+            <ol class="events">
+              <li><b>۴ نوامبر</b><span class="grow col" style="gap:4px"><span style="font-size:13px; line-height:1.8">آخرین روز فسخ برق. تعرفه ارزان‌تر آماده است.</span><a href="#offers" class="pill">دیدن پیشنهاد</a></span></li>
+              <li><b>۱ ژانویه</b><span class="grow t-m">تمدید خودکار بیمه دندان، بدون تغییر قیمت</span></li>
+              <li><b>۳۰ آوریل</b><span class="grow t-m">پایان حداقل مدت بیمه حقوقی و وکیل</span></li>
+            </ol>
+          </section>
+
+          <div class="chips enter" role="group" aria-label="نوع قرارداد" style="--i:2" id="contract-filter">
+            <button type="button" class="chip press" aria-pressed="true" data-filter="all">همه</button>
+            <button type="button" class="chip press" aria-pressed="false" data-filter="energy">انرژی</button>
+            <button type="button" class="chip press" aria-pressed="false" data-filter="insurance">بیمه</button>
+            <button type="button" class="chip press" aria-pressed="false" data-filter="retirement">بازنشستگی</button>
+          </div>
+
+          <div id="contract-list" style="display:flex; flex-direction:column; gap:12px">
+            <a href="#detail" class="card row press enter" data-cat="energy" style="--i:3; border:2px solid var(--sun)">
+              <span class="logo">VF</span>
+              <span class="grow col" style="gap:4px"><span style="font-size:15px; font-weight:800">برق · Vattenfall</span><span class="t-s ltr" style="text-align:right">ÖkoStrom24 Pur</span><span class="pill">قابل فسخ تا ۴ نوامبر</span></span>
+              <span class="price">€ 58 / ماه</span>
+            </a>
+            <a href="#detail" class="card row press enter" data-cat="energy" style="--i:4">
+              <span class="logo">SWM</span>
+              <span class="grow col" style="gap:4px"><span style="font-size:15px; font-weight:800">گاز · Stadtwerke München</span><span class="t-s ltr" style="text-align:right">M-Erdgas Natur</span></span>
+              <span class="price">€ 41 / ماه</span>
+            </a>
+            <a href="#detail" class="card row press enter" data-cat="insurance" style="--i:5">
+              <span class="logo">BA</span>
+              <span class="grow col" style="gap:4px"><span style="font-size:15px; font-weight:800">بیمه دندان · Barmenia</span><span class="t-s ltr" style="text-align:right">Mehr Zahn 100</span></span>
+              <span class="price">€ 24 / ماه</span>
+            </a>
+            <a href="#detail" class="card row press enter" data-cat="insurance" style="--i:6">
+              <span class="logo">AR</span>
+              <span class="grow col" style="gap:4px"><span style="font-size:15px; font-weight:800">بیمه حقوقی و وکیل · ARAG</span><span class="t-s ltr" style="text-align:right">Aktiv-Rechtsschutz</span></span>
+              <span class="price">€ 19 / ماه</span>
+            </a>
+            <div class="pending enter" data-cat="insurance" style="--i:7">
+              <span class="logo" style="background:var(--card)"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clock"/></svg></span>
+              <span class="grow col" style="gap:4px"><span class="t-b">بیمه مسئولیت مدنی · در حال بررسی</span><span class="t-s">قراردادی که فرستادی رسید. تیم تعرفه تا ۲ روز کاری آن را به فهرستت اضافه می‌کند.</span></span>
+            </div>
+            <div class="card" id="contracts-empty" hidden style="text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center">
+              <span class="t-b">هنوز قرارداد بازنشستگی نداری</span>
+              <span class="t-m">مشاورت رایگان کمک می‌کند بهترین طرح را برای شرایط خودت پیدا کنی.</span>
+              <button type="button" class="btn sm press" data-chat="درباره بازنشستگی مشاوره رایگان می‌خواهم.">درخواست مشاوره رایگان</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- جزئیات قرارداد -->
+      <section class="view" data-view="detail" aria-label="جزئیات قرارداد برق" hidden>
+        <div class="scroll" style="padding-top:16px">
+          <div class="back enter" style="--i:0">
+            <a href="#contracts" class="icon-btn press" aria-label="بازگشت به قراردادها"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-back"/></svg></a>
+            <span>قراردادها</span>
+          </div>
+
+          <div class="enter" style="--i:1; display:flex; align-items:center; gap:14px">
+            <span style="width:56px; height:56px; border-radius:16px; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:var(--brand); direction:ltr">VF</span>
+            <span class="grow col"><span class="t-m">برق</span><h1 style="margin:0; font-size:22px; font-weight:800">Vattenfall</h1><span class="t-m ltr" style="text-align:right">ÖkoStrom24 Pur</span></span>
+            <span class="col" style="align-items:flex-end"><span style="font-size:24px; font-weight:800; direction:ltr">€ 58</span><span class="t-s">در ماه</span></span>
+          </div>
+
+          <div class="sun-card enter" style="--i:2">
+            <span style="font-size:16px; font-weight:800; line-height:1.7">تا ۴ نوامبر می‌توانی فسخ کنی (۱۲ روز مانده)</span>
+            <span style="font-size:13px; line-height:1.9; color:var(--ink-2)">یک تعرفه ارزان‌تر با قیمت ثابت پیدا کرده‌ایم. اگر بخواهی، فسخ و ثبت قرارداد جدید را ما انجام می‌دهیم. رایگان.</span>
+            <a href="#offers" class="btn block press">مقایسه پیشنهادها</a>
+          </div>
+
+          <section class="card enter" aria-labelledby="facts" style="--i:3; display:flex; flex-direction:column; gap:12px">
+            <h2 id="facts" class="t-h2">مشخصات قرارداد</h2>
+            <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px">
+              <div class="fact"><span>مصرف سالانه</span><b class="ltr" style="text-align:right">2,400 kWh</b></div>
+              <div class="fact"><span>شروع قرارداد</span><b>۳ دسامبر ۲۰۲۴</b></div>
+              <div class="fact"><span>حداقل مدت</span><b>تا ۲ دسامبر ۲۰۲۶</b></div>
+              <div class="fact"><span>مهلت فسخ</span><b>۴ هفته قبل از پایان</b></div>
+              <div class="fact" style="grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between">
+                <span class="col" style="gap:2px"><span>شماره قرارداد</span><b class="ltr" style="text-align:right">4410 2287 31</b></span>
+                <button type="button" class="icon-btn press" data-copy="4410228731" data-done="شماره قرارداد کپی شد" aria-label="کپی شماره قرارداد"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-copy"/></svg></button>
+              </div>
+            </div>
+            <p class="t-s" style="margin:0">پایان دوره به معنی پایان خودکار قرارداد نیست. شرایط تمدید و فسخ را مشاورت برایت بررسی می‌کند.</p>
+          </section>
+
+          <section class="card enter" aria-labelledby="cdocs" style="--i:4; display:flex; flex-direction:column; gap:2px">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <h2 id="cdocs" class="t-h2">مدارک این قرارداد</h2>
+              <a href="#documents" style="font-size:13px; font-weight:700; text-decoration:none; padding:10px 0">همه مدارک</a>
+            </div>
+            <a href="#documents" class="row press"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b">قرارداد Vattenfall</span><span class="t-s">PDF، ۳ دسامبر ۲۰۲۴</span></span></a>
+            <a href="#documents" class="row press"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b">صورت‌حساب سالانه ۲۰۲۵</span><span class="t-s">PDF، ۱۴ ژانویه ۲۰۲۶</span></span></a>
+          </section>
+
+          <a href="#chat/vf" class="card row press enter" style="--i:5">
+            <span class="avatar">س</span>
+            <span class="grow col" style="gap:2px"><span style="font-size:14px; font-weight:800">گفتگو و درخواست‌های این قرارداد</span><span class="t-s">۲ پیام تازه از سارا، ۱ درخواست باز</span></span>
+            <svg width="18" height="18" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-fwd"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- پیشنهادها -->
+      <section class="view" data-view="offers" aria-label="پیشنهادها" hidden>
+        <div class="scroll">
+          <div class="enter" style="--i:0; display:flex; flex-direction:column; gap:6px">
+            <h1 class="t-h1">پیشنهادها</h1>
+            <span class="t-m" style="display:flex; align-items:center; gap:6px"><svg width="16" height="16" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield-ok"/></svg>رایگان برای تو. کمترین قیمت بر اساس شرایط خودت.</span>
+          </div>
+
+          <div class="seg-wrap enter" role="tablist" aria-label="دسته خدمت" style="--i:1" id="offer-tabs">
+            <button type="button" role="tab" class="seg" id="tab-energy" aria-controls="panel-energy" aria-selected="true">انرژی</button>
+            <button type="button" role="tab" class="seg" id="tab-insurance" aria-controls="panel-insurance" aria-selected="false" tabindex="-1">بیمه</button>
+            <button type="button" role="tab" class="seg" id="tab-retirement" aria-controls="panel-retirement" aria-selected="false" tabindex="-1">بازنشستگی</button>
+          </div>
+
+          <div id="panel-energy" role="tabpanel" aria-labelledby="tab-energy" style="display:flex; flex-direction:column; gap:16px">
+            <div class="chips" role="group" aria-label="نوع انرژی" id="energy-chips">
+              <button type="button" class="chip press" aria-pressed="true" data-energy="power">برق</button>
+              <button type="button" class="chip press" aria-pressed="false" data-energy="gas">گاز</button>
+            </div>
+
+            <div id="energy-power" style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+                <span class="t-m">برای <b class="ltr" style="color:var(--ink)">2,400 kWh</b> در سال، <span class="ltr">80331 München</span></span>
+                <button type="button" class="press" data-toast="در اپ واقعی، مصرف و کد پستی را این‌جا تغییر می‌دهی" style="min-height:44px; padding:0 8px; border:0; background:none; color:var(--brand); font-size:13px; font-weight:700; cursor:pointer">تغییر</button>
+              </div>
+              <div class="current"><span class="grow col"><span class="t-s">قرارداد فعلی تو</span><span class="t-b">Vattenfall · ÖkoStrom24 Pur</span></span><span class="price">€ 58 / ماه</span></div>
+
+              <article class="card offer best">
+                <span class="badge">بهترین گزینه برای تو</span>
+                <div class="row" style="min-height:0"><span class="logo">OE</span><span class="grow col"><span style="font-size:16px; font-weight:800">Octopus Energy</span><span class="t-s ltr" style="text-align:right">12M Fix</span></span><span class="col" style="align-items:flex-end"><span style="font-size:20px; font-weight:800; direction:ltr">€ 46.20</span><span class="t-s">در ماه</span></span></div>
+                <div class="saving">حدود ۱۴۲ یورو کمتر در سال</div>
+                <div class="col" style="gap:4px">
+                  <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>قیمت ثابت در تمام مدت قرارداد</span>
+                  <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>برق سبز، ۱۲ ماه حداقل مدت</span>
+                  <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>فسخ قرارداد فعلی را ما انجام می‌دهیم</span>
+                </div>
+                <button type="button" class="btn block glow press" data-thread="vf" data-chat="می‌خواهم با Octopus Energy · 12M Fix ادامه بدهم.">ادامه با بهترین گزینه</button>
+              </article>
+
+              <article class="card offer">
+                <div class="row" style="min-height:0"><span class="logo">EnBW</span><span class="grow col"><span style="font-size:15px; font-weight:800">EnBW</span><span class="t-s ltr" style="text-align:right">Strom Komfort Fix</span></span><span class="col" style="align-items:flex-end"><span style="font-size:17px; font-weight:800; direction:ltr">€ 48.90</span><span class="t-s">در ماه</span></span></div>
+                <span style="font-size:13px; font-weight:700">حدود ۱۰۹ یورو کمتر در سال</span>
+                <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>قیمت ثابت در تمام مدت قرارداد</span>
+                <button type="button" class="btn ghost block press" data-thread="vf" data-chat="درباره تعرفه EnBW · Strom Komfort Fix سوال دارم.">جزئیات این تعرفه</button>
+              </article>
+
+              <article class="card offer">
+                <div class="row" style="min-height:0"><span class="logo">SWM</span><span class="grow col"><span style="font-size:15px; font-weight:800">Stadtwerke München</span><span class="t-s ltr" style="text-align:right">M-Ökostrom Fix</span></span><span class="col" style="align-items:flex-end"><span style="font-size:17px; font-weight:800; direction:ltr">€ 51.40</span><span class="t-s">در ماه</span></span></div>
+                <span style="font-size:13px; font-weight:700">حدود ۷۹ یورو کمتر در سال</span>
+                <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>قیمت ثابت در تمام مدت قرارداد</span>
+                <button type="button" class="btn ghost block press" data-thread="vf" data-chat="درباره تعرفه Stadtwerke München · M-Ökostrom Fix سوال دارم.">جزئیات این تعرفه</button>
+              </article>
+            </div>
+
+            <div id="energy-gas" style="display:flex; flex-direction:column; gap:16px" hidden>
+              <span class="t-m">برای <b class="ltr" style="color:var(--ink)">9,000 kWh</b> در سال، <span class="ltr">80331 München</span></span>
+              <div class="current"><span class="grow col"><span class="t-s">قرارداد فعلی تو</span><span class="t-b">SWM · M-Erdgas Natur</span></span><span class="price">€ 41 / ماه</span></div>
+              <article class="card offer best">
+                <span class="badge">بهترین گزینه برای تو</span>
+                <div class="row" style="min-height:0"><span class="logo">OE</span><span class="grow col"><span style="font-size:16px; font-weight:800">Octopus Energy</span><span class="t-s ltr" style="text-align:right">Gas 12M Fix</span></span><span class="col" style="align-items:flex-end"><span style="font-size:20px; font-weight:800; direction:ltr">€ 36.80</span><span class="t-s">در ماه</span></span></div>
+                <div class="saving">حدود ۵۰ یورو کمتر در سال</div>
+                <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>قیمت ثابت در تمام مدت قرارداد</span>
+                <button type="button" class="btn block glow press" data-thread="swm" data-chat="می‌خواهم گازم را به Octopus Energy · Gas 12M Fix ببرم.">ادامه با بهترین گزینه</button>
+              </article>
+              <article class="card offer">
+                <div class="row" style="min-height:0"><span class="logo">E.ON</span><span class="grow col"><span style="font-size:15px; font-weight:800">E.ON</span><span class="t-s ltr" style="text-align:right">Erdgas Fix 24</span></span><span class="col" style="align-items:flex-end"><span style="font-size:17px; font-weight:800; direction:ltr">€ 38.20</span><span class="t-s">در ماه</span></span></div>
+                <span style="font-size:13px; font-weight:700">حدود ۳۴ یورو کمتر در سال</span>
+                <span class="perk"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>قیمت ثابت در تمام مدت قرارداد</span>
+                <button type="button" class="btn ghost block press" data-thread="swm" data-chat="درباره تعرفه E.ON · Erdgas Fix 24 سوال دارم.">جزئیات این تعرفه</button>
+              </article>
+            </div>
+          </div>
+
+          <div id="panel-insurance" role="tabpanel" aria-labelledby="tab-insurance" hidden style="display:flex; flex-direction:column; gap:12px">
+            <span class="t-m">بیمه مناسب شرایط خودت را انتخاب کن. مشاورت مقایسه می‌کند و کمترین قیمت را پیدا می‌کند.</span>
+            <div class="tiles">
+              <button type="button" class="tile press" data-chat="برای بیمه دندان مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg></span><b>بیمه دندان</b><small>پوشش ۱۰۰٪ ایمپلنت و جرم‌گیری، بدون دوره انتظار طولانی.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="برای بیمه تکمیلی درمان مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-heart"/></svg></span><b>بیمه تکمیلی درمان</b><small>پوشش خدماتی که بیمه پایه دولتی کامل پوشش نمی‌دهد.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="برای بیمه حقوقی و وکیل مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-scale"/></svg></span><b>بیمه حقوقی و وکیل</b><small>پوشش هزینه وکیل و دادرسی در دعاوی حقوقی.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="برای بیمه مسئولیت مدنی مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield-ok"/></svg></span><b>بیمه مسئولیت مدنی</b><small>جبران خسارت‌هایی که ناخواسته به دیگران وارد می‌کنی.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="برای بیمه وسایل منزل مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-house"/></svg></span><b>بیمه وسایل منزل</b><small>پوشش سرقت و خسارت برای اثاثیه و وسایل خانه.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="برای بیمه خودرو مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-car"/></svg></span><b>بیمه خودرو</b><small>بیمه شخص ثالث، بدنه و سرقت برای خودروی تو.</small><em>مشاوره رایگان</em></button>
+            </div>
+          </div>
+
+          <div id="panel-retirement" role="tabpanel" aria-labelledby="tab-retirement" hidden style="display:flex; flex-direction:column; gap:12px">
+            <span class="t-m">برای سال‌های بعد از کار، از امروز برنامه بریز. مشاوره رایگان است.</span>
+            <div class="tiles">
+              <button type="button" class="tile press" data-chat="درباره بازنشستگی خصوصی مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-grow"/></svg></span><b>بازنشستگی خصوصی</b><small>پس‌انداز با پرداخت ماهانه مادام‌العمر بعد از بازنشستگی.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="درباره بازنشستگی ریشتر مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-grow"/></svg></span><b>بازنشستگی ریشتر</b><small>با یارانه مستقیم دولت و مزایای مالیاتی، مخصوص کارمندان.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="درباره بازنشستگی روروپ مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-grow"/></svg></span><b>بازنشستگی روروپ</b><small>با مزایای مالیاتی، مناسب فریلنسرها و صاحبان مشاغل آزاد.</small><em>مشاوره رایگان</em></button>
+              <button type="button" class="tile press" data-chat="درباره بازنشستگی شغلی (bAV) مشاوره رایگان می‌خواهم."><span class="ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-grow"/></svg></span><b>بازنشستگی شغلی <span class="ltr">(bAV)</span></b><small>از طریق کارفرما، اغلب با مشارکت مالی کارفرما.</small><em>مشاوره رایگان</em></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- مدارک -->
+      <section class="view" data-view="documents" aria-label="مدارک" hidden>
+        <div class="scroll">
+          <div class="enter" style="--i:0; display:flex; align-items:center; justify-content:space-between">
+            <h1 class="t-h1">مدارک</h1>
+            <button type="button" class="btn sm press" data-sheet="sheet-upload"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>آپلود مدرک</button>
+          </div>
+          <span class="t-m enter" style="--i:1; display:flex; align-items:center; gap:8px"><svg width="16" height="16" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-lock"/></svg>مدارکت را فقط خودت و مشاورت در تعرفه می‌بینید.</span>
+
+          <div id="uploads" style="display:flex; flex-direction:column; gap:12px"></div>
+
+          <section class="card enter" aria-labelledby="g0" style="--i:2; border:2px solid var(--sun); display:flex; flex-direction:column">
+            <h2 id="g0" class="group-h" style="color:var(--sun-ink)">از طرف تعرفه</h2>
+            <button type="button" class="row press" data-toast="در اپ واقعی، فایل PDF این‌جا باز می‌شود" style="border:0; background:none; padding:0; text-align:right; cursor:pointer">
+              <span class="doc-ic" style="background:var(--sun-soft); color:var(--ink)"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file-ok"/></svg></span>
+              <span class="grow col"><span class="t-b">تأییدیه فسخ بیمه خودرو</span><span class="t-s">PDF، دیروز</span></span>
+              <span style="min-height:24px; padding:0 10px; border-radius:999px; background:var(--sun); font-size:11px; font-weight:800; display:inline-flex; align-items:center">جدید</span>
+            </button>
+          </section>
+
+          <section class="card enter" aria-labelledby="g1" style="--i:3; display:flex; flex-direction:column">
+            <h2 id="g1" class="group-h">برق · Vattenfall</h2>
+            <button type="button" class="row press" data-toast="در اپ واقعی، فایل PDF این‌جا باز می‌شود" style="border:0; background:none; padding:0; text-align:right; cursor:pointer"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b">قرارداد Vattenfall</span><span class="t-s">PDF، ۳ دسامبر ۲۰۲۴</span></span></button>
+            <button type="button" class="row press" data-toast="در اپ واقعی، فایل PDF این‌جا باز می‌شود" style="border:0; background:none; padding:0; text-align:right; cursor:pointer"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b">صورت‌حساب سالانه ۲۰۲۵</span><span class="t-s">PDF، ۱۴ ژانویه ۲۰۲۶</span></span></button>
+          </section>
+
+          <section class="card enter" aria-labelledby="g2" style="--i:4; display:flex; flex-direction:column">
+            <h2 id="g2" class="group-h">بیمه دندان · Barmenia</h2>
+            <button type="button" class="row press" data-toast="در اپ واقعی، فایل PDF این‌جا باز می‌شود" style="border:0; background:none; padding:0; text-align:right; cursor:pointer"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b">بیمه‌نامه Barmenia</span><span class="t-s">PDF، ۱۸ فوریه ۲۰۲۵</span></span></button>
+          </section>
+
+          <section class="card enter" aria-labelledby="g3" style="--i:5; display:flex; flex-direction:column">
+            <h2 id="g3" class="group-h">مدارک شخصی</h2>
+            <div id="personal-docs" class="col">
+              <button type="button" class="row press" data-toast="در اپ واقعی، فایل PDF این‌جا باز می‌شود" style="border:0; background:none; padding:0; text-align:right; cursor:pointer"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span><span class="grow col"><span class="t-b ltr" style="text-align:right">Meldebescheinigung</span><span class="t-s">PDF، ۲ مه ۲۰۲۵</span></span></button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- پشتیبانی: انتخاب قرارداد -->
+      <section class="view" data-view="support" aria-label="پشتیبانی" hidden>
+        <div class="scroll">
+          <div class="enter col" style="--i:0; gap:6px">
+            <h1 class="t-h1">پشتیبانی</h1>
+            <span class="t-m">درباره کدام قرارداد سوال داری؟ هر قرارداد گفتگو و درخواست‌های خودش را دارد.</span>
+          </div>
+          <div id="thread-list" class="enter" style="--i:1; display:flex; flex-direction:column; gap:12px"></div>
+          <p class="t-s" style="margin:0; text-align:center">مشاورها دوشنبه تا جمعه، ۹ تا ۱۸ جواب می‌دهند.</p>
+        </div>
+      </section>
+
+      <!-- گفتگوی یک قرارداد -->
+      <section class="view" data-view="chat" aria-labelledby="c-title" hidden>
+        <header class="chat-head" style="padding:12px 16px; gap:10px">
+          <a href="#support" class="icon-btn flat press" aria-label="بازگشت به همه گفتگوها"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-back"/></svg></a>
+          <span class="logo" id="c-logo"></span>
+          <span class="grow col" style="min-width:0"><span id="c-title" style="font-size:15px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"></span><span class="t-s" id="c-sub"></span></span>
+          <button type="button" class="icon-btn press" style="color:var(--wa)" id="c-wa" data-toast="در اپ واقعی، واتس‌اپ مشاور باز می‌شود"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-wa"/></svg></button>
+        </header>
+        <div class="c-tabs">
+          <div class="seg-wrap" role="tablist" aria-label="بخش‌های این قرارداد" id="c-tabs">
+            <button type="button" role="tab" class="seg" id="ct-chat" aria-controls="c-chat" aria-selected="true">گفتگو</button>
+            <button type="button" role="tab" class="seg" id="ct-req" aria-controls="c-req" aria-selected="false" tabindex="-1">درخواست‌ها <span id="req-count"></span></button>
+          </div>
+        </div>
+        <div class="c-panel" id="c-chat" role="tabpanel" aria-labelledby="ct-chat">
+          <div class="log" id="log" role="log" aria-live="polite"></div>
+          <form class="composer" id="composer">
+            <button type="button" class="icon-btn flat press" aria-label="پیوست فایل یا عکس" data-sheet="sheet-upload"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clip"/></svg></button>
+            <input type="text" id="msg-input" aria-label="پیام درباره این قرارداد" placeholder="درباره این قرارداد بنویس" autocomplete="off">
+            <button type="submit" class="send press" aria-label="ارسال"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform:scaleX(-1)"><use href="#i-send"/></svg></button>
+          </form>
+        </div>
+        <div class="scroll" id="c-req" role="tabpanel" aria-labelledby="ct-req" hidden>
+          <button type="button" class="btn block press" id="new-request"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-plus"/></svg>درخواست جدید</button>
+          <div id="ticket-list" style="display:flex; flex-direction:column; gap:12px"></div>
+        </div>
+      </section>
+
+      <!-- پروفایل -->
+      <section class="view" data-view="profile" aria-label="پروفایل و معرفی دوستان" hidden>
+        <div class="scroll" style="padding-top:16px">
+          <div class="back enter" style="--i:0">
+            <a href="#home" class="icon-btn press" aria-label="بازگشت به خانه"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-back"/></svg></a>
+            <span>خانه</span>
+          </div>
+
+          <div class="enter" style="--i:1; display:flex; align-items:center; gap:14px">
+            <span style="width:64px; height:64px; border-radius:50%; background:var(--brand); color:var(--card); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; flex-shrink:0">م</span>
+            <span class="grow col" style="gap:2px">
+              <h1 style="margin:0; font-size:22px; font-weight:800">مریم رضایی</h1>
+              <span class="t-m ltr" style="text-align:right">maryam.rezaei@example.de</span>
+            </span>
+            <button type="button" class="press" data-toast="در اپ واقعی، نام و ایمیل این‌جا ویرایش می‌شود" style="min-height:44px; border:0; background:none; color:var(--brand); font-size:13px; font-weight:700; cursor:pointer">ویرایش</button>
+          </div>
+
+          <section class="sun-card enter" aria-labelledby="ref" style="--i:2; gap:14px">
+            <div style="display:flex; align-items:center; gap:14px">
+              <span style="font-size:34px; font-weight:800; direction:ltr; line-height:1.1">€10</span>
+              <h2 id="ref" class="t-h2" style="line-height:1.7">برای هر دوستی که معرفی کنی، کارت هدیه</h2>
+            </div>
+            <div class="code-box">
+              <span class="grow col" style="padding-right:8px"><span class="t-s">کد معرفی تو</span><span style="font-size:18px; font-weight:800; letter-spacing:.06em; direction:ltr; text-align:right">TRF-7QK4-M9XD</span></span>
+              <button type="button" class="icon-btn press" data-copy="TRF-7QK4-M9XD" data-done="کد معرفی کپی شد" aria-label="کپی کد معرفی"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-copy"/></svg></button>
+            </div>
+            <button type="button" class="btn block press" id="share"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-share"/></svg>فرستادن لینک به دوستان</button>
+            <p style="margin:0; font-size:12px; line-height:1.9; color:var(--ink-2)">کارت هدیه وقتی برایت فرستاده می‌شود که تو یک قرارداد فعال با تعرفه داشته باشی، دوستت قراردادش را امضا کند و تا ۱۴ روز فسخ نکند.</p>
+          </section>
+
+          <section class="card enter" aria-labelledby="friends" style="--i:3; display:flex; flex-direction:column; gap:2px">
+            <h2 id="friends" class="t-h2" style="margin-bottom:4px">دوستانی که معرفی کردی</h2>
+            <div class="row"><span class="av">ن</span><span class="grow col"><span class="t-b">نگار کامرانی</span><span class="t-s">کارت هدیه ۱۰ یورویی برایت فرستاده شد</span></span><svg width="20" height="20" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="انجام شد"><use href="#i-check"/></svg></div>
+            <div class="row"><span class="av">ع</span><span class="grow col"><span class="t-b">علی مقدم</span><span class="t-s">قرارداد امضا شد، ۹ روز تا کارت هدیه</span></span></div>
+            <div class="row"><span class="av">ر</span><span class="grow col"><span class="t-b">رضا توکلی</span><span class="t-s">لینک را باز کرده، هنوز قراردادی ندارد</span></span></div>
+          </section>
+
+          <section class="card enter" aria-label="تنظیمات" style="--i:4; padding-top:4px; padding-bottom:4px">
+            <button type="button" class="set press" data-toast="فارسی، Deutsch و Русский" style="width:100%; border:0; background:none; padding:0; text-align:right"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-globe"/></svg><span class="grow">زبان</span><span class="t-m" style="font-size:14px">فارسی</span></button>
+            <label class="set"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bell"/></svg><span class="grow">اعلان مهلت‌ها و پیشنهادها</span><input type="checkbox" role="switch" class="switch" checked></label>
+            <label class="set"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-lock"/></svg><span class="grow">ورود با Face ID یا اثر انگشت</span><input type="checkbox" role="switch" class="switch" checked></label>
+            <button type="button" class="set press" data-toast="در اپ واقعی، داده‌هایت را این‌جا می‌بینی و دانلود می‌کنی" style="width:100%; border:0; background:none; padding:0; text-align:right"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg><span class="grow">حریم خصوصی و داده‌های من</span></button>
+            <a href="#login" class="set press" id="logout"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-logout"/></svg><span class="grow">خروج از حساب</span></a>
+          </section>
+
+          <p class="enter" style="--i:5; margin:0; font-size:12px; line-height:1.9; color:var(--muted); text-align:center">همه خدمات تعرفه رایگان است. هیچ هزینه‌ای از تو گرفته نمی‌شود.</p>
+        </div>
+      </section>
+
+      <nav class="tabbar" id="tabbar" aria-label="منوی اصلی" hidden>
+        <a href="#home" class="tab" data-tab="home"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-home"/></svg>خانه</a>
+        <a href="#contracts" class="tab" data-tab="contracts"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-contracts"/></svg>قراردادها</a>
+        <a href="#offers" class="tab" data-tab="offers"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-offers"/></svg>پیشنهادها</a>
+        <a href="#documents" class="tab" data-tab="documents"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-folder"/></svg>مدارک</a>
+        <a href="#support" class="tab" data-tab="support"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-chat"/></svg><span class="tab-badge" id="tab-badge" hidden></span>پشتیبانی</a>
+      </nav>
+
+      <!-- sheets -->
+      <div class="backdrop" id="backdrop"></div>
+
+      <div class="sheet" id="sheet-upload" role="dialog" aria-modal="true" aria-labelledby="sheet-upload-t">
+        <span class="grab" aria-hidden="true"></span>
+        <h2 id="sheet-upload-t" class="t-h2">آپلود مدرک</h2>
+        <span class="t-m">قرارداد، نامه یا صورت‌حساب را بفرست. مشاورت آن را بررسی می‌کند.</span>
+        <button type="button" class="sheet-opt press" data-upload="عکس نامه جدید"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-camera"/></svg></span>عکس گرفتن با دوربین</button>
+        <button type="button" class="sheet-opt press" data-upload="قرارداد بیمه مسئولیت"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg></span>انتخاب فایل یا PDF</button>
+        <button type="button" class="btn ghost block press" data-close>انصراف</button>
+      </div>
+
+      <div class="sheet" id="sheet-notes" role="dialog" aria-modal="true" aria-labelledby="sheet-notes-t">
+        <span class="grab" aria-hidden="true"></span>
+        <h2 id="sheet-notes-t" class="t-h2">اعلان‌ها</h2>
+        <a href="#offers" class="sheet-opt press" data-close><span class="doc-ic" style="background:var(--sun-soft); color:var(--ink)"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clock"/></svg></span><span class="col" style="font-weight:500"><b style="font-size:14px">۱۲ روز تا مهلت فسخ برق</b><span class="t-s">یک تعرفه ارزان‌تر برایت آماده است</span></span></a>
+        <a href="#documents" class="sheet-opt press" data-close><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file-ok"/></svg></span><span class="col" style="font-weight:500"><b style="font-size:14px">تأییدیه فسخ بیمه خودرو رسید</b><span class="t-s">در مدارک، دیروز</span></span></a>
+        <button type="button" class="btn ghost block press" data-close>بستن</button>
+      </div>
+
+      <div class="sheet" id="sheet-request" role="dialog" aria-modal="true" aria-labelledby="rq-t">
+        <span class="grab" aria-hidden="true"></span>
+        <div class="col" style="gap:2px"><h2 id="rq-t" class="t-h2">درخواست جدید</h2><span class="t-m" id="rq-for"></span></div>
+        <fieldset style="border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:8px">
+          <legend class="t-b" style="padding:0; margin-bottom:8px">موضوع</legend>
+          <div class="chips" id="rq-topics"></div>
+        </fieldset>
+        <label for="rq-text" class="t-b">توضیح کوتاه <span class="t-s">(اختیاری)</span></label>
+        <textarea id="rq-text" class="input" rows="3" placeholder="مثلاً: از ماه بعد به آدرس جدید می‌روم"></textarea>
+        <span class="err" id="rq-err" hidden>یک موضوع انتخاب کن.</span>
+        <button type="button" class="btn block press" id="rq-send">ثبت درخواست</button>
+        <button type="button" class="btn ghost block press" data-close>انصراف</button>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const views = $$('.view');
+  const tabbar = $('#tabbar');
+  const tabOf = { home: 'home', profile: 'home', contracts: 'contracts', detail: 'contracts', offers: 'offers', documents: 'documents', support: 'support', chat: 'support' };
+  const pushed = new Set(['detail', 'profile', 'chat']);
+  let current = null;
+
+  /* ---------- router: #name or #chat/<contract>[/requests] ---------- */
+  function route() { const [name, a, b] = location.hash.slice(1).split('/'); show(name || 'login', a, b); }
+  function show(name, a, b) {
+    if (name === 'chat' && !threads[a]) name = 'support';
+    if (!views.some(v => v.dataset.view === name)) name = 'login';
+    closeSheet(true);
+    views.forEach(v => {
+      const on = v.dataset.view === name;
+      if (!on && v.dataset.view === current) v.classList.add('seen');
+      v.hidden = !on;
+      if (on) {
+        v.classList.remove('pushed');
+        if (pushed.has(name) && current && current !== name) { void v.offsetWidth; v.classList.add('pushed'); }
+        const sc = v.querySelector('.scroll'); if (sc) sc.scrollTop = 0;
+      }
+    });
+    tabbar.hidden = name === 'login';
+    $$('.tab').forEach(t => t.dataset.tab === tabOf[name] ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current'));
+    const here = '#' + (location.hash.slice(1) || 'login');
+    $$('#guide-list a').forEach(l => l.setAttribute('aria-current', l.getAttribute('href') === here ? 'true' : 'false'));
+    current = name;
+    if (name === 'support') renderThreads();
+    if (name === 'chat') openThread(a, b === 'requests' ? 'requests' : 'chat');
+  }
+  window.addEventListener('hashchange', route);
+  const go = h => { if (location.hash === '#' + h) route(); else location.hash = h; };
+
+  /* ---------- toast ---------- */
+  const toastEl = $('#toast'); let toastTimer;
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-toast]'); if (t) toast(t.dataset.toast);
+  });
+
+  /* ---------- sheets ---------- */
+  const backdrop = $('#backdrop'); let openSheet = null, opener = null;
+  function showSheet(id, from) {
+    openSheet = $('#' + id); opener = from;
+    openSheet.classList.remove('closing');
+    backdrop.classList.add('open'); openSheet.classList.add('open');
+    setTimeout(() => openSheet && openSheet.querySelector('button, a')?.focus(), 60);
+  }
+  function closeSheet(instant) {
+    if (!openSheet) return;
+    const s = openSheet; openSheet = null;
+    if (!instant) s.classList.add('closing');
+    s.classList.remove('open'); backdrop.classList.remove('open');
+    if (!instant && opener) opener.focus();
+  }
+  document.addEventListener('click', e => {
+    const o = e.target.closest('[data-sheet]'); if (o) { showSheet(o.dataset.sheet, o); return; }
+    if (e.target.closest('[data-close]')) closeSheet();
+  });
+  backdrop.addEventListener('click', () => closeSheet());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+  /* ---------- login ---------- */
+  const fEmail = $('#f-email'), fCode = $('#f-code');
+  fEmail.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = $('#email').value.trim();
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+    $('#email-err').hidden = ok; $('#email-field').dataset.invalid = String(!ok);
+    $('#email').setAttribute('aria-invalid', String(!ok));
+    if (!ok) { $('#email').focus(); return; }
+    $('#sent-to').textContent = v;
+    fEmail.hidden = true; fCode.hidden = false; $('#code').value = ''; $('#code').focus();
+  });
+  $('#code').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^0-9۰-۹]/g, '').slice(0, 6); });
+  fCode.addEventListener('submit', e => {
+    e.preventDefault();
+    const ok = $('#code').value.length === 6;
+    $('#code-err').hidden = ok; $('#code-field').dataset.invalid = String(!ok);
+    $('#code').setAttribute('aria-invalid', String(!ok));
+    if (!ok) { $('#code').focus(); return; }
+    go('home');
+  });
+  $('#change-email').addEventListener('click', () => { fCode.hidden = true; fEmail.hidden = false; $('#email').focus(); });
+  $('#resend').addEventListener('click', () => toast('کد تازه به ایمیلت فرستاده شد'));
+  $('#logout').addEventListener('click', () => { fCode.hidden = true; fEmail.hidden = false; });
+  $$('#langs .lang').forEach(b => b.addEventListener('click', () => { if (b.dataset.soon) toast(b.dataset.soon); }));
+
+  /* ---------- contracts filter ---------- */
+  $$('#contract-filter .chip').forEach(chip => chip.addEventListener('click', () => {
+    $$('#contract-filter .chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    const f = chip.dataset.filter; let shown = 0;
+    $$('#contract-list [data-cat]').forEach(card => { const on = f === 'all' || card.dataset.cat === f; card.hidden = !on; if (on) shown++; });
+    $('#contracts-empty').hidden = shown > 0;
+  }));
+
+  /* ---------- offers tabs ---------- */
+  const tabs = $$('#offer-tabs [role="tab"]');
+  function selectTab(tab) {
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
+      $('#' + t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => selectTab(t));
+    t.addEventListener('keydown', e => {
+      const d = e.key === 'ArrowLeft' ? 1 : e.key === 'ArrowRight' ? -1 : 0; // RTL
+      if (!d) return; e.preventDefault();
+      const n = tabs[(i + d + tabs.length) % tabs.length]; selectTab(n); n.focus();
+    });
+  });
+  $$('#energy-chips .chip').forEach(chip => chip.addEventListener('click', () => {
+    $$('#energy-chips .chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    $('#energy-power').hidden = chip.dataset.energy !== 'power';
+    $('#energy-gas').hidden = chip.dataset.energy !== 'gas';
+  }));
+
+  /* ---------- conversations: one per contract, each with its own requests (tickets) ---------- */
+  const icon = id => `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#${id}"/></svg>`;
+  const fa = n => Number(n).toLocaleString('fa-IR');
+  const now = () => new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+  const STEPS = ['ثبت شد', 'در حال انجام', 'انجام شد'];
+  const TOPICS = {
+    energy: ['فسخ یا تغییر تعرفه', 'سوال درباره صورت‌حساب', 'اسباب‌کشی و تغییر آدرس', 'سایر'],
+    insurance: ['ثبت خسارت یا هزینه درمان', 'سوال درباره پوشش', 'فسخ یا تغییر بیمه', 'سایر'],
+    general: ['مشاوره برای خدمت جدید', 'سوال کلی', 'سایر']
+  };
+  const threads = {
+    vf: { kind: 'energy', logo: 'VF', title: 'برق · Vattenfall', sub: 'ÖkoStrom24 Pur · € 58 / ماه', advisor: 'سارا رحیمی', flag: 'قابل فسخ تا ۴ نوامبر', unread: 2, quick: true,
+      msgs: [
+        { me: 1, att: 'نامه Vattenfall، عکس', text: 'سلام، این نامه از Vattenfall آمده. قیمت برقم بالا می‌رود؟', t: '۱۰:۱۲' },
+        { sys: 1, text: 'درخواست T-20481 باز شد: افزایش قیمت و تغییر تعرفه' },
+        { text: 'سلام مریم جان. نامه را دیدم. بله، از ژانویه قیمت بالا می‌رود. خبر خوب این است که تا ۴ نوامبر می‌توانی قرارداد را فسخ کنی.', t: '۱۰:۲۴' },
+        { offer: 1 },
+        { text: 'اگر موافقی، فسخ و ثبت قرارداد جدید را خودمان انجام می‌دهیم. برای تو هیچ هزینه‌ای ندارد.', t: '۱۰:۲۶' }],
+      tickets: [
+        { id: 'T-20481', title: 'افزایش قیمت و تغییر تعرفه', step: 1, when: 'امروز', note: 'منتظر تأیید تو برای تعرفه Octopus Energy' },
+        { id: 'T-19730', title: 'ارسال صورت‌حساب سالانه ۲۰۲۵', step: 2, when: '۱۴ ژانویه' }] },
+    swm: { kind: 'energy', logo: 'SWM', title: 'گاز · Stadtwerke München', sub: 'M-Erdgas Natur · € 41 / ماه', advisor: 'سارا رحیمی', unread: 0,
+      msgs: [{ text: 'سلام مریم جان. این گفتگو مخصوص قرارداد گاز توست. هر سوالی درباره آن داری همین‌جا بپرس.', t: '۲ اکتبر' }],
+      tickets: [] },
+    ba: { kind: 'insurance', logo: 'BA', title: 'بیمه دندان · Barmenia', sub: 'Mehr Zahn 100 · € 24 / ماه', advisor: 'امید کریمی', unread: 1,
+      msgs: [
+        { me: 1, att: 'فاکتور جرم‌گیری، PDF', text: 'فاکتور جرم‌گیری را فرستادم.', t: 'دیروز' },
+        { sys: 1, text: 'درخواست T-20277 باز شد: بازپرداخت هزینه درمان' },
+        { text: 'فاکتور را برای Barmenia فرستادم. معمولاً تا دو هفته جواب می‌دهند و همین‌جا خبرت می‌کنم.', t: 'دیروز' }],
+      tickets: [{ id: 'T-20277', title: 'بازپرداخت هزینه درمان', step: 1, when: 'دیروز', note: 'منتظر پاسخ Barmenia' }] },
+    ar: { kind: 'insurance', logo: 'AR', title: 'بیمه حقوقی و وکیل · ARAG', sub: 'Aktiv-Rechtsschutz · € 19 / ماه', advisor: 'امید کریمی', unread: 0, msgs: [], tickets: [] },
+    general: { kind: 'general', icon: 'i-chat', title: 'سوال کلی یا خدمت جدید', sub: 'مشاوره رایگان برای بیمه، انرژی و بازنشستگی', advisor: 'سارا رحیمی', unread: 0,
+      msgs: [{ text: 'سلام مریم جان. برای سوال‌هایی که به قرارداد خاصی مربوط نیست، یا اگر خدمت جدیدی می‌خواهی، همین‌جا بنویس.', t: '۲ اکتبر' }],
+      tickets: [] }
+  };
+  let active = null, typingIn = null, ticketSeq = 20502;
+  const log = $('#log');
+  const scrollLog = () => requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
+  const openCount = th => th.tickets.filter(t => t.step < 2).length;
+
+  function updateBadge() {
+    const n = Object.values(threads).reduce((s, th) => s + th.unread, 0);
+    const b = $('#tab-badge'); b.hidden = !n; b.textContent = fa(n);
+    b.closest('.tab').setAttribute('aria-label', n ? 'پشتیبانی، ' + fa(n) + ' پیام تازه' : 'پشتیبانی');
+  }
+
+  function renderThreads() {
+    const list = $('#thread-list'); list.innerHTML = '';
+    Object.entries(threads).forEach(([id, th]) => {
+      if (id === 'general') {
+        const h = document.createElement('h2'); h.className = 't-h2'; h.style.marginTop = '8px'; h.textContent = 'موضوع دیگر'; list.appendChild(h);
+      }
+      const last = [...th.msgs].reverse().find(m => m.text && !m.sys);
+      const open = openCount(th);
+      const a = document.createElement('a');
+      a.href = '#chat/' + id; a.className = 'card thread press' + (th.flag ? ' flagged' : '');
+      a.innerHTML = `<span class="logo">${th.icon ? icon(th.icon) : ''}</span>
+        <span class="grow col" style="gap:3px; min-width:0">
+          <span class="th-top"><span class="th-title"></span>${last ? '<span class="t-s th-time"></span>' : ''}</span>
+          <span class="t-s th-sub"></span>
+          <span class="th-prev"></span>
+          <span class="th-tags">${th.flag ? '<span class="pill th-flag"></span>' : ''}${open ? `<span class="tag">${fa(open)} درخواست باز</span>` : ''}</span>
+        </span>
+        ${th.unread ? `<span class="unread" aria-label="${fa(th.unread)} پیام تازه">${fa(th.unread)}</span>` : ''}`;
+      if (!th.icon) a.querySelector('.logo').textContent = th.logo;
+      a.querySelector('.th-title').textContent = th.title;
+      const sub = a.querySelector('.th-sub'); sub.textContent = th.sub;
+      if (id !== 'general') { sub.style.direction = 'ltr'; sub.style.textAlign = 'right'; }
+      if (last) a.querySelector('.th-time').textContent = last.t;
+      a.querySelector('.th-prev').textContent = last ? (last.me ? 'تو: ' : '') + last.text : 'هنوز گفتگویی نیست. سوالت را بنویس.';
+      if (th.flag) a.querySelector('.th-flag').textContent = th.flag;
+      list.appendChild(a);
+    });
+    updateBadge();
+  }
+
+  function openThread(id, tab) {
+    active = id; const th = threads[id];
+    const lg = $('#c-logo'); if (th.icon) lg.innerHTML = icon(th.icon); else lg.textContent = th.logo;
+    $('#c-title').textContent = th.title;
+    $('#c-sub').textContent = (id === 'general' ? 'مشاور تو: ' : 'مشاور این قرارداد: ') + th.advisor;
+    $('#c-wa').setAttribute('aria-label', 'پیام به واتس‌اپ ' + th.advisor);
+    th.unread = 0; updateBadge();
+    renderLog(); renderTickets(); selectThreadTab(tab);
+  }
+
+  function selectThreadTab(tab) {
+    const chat = tab !== 'requests';
+    $('#ct-chat').setAttribute('aria-selected', String(chat)); $('#ct-chat').tabIndex = chat ? 0 : -1;
+    $('#ct-req').setAttribute('aria-selected', String(!chat)); $('#ct-req').tabIndex = chat ? -1 : 0;
+    $('#c-chat').hidden = !chat; $('#c-req').hidden = chat;
+    if (chat) scrollLog(); else $('#c-req').scrollTop = 0;
+  }
+  $('#ct-chat').addEventListener('click', () => selectThreadTab('chat'));
+  $('#ct-req').addEventListener('click', () => selectThreadTab('requests'));
+  $('#c-tabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); const toReq = $('#ct-chat').getAttribute('aria-selected') === 'true';
+    selectThreadTab(toReq ? 'requests' : 'chat'); (toReq ? $('#ct-req') : $('#ct-chat')).focus();
+  });
+
+  function renderLog(animateFrom = Infinity) {
+    const th = threads[active]; log.innerHTML = '';
+    const ctx = document.createElement('span'); ctx.className = 'day';
+    ctx.textContent = active === 'general' ? 'سوال‌های کلی و درخواست خدمت جدید این‌جا می‌ماند.' : 'این گفتگو فقط درباره همین قرارداد است.';
+    log.appendChild(ctx);
+    if (!th.msgs.length) {
+      const e = document.createElement('div'); e.className = 'card'; e.style.cssText = 'text-align:center; display:flex; flex-direction:column; gap:6px; margin-top:12px';
+      e.innerHTML = '<span class="t-b">هنوز پیامی درباره این قرارداد نیست</span><span class="t-m">سوالت را بنویس یا یک درخواست ثبت کن. ' + th.advisor + ' در ساعات کاری جواب می‌دهد.</span>';
+      log.appendChild(e);
+    }
+    th.msgs.forEach((m, i) => {
+      const fresh = i >= animateFrom ? ' new' : '';
+      if (m.sys) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'sys press' + fresh;
+        b.innerHTML = icon('i-file-ok') + '<span></span>'; b.querySelector('span').textContent = m.text;
+        b.addEventListener('click', () => selectThreadTab('requests')); log.appendChild(b); return;
+      }
+      if (m.offer) {
+        const o = document.createElement('a'); o.href = '#offers'; o.className = 'press' + fresh;
+        o.style.cssText = 'align-self:flex-end; max-width:82%; display:flex; flex-direction:column; gap:6px; padding:14px; border-radius:20px; background:var(--card); border:2px solid var(--sun); text-decoration:none; color:var(--ink)';
+        o.innerHTML = '<span style="font-size:12px; font-weight:800; color:var(--sun-ink)">بهترین گزینه برای تو</span><span style="display:flex; align-items:center; justify-content:space-between; gap:12px"><span class="t-b">Octopus Energy · 12M Fix</span><span class="price" style="font-size:14px">€ 46.20</span></span><span class="t-m">حدود ۱۴۲ یورو کمتر در سال، قیمت ثابت</span>';
+        log.appendChild(o); return;
+      }
+      const d = document.createElement('div'); d.className = 'msg ' + (m.me ? 'me' : 'them') + fresh;
+      if (m.att) { const at = document.createElement('span'); at.className = 'att'; at.innerHTML = icon('i-photo'); at.append(m.att); d.appendChild(at); }
+      d.append(m.text); log.appendChild(d);
+      if (m.t) { const t = document.createElement('span'); t.className = 'time'; t.style.alignSelf = m.me ? 'flex-start' : 'flex-end'; t.textContent = m.t; log.appendChild(t); }
+    });
+    if (th.quick) {
+      const q = document.createElement('div'); q.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:4px';
+      [['yes', 'بله، انجام بده'], ['more', 'اول بیشتر توضیح بده']].forEach(([k, label]) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'reply press'; b.textContent = label;
+        b.addEventListener('click', () => quickReply(k, label)); q.appendChild(b);
+      });
+      log.appendChild(q);
+    }
+    if (typingIn === active) {
+      const ty = document.createElement('div'); ty.className = 'msg them'; ty.setAttribute('aria-label', th.advisor + ' در حال نوشتن است');
+      ty.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; log.appendChild(ty);
+    }
+    scrollLog();
+  }
+
+  function renderTickets() {
+    const th = threads[active]; const box = $('#ticket-list'); box.innerHTML = '';
+    const n = openCount(th); $('#req-count').textContent = n ? '(' + fa(n) + ')' : '';
+    if (!th.tickets.length) {
+      box.innerHTML = '<div class="card" style="text-align:center; display:flex; flex-direction:column; gap:6px"><span class="t-b">هنوز درخواستی برای این قرارداد نداری</span><span class="t-m">هر کاری که لازم داری، مثل فسخ، تغییر آدرس یا ثبت خسارت، را این‌جا ثبت کن و وضعیتش را دنبال کن.</span></div>';
+      return;
+    }
+    th.tickets.forEach(tk => {
+      const c = document.createElement('article'); c.className = 'card ticket';
+      c.innerHTML = `<div class="tk-top"><span class="t-b tk-title"></span><span class="status s${tk.step}">${STEPS[tk.step]}</span></div>
+        <span class="t-s"><span class="ltr">${tk.id}</span>، به‌روزرسانی: <span class="tk-when"></span></span>
+        ${tk.note ? '<span class="t-m tk-note"></span>' : ''}
+        ${tk.step < 2 ? `<ol class="steps" aria-label="مراحل درخواست">${STEPS.map((l, i) => `<li class="${i <= tk.step ? 'on' : ''}">${l}</li>`).join('')}</ol>` : ''}`;
+      c.querySelector('.tk-title').textContent = tk.title;
+      c.querySelector('.tk-when').textContent = tk.when;
+      if (tk.note) c.querySelector('.tk-note').textContent = tk.note;
+      box.appendChild(c);
+    });
+  }
+
+  function post(id, msg) {
+    const th = threads[id]; th.msgs.push(msg);
+    if (current === 'chat' && active === id) renderLog(th.msgs.length - 1);
+    else if (current === 'support') renderThreads();
+  }
+  function advisorReply(id, text, after) {
+    setTimeout(() => { typingIn = id; if (current === 'chat' && active === id) renderLog(Infinity); }, 400);
+    setTimeout(() => {
+      typingIn = null;
+      const th = threads[id];
+      if (!(current === 'chat' && active === id)) th.unread++;
+      post(id, { text, t: now() });
+      if (after) after();
+      updateBadge();
+    }, 1700);
+  }
+  function quickReply(k, label) {
+    const th = threads.vf; th.quick = false;
+    post('vf', { me: 1, text: label, t: now() });
+    if (k === 'yes') {
+      advisorReply('vf', 'عالی. فسخ Vattenfall و ثبت Octopus Energy را شروع کردم. وضعیتش را در «درخواست‌ها» می‌بینی و وقتی تأییدیه‌ها برسد خبرت می‌کنم.', () => {
+        th.tickets[0].note = 'فسخ Vattenfall و ثبت Octopus Energy در حال انجام است'; th.tickets[0].when = 'همین الان';
+        if (active === 'vf') renderTickets();
+      });
+    } else {
+      advisorReply('vf', 'حتماً. قیمت جدید در تمام مدت قرارداد ثابت است و حداقل مدت ۱۲ ماه است. برقت بدون هیچ قطعی منتقل می‌شود و همه کارهای اداری را ما انجام می‌دهیم.');
+    }
+  }
+  $('#composer').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = $('#msg-input'); const v = inp.value.trim(); if (!v) return;
+    inp.value = ''; threads[active].quick = false;
+    post(active, { me: 1, text: v, t: now() });
+    advisorReply(active, 'ممنون مریم جان، پیامت رسید. بررسی می‌کنم و همین‌جا جواب می‌دهم.');
+  });
+
+  /* new request (ticket) for the open contract */
+  let topic = null;
+  $('#new-request').addEventListener('click', e => {
+    const th = threads[active]; topic = null;
+    $('#rq-for').textContent = 'برای ' + th.title;
+    $('#rq-text').value = ''; $('#rq-err').hidden = true;
+    const box = $('#rq-topics'); box.innerHTML = '';
+    TOPICS[th.kind].forEach(tp => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip press'; b.textContent = tp; b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => { topic = tp; $$('#rq-topics .chip').forEach(c => c.setAttribute('aria-pressed', String(c === b))); $('#rq-err').hidden = true; });
+      box.appendChild(b);
+    });
+    showSheet('sheet-request', e.currentTarget);
+  });
+  $('#rq-send').addEventListener('click', () => {
+    if (!topic) { $('#rq-err').hidden = false; return; }
+    const tid = active, th = threads[tid]; const id = 'T-' + (ticketSeq++); const note = $('#rq-text').value.trim();
+    const tk = { id, title: topic, step: 0, when: 'همین الان', note: note ? 'توضیح تو: ' + note : '' };
+    th.tickets.unshift(tk);
+    closeSheet(); renderTickets(); toast('درخواست ' + id + ' ثبت شد');
+    th.msgs.push({ sys: 1, text: 'درخواست ' + id + ' باز شد: ' + topic });
+    advisorReply(tid, 'درخواستت رسید. بررسی‌اش می‌کنم و قدم بعدی را همین‌جا خبرت می‌کنم.', () => {
+      tk.step = 1; if (current === 'chat' && active === tid) renderTickets();
+    });
+  });
+
+  /* "ask about this" buttons elsewhere open the right conversation */
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-chat]'); if (!c) return;
+    const id = c.dataset.thread || 'general';
+    go('chat/' + id);
+    setTimeout(() => {
+      threads[id].quick = false;
+      post(id, { me: 1, text: c.dataset.chat, t: now() });
+      advisorReply(id, 'حتماً. چند سوال کوتاه از شرایطت می‌پرسم و بهترین گزینه را با کمترین قیمت برایت پیدا می‌کنم. همه این‌ها رایگان است.');
+    }, 150);
+  });
+  updateBadge();
+
+  /* ---------- uploads ---------- */
+  document.addEventListener('click', e => {
+    const u = e.target.closest('[data-upload]'); if (!u) return;
+    if (current === 'chat') {
+      closeSheet(); threads[active].quick = false;
+      post(active, { me: 1, att: u.dataset.upload, text: 'فایل را فرستادم.', t: now() });
+      toast('فایل در مدارک همین قرارداد هم ذخیره شد');
+      advisorReply(active, 'فایل رسید، ممنون. بررسی‌اش می‌کنم.');
+      return;
+    }
+    closeSheet(); go('documents');
+    const card = document.createElement('div');
+    card.className = 'card'; card.setAttribute('role', 'status');
+    card.style.cssText = 'display:flex; flex-direction:column; gap:10px';
+    card.innerHTML = '<div class="row" style="min-height:0"><span class="doc-ic"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-photo"/></svg></span><span class="grow col"><span class="t-b"></span><span class="t-s">در حال آپلود…</span></span><button type="button" class="icon-btn flat press" aria-label="لغو آپلود"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-x"/></svg></button></div><div class="bar"><i></i></div>';
+    card.querySelector('.t-b').textContent = u.dataset.upload;
+    $('#uploads').prepend(card);
+    const bar = card.querySelector('.bar i'); const meta = card.querySelector('.t-s');
+    let cancelled = false;
+    card.querySelector('button').addEventListener('click', () => { cancelled = true; card.remove(); toast('آپلود لغو شد'); });
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transform = 'scaleX(1)'; }));
+    bar.addEventListener('transitionend', () => {
+      if (cancelled) return;
+      card.querySelector('.bar').remove(); card.querySelector('button').remove();
+      card.querySelector('.doc-ic').innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>';
+      meta.textContent = 'آپلود شد. مشاورت آن را بررسی می‌کند.';
+      toast('مدرک آپلود شد');
+    }, { once: true });
+  });
+
+  /* ---------- copy + share ---------- */
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-copy]'); if (!c) return;
+    const done = () => toast(c.dataset.done);
+    navigator.clipboard?.writeText(c.dataset.copy).then(done, done) ?? done();
+  });
+  $('#share').addEventListener('click', async () => {
+    const data = { title: 'تعرفه', text: 'با کد معرفی من در تعرفه ثبت‌نام کن. همه خدمات رایگان است: TRF-7QK4-M9XD' };
+    if (navigator.share) { try { await navigator.share(data); } catch (_) {} }
+    else { navigator.clipboard?.writeText(data.text); toast('متن دعوت کپی شد، برای دوستت بفرست'); }
+  });
+
+  route();
+})();
+</script>
+</body>
+</html>

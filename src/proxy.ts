@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { recordLanding } from "@/lib/landing-hits";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/taxonomy";
+import { isAppEnabled, isAppPath } from "@/lib/app-flag";
 
 /**
  * Locale redirect proxy (Next.js 16 renamed middleware.ts -> proxy.ts).
@@ -22,6 +23,9 @@ function detectLocale(request: NextRequest): Locale {
 
 export function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
+
+  // Mobile app back end + its staff pages: 404 until the app is published (lib/app-flag.ts).
+  if (isAppPath(pathname)) return isAppEnabled() ? NextResponse.next() : new NextResponse(null, { status: 404 });
 
   const hasLocale = LOCALES.some((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`));
   if (hasLocale) {
@@ -44,5 +48,9 @@ export const config = {
      *  - Next internals, static files, and well-known metadata files
      */
     "/((?!app|ops|landing|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)",
+    // The mobile app paths, only so the switch above can close them (lib/app-flag.ts).
+    "/api/v1/:path*",
+    "/ops/conversations/:path*",
+    "/ops/app-banners/:path*",
   ],
 };

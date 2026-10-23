@@ -68,6 +68,10 @@ model User {
   mfaSecret  String?
   mfaEnabled Boolean @default(false)
 
+  // Mobile app (2026-10-23): random, non-guessable code a customer shares to invite friends (never built from the
+  // name, owner's rule). Created on first request by /api/v1/referral.
+  referralCode String? @unique
+
   // Customer-side relations
   contracts        Contract[]
   applications      Application[] @relation("CustomerApplications")
@@ -75,12 +79,16 @@ model User {
   notifications     Notification[]
   documents         Document[]      @relation("DocumentOwner")
   analyticsEvents   AnalyticsEvent[]
+  conversations     Conversation[]  @relation("CustomerConversations")
+  appSessions       AppSession[]
+  devices           Device[]
 
   // Advisor-side relations
   assignedLeads       Lead[]            @relation("AssignedAdvisor")
   assignedApplications Application[]    @relation("ApplicationAdvisor")
   assignedRequests    ServiceRequest[]  @relation("RequestAdvisor")
   messagesSent        Message[]         @relation("MessageSender")
+  advisedConversations Conversation[]   @relation("ConversationAdvisor")
   activityLogs        ActivityLog[]     @relation("ActivityActor")
 
   // Task relations (Phase 8.4) — three distinct roles a User can play on
@@ -239,6 +247,7 @@ model Contract {
   documents      Document[]
   serviceRequests ServiceRequest[]
   tasks          Task[]
+  conversations  Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -267,6 +276,12 @@ model Document {
 
   contractId String?
   contract   Contract? @relation(fields: [contractId], references: [id])
+
+  messages Message[]
+
+  // True when Tarefe staff filed it for the customer (confirmations, policies) — the app shows these as
+  // "from Tarefe". Customer uploads stay false.
+  uploadedByStaff Boolean @default(false)
 
   uploadedAt DateTime @default(now())
 
@@ -308,6 +323,10 @@ model ServiceRequest {
   contractId String?
   contract   Contract? @relation(fields: [contractId], references: [id])
 
+  // The contract conversation this request was opened in (mobile app). Null for requests created before it existed.
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+
   messages Message[]
   tasks    Task[]
 
@@ -317,19 +336,118 @@ model ServiceRequest {
   @@map("service_requests")
 }
 
+enum MessageKind {
+  TEXT
+  SYSTEM // written by the system, e.g. "request T-20481 opened" — shown as a small marker in the chat
+}
+
+// A message belongs to a contract conversation (mobile app, 2026-10-23) and/or to one request (ticket). Older
+// messages only have serviceRequestId; new app messages always have conversationId and, when they are about a
+// specific request, serviceRequestId too.
 model Message {
   id      String @id @default(cuid())
   content String
+  kind    MessageKind @default(TEXT)
 
-  serviceRequestId String
-  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+  serviceRequestId String?
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+
+  // Optional attachment: the file itself is a Document filed under the same contract.
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id])
 
   senderId String
   sender   User   @relation("MessageSender", fields: [senderId], references: [id])
 
   createdAt DateTime @default(now())
 
+  @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// One conversation per customer per contract, plus one "general" conversation (contractId null) for questions
+// not tied to a contract. Owner's rule (2026-10-23): every contract has its own chat and its own requests.
+// Unread counts come from the two lastReadAt stamps compared with message times.
+model Conversation {
+  id String @id @default(cuid())
+
+  customerId String
+  customer   User   @relation("CustomerConversations", fields: [customerId], references: [id])
+
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+
+  advisorId String?
+  advisor   User?   @relation("ConversationAdvisor", fields: [advisorId], references: [id])
+
+  customerLastReadAt DateTime?
+  staffLastReadAt    DateTime?
+  lastMessageAt      DateTime  @default(now())
+
+  messages        Message[]
+  serviceRequests ServiceRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Postgres treats NULLs as distinct, so this does not stop two "general" rows; the API creates that one
+  // with an upsert-style find-or-create instead.
+  @@unique([customerId, contractId])
+  @@index([advisorId, lastMessageAt])
+  @@map("conversations")
+}
+
+// Mobile app sign-in: a 6-digit code sent by email (no SMS, no password). Only a hash of the code is stored.
+model AppLoginCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@map("app_login_codes")
+}
+
+// Mobile app session: one per signed-in phone. The refresh token itself is never stored, only its hash; it is
+// rotated on every refresh, and presenting the previous one again revokes the session (token theft).
+model AppSession {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  refreshTokenHash  String    @unique
+  previousTokenHash String?
+  deviceName        String?
+  platform          String?
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime  @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+
+  @@index([userId])
+  @@map("app_sessions")
+}
+
+// Push notification targets (Firebase / Expo push token) — one row per installed app.
+model Device {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  platform   String // ios | android
+  pushToken  String   @unique
+  locale     Locale   @default(fa)
+  appVersion String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@map("devices")
 }
 
 model Notification {
@@ -799,4 +917,26 @@ model SiteEvent {
   @@index([createdAt])
   @@index([name, createdAt])
   @@map("site_events")
+}
+
+// Mobile app Home slider (owner, 2026-10-23): campaign slides managed by staff in /ops/app-banners — an image or
+// GIF, a title, a short text and one button. Shown under the customer's summary on the app's Home screen.
+// target: "referral" | "offers" | "support" | "advice:<service name>" (opens the general chat with that question).
+model AppBanner {
+  id        String    @id @default(cuid())
+  title     String
+  body      String?
+  ctaLabel  String?
+  target    String    @default("offers")
+  imagePath String? // file name under the upload dir's banners/ folder (marketing images, not private)
+  locale    Locale    @default(fa)
+  active    Boolean   @default(true)
+  sort      Int       @default(0)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([active, locale, sort])
+  @@map("app_banners")
 }

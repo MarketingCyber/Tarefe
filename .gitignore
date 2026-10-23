@@ -51,3 +51,6 @@ next-env.d.ts
 
 # local copies of provider tariff exports (never commit)
 /data
+
+# Uploaded customer documents (local disk storage, see src/lib/document-storage.ts) - never commit
+/private-uploads

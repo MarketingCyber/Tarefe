@@ -72,5 +72,36 @@ export async function deleteUploadedFile(storagePath: string): Promise<void> {
 
 export function contentTypeFor(storagePath: string): string {
   const ext = path.extname(storagePath).toLowerCase();
-  return { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" }[ext] ?? "application/octet-stream";
+  return { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" }[ext] ?? "application/octet-stream";
+}
+
+/**
+ * App Home slider images (marketing, not private — served publicly by /api/v1/banners/[id]/image). Kept in their
+ * own banners/ folder next to the documents so a banner file name can never point at a customer document.
+ */
+const BANNER_DIR = path.join(UPLOAD_DIR, "banners");
+export const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+const BANNER_TYPES: Record<string, string> = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
+
+export async function saveBannerImage(file: File): Promise<string> {
+  if (file.size === 0) throw new UploadValidationError("Empty file");
+  if (file.size > MAX_BANNER_BYTES) throw new UploadValidationError("Image exceeds 5MB");
+  const ext = BANNER_TYPES[file.type];
+  if (!ext) throw new UploadValidationError(`Unsupported image type: ${file.type || "unknown"}`);
+  await mkdir(BANNER_DIR, { recursive: true });
+  const name = `${randomUUID()}${ext}`;
+  await writeFile(path.join(BANNER_DIR, name), Buffer.from(await file.arrayBuffer()));
+  return name;
+}
+
+export async function readBannerImage(name: string): Promise<Buffer> {
+  const full = path.join(BANNER_DIR, name);
+  if (!path.resolve(full).startsWith(path.resolve(BANNER_DIR) + path.sep)) throw new Error("Resolved path escapes the banner directory");
+  return readFile(full);
+}
+
+export async function deleteBannerImage(name: string): Promise<void> {
+  const full = path.join(BANNER_DIR, name);
+  if (!path.resolve(full).startsWith(path.resolve(BANNER_DIR) + path.sep)) return;
+  await unlink(full).catch(() => undefined);
 }

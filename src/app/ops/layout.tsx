@@ -7,6 +7,7 @@ import { OpsNav } from "@/components/crm/OpsNav";
 import { GtmScript } from "@/components/providers/GoogleTagManager";
 import { PageTransition } from "@/components/providers/PageTransition";
 import { isStaffRole } from "@/lib/permissions";
+import { isAppEnabled } from "@/lib/app-flag";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -42,7 +43,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
     <html lang="fa" dir="rtl" className={`${inter.variable} ${iransansx.variable}`}>
       <GtmScript />
       <body className="flex min-h-screen antialiased">
-        <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} />
+        <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} appEnabled={isAppEnabled()} />
         <div className="min-w-0 flex-1 bg-tint">
           <PageTransition>{children}</PageTransition>
         </div>

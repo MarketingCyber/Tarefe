@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { LandingContextSchema, summariseLandingContext } from "@/lib/landing-lead";
@@ -8,6 +8,7 @@ import { sendGA4Event } from "@/lib/ga4-measurement-protocol";
 import { syncLeadToDynamics } from "@/lib/dynamics-lead-sync";
 import { isBotUserAgent, isTorExit, verifyFormToken } from "@/lib/lead-guard";
 import { isGermanPhone, toAsciiDigits } from "@/lib/phone";
+import { sendMetaLead } from "@/lib/meta-capi";
 
 /**
  * Declarative validation (Phase 12) — this route previously hand-checked
@@ -75,6 +76,8 @@ const LeadSchema = z.object({
   // (localStorage-only, unreadable server-side, so the client passes it).
   gaClientId: z.string().trim().max(100).optional(),
   consentAccepted: z.boolean().optional(),
+  // Meta: the event id the browser pixel used for this Lead, so Meta can deduplicate it with ours (lib/meta-capi.ts).
+  metaEventId: z.string().trim().min(8).max(64).optional(),
   // Anti-abuse (see lib/lead-guard.ts). `website` is the honeypot — a field
   // real visitors never see or fill. `formToken` comes from GET /api/leads/token.
   website: z.string().max(500).optional(),
@@ -157,6 +160,7 @@ export async function POST(request: Request) {
     landing,
     gaClientId,
     consentAccepted,
+    metaEventId,
     website,
     formToken,
   } = parsed.data;
@@ -223,6 +227,27 @@ export async function POST(request: Request) {
       ipOverride: getClientIp(request),
     });
   }
+
+  // Meta Conversions API: after the response, so the visitor never waits for Meta (owner, 2026-10-23: every
+  // lead, hashed email/phone). Real leads only: bots and replays returned earlier.
+  const origin = new URL(request.url).origin;
+  const cookieHeader = request.headers.get("cookie");
+  const userAgent = request.headers.get("user-agent");
+  after(() =>
+    sendMetaLead({
+      eventId: metaEventId ?? lead.id,
+      eventSourceUrl: request.headers.get("referer") ?? `${origin}${sourcePage ?? ""}`,
+      ip,
+      userAgent,
+      cookieHeader,
+      email: lead.email,
+      phone: lead.phone,
+      firstName,
+      lastName,
+      category: lead.category,
+      service: lead.serviceSlug,
+    }),
+  );
 
   // Same best-effort contract — see dynamics-lead-sync.ts's own comment.
   // Real separate firstName/lastName from the form, not re-derived from

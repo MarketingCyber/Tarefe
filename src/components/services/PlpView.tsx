@@ -30,6 +30,7 @@ import { JOURNEY_IDS } from "@/components/services/energy/journey";
 import { SectionHead } from "@/components/services/energy/energy-ui";
 import { DentalHero } from "@/components/services/dental/DentalHero";
 import { DentalTestimonials } from "@/components/services/dental/DentalTestimonials";
+import { DentalCosts } from "@/components/services/dental/DentalCosts";
 import { CustomerReviews } from "@/components/shared/CustomerReviews";
 import { getSubcategoryImage } from "@/lib/pdp-images";
 import { CategoryHeroFrame } from "@/components/services/pdp/CategoryHeroFrame";
@@ -173,6 +174,9 @@ export async function PlpView({
           </div>
         </section>
       )}
+
+      {/* Dental: what a treatment costs and what is left for you, right after the hero (owner, 2026-10-23). */}
+      {isDental && <DentalCosts locale={locale} formId={FORM_ID} ctaLabel={dict.cta.freeConsultation} />}
 
       {/* The map of the page: sticky under the header from here down (see EnergyJourneyNav). */}
       {energy && <EnergyJourneyNav locale={locale} nav={energy.journey.nav} formId={FORM_ID} />}

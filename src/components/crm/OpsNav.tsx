@@ -20,10 +20,12 @@ import {
   ClipboardText,
   FileText,
   Headset,
+  ChatsCircle,
   ChartBar,
   BookOpen,
   Question,
   ChatCircleText,
+  Images,
   ShieldCheck,
   IdentificationBadge,
   Lightning,
@@ -34,7 +36,8 @@ import { NotificationBell, type NotificationItem } from "@/components/shared/Not
 import { canAccessPipeline, canAccessContent, canAccessAnalytics, isAdminRole } from "@/lib/permissions";
 
 /** Omitted `visible` means "every staff role sees this" (e.g. "امنیت" — everyone manages their own MFA, see /ops/security itself having no role gate). */
-type NavItem = { href: string; label: string; icon: Icon; visible?: (role: UserRole) => boolean };
+/** `app`: belongs to the mobile app, shown only while it is switched on (lib/app-flag.ts). */
+type NavItem = { href: string; label: string; icon: Icon; visible?: (role: UserRole) => boolean; app?: true };
 type NavGroup = { id: string; label: string; items: NavItem[] };
 
 /**
@@ -73,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/ops/customers", label: "مشتریان", icon: UsersThree },
       { href: "/ops/applications", label: "درخواست‌ها", icon: ClipboardText },
       { href: "/ops/contracts", label: "قراردادها", icon: FileText },
+      { href: "/ops/conversations", label: "گفتگوهای اپ", icon: ChatsCircle, app: true },
       { href: "/ops/tickets", label: "تیکت‌ها", icon: Headset },
     ],
   },
@@ -84,6 +88,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/ops/energy-tariffs", label: "تعرفه‌های برق و گاز", icon: Lightning },
       { href: "/ops/faq", label: "سوالات متداول", icon: Question },
       { href: "/ops/testimonials", label: "نظرات مشتریان", icon: ChatCircleText },
+      { href: "/ops/app-banners", label: "اسلایدر اپ", icon: Images, app: true },
     ],
   },
   {
@@ -206,7 +211,7 @@ function NavGroupSection({
   );
 }
 
-function NavList({ pathname, role, onNavigate }: { pathname: string; role: UserRole; onNavigate?: () => void }) {
+function NavList({ pathname, role, appEnabled, onNavigate }: { pathname: string; role: UserRole; appEnabled: boolean; onNavigate?: () => void }) {
   const groups = useMemo(() => {
     return NAV_GROUPS.map((g) => {
       // پایپ‌لاین/محتوای سایت are gated whole — a role blocked from one
@@ -215,11 +220,11 @@ function NavList({ pathname, role, onNavigate }: { pathname: string; role: UserR
       // itself via its own `visible`.
       if (g.id === "pipeline" && !canAccessPipeline(role)) return { ...g, items: [] };
       if (g.id === "content" && !canAccessContent(role)) return { ...g, items: [] };
-      let items = g.items.filter((item) => !item.visible || item.visible(role));
+      let items = g.items.filter((item) => (!item.app || appEnabled) && (!item.visible || item.visible(role)));
       if (g.id === "system" && isAdminRole(role)) items = [...items, ADMIN_NAV_ITEM];
       return { ...g, items };
     }).filter((g) => g.items.length > 0);
-  }, [role]);
+  }, [role, appEnabled]);
   // Closed by default (defaultCollapsed), computed purely from pathname +
   // groups — no localStorage read here, so server and first client render
   // match exactly (a hydration mismatch is only a risk when the initial
@@ -333,7 +338,7 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
  * forced into a stiffer formal Persian — matching how these terms are
  * actually said in Persian business/tech contexts.
  */
-export function OpsNav({ userName, notifications, role }: { userName: string; notifications: NotificationItem[]; role: UserRole }) {
+export function OpsNav({ userName, notifications, role, appEnabled }: { userName: string; notifications: NotificationItem[]; role: UserRole; appEnabled: boolean }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
@@ -346,7 +351,7 @@ export function OpsNav({ userName, notifications, role }: { userName: string; no
           <p className="text-xs font-medium text-secondary">پنل عملیات</p>
         </Link>
         <nav className="flex-1 overflow-y-auto px-3">
-          <NavList pathname={pathname} role={role} />
+          <NavList pathname={pathname} role={role} appEnabled={appEnabled} />
         </nav>
         <UserFooter userName={userName} />
       </aside>
@@ -398,7 +403,7 @@ export function OpsNav({ userName, notifications, role }: { userName: string; no
                   </button>
                 </div>
                 <nav className="flex-1 overflow-y-auto px-3">
-                  <NavList pathname={pathname} role={role} onNavigate={() => setMobileOpen(false)} />
+                  <NavList pathname={pathname} role={role} appEnabled={appEnabled} onNavigate={() => setMobileOpen(false)} />
                 </nav>
                 <UserFooter userName={userName} onNavigate={() => setMobileOpen(false)} />
               </motion.aside>

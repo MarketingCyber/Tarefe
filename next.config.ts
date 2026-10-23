@@ -67,11 +67,11 @@ import type { NextConfig } from "next";
 // the in-page Tag Assistant badge loads /debug/badge.css from there.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://sgtm.tarefe.de https://www.googletagmanager.com https://tagmanager.google.com https://www.google.com https://*.doubleclick.net",
+  "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.clarity.ms https://scripts.clarity.ms https://sgtm.tarefe.de https://www.googletagmanager.com https://tagmanager.google.com https://www.google.com https://*.doubleclick.net https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
-  "img-src 'self' data: https://pagead2.googlesyndication.com https://*.clarity.ms https://c.bing.com https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://sgtm.tarefe.de https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
+  "img-src 'self' data: https://www.facebook.com https://pagead2.googlesyndication.com https://*.clarity.ms https://c.bing.com https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://sgtm.tarefe.de https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://pagead2.googlesyndication.com https://*.clarity.ms https://c.bing.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://sgtm.tarefe.de https://www.google.com https://*.doubleclick.net https://www.googleadservices.com",
+  "connect-src 'self' https://www.facebook.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.clarity.ms https://c.bing.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://sgtm.tarefe.de https://www.google.com https://*.doubleclick.net https://www.googleadservices.com",
   "frame-src https://www.google.com https://maps.google.com https://www.googletagmanager.com https://sgtm.tarefe.de",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -102,7 +102,21 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    const rules = [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    // Development only: the mobile app's web preview (Expo, localhost:8081) calls the app API from another
+    // origin. The phone app itself doesn't need CORS, and production never sends these headers.
+    if (process.env.NODE_ENV !== "production") {
+      rules.push({
+        source: "/api/v1/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "http://localhost:8081" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "authorization, content-type" },
+          { key: "Access-Control-Max-Age", value: "600" },
+        ],
+      });
+    }
+    return rules;
   },
   // Google Ads landing journey: its own root layout lives under /landing/..., the public URL keeps the locale prefix.
   async rewrites() {

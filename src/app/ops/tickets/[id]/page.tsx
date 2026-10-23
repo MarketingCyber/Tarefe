@@ -14,19 +14,29 @@ import { computeTicketSla } from "@/lib/sla";
 import { Clock } from "@phosphor-icons/react/dist/ssr";
 import { TICKET_STATUS_FA, PRIORITY_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
+import { addMessage } from "@/lib/app-conversations";
+import { requestStep, STATUS_WORDS, ticketNumber } from "@/lib/app-api";
 
 const STATUS_OPTIONS = ["RECEIVED", "UNDER_REVIEW", "SENT_TO_PROVIDER", "PROVIDER_PROCESSING", "COMPLETED"] as const;
 
 async function updateStatus(formData: FormData) {
   "use server";
   const session = await auth();
-  if (!session?.user || !canAccessPipeline(session.user.role)) return;
+  if (!session?.user?.id || !canAccessPipeline(session.user.role)) return;
   const ticketId = formData.get("ticketId") as string;
   const status = formData.get("status") as string;
   const ticket = await prisma.serviceRequest.update({ where: { id: ticketId }, data: { status: status as (typeof STATUS_OPTIONS)[number] } });
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticketId, action: "status_changed", note: `Status changed to ${status}`, actorId: session.user.id },
   });
+  // Requests opened in the app: mark the new status in the contract conversation, so the customer sees it in the chat.
+  if (ticket.conversationId) {
+    const conv = await prisma.conversation.findUnique({ where: { id: ticket.conversationId } });
+    if (conv) {
+      const step = STATUS_WORDS[requestStep(status)].fa;
+      await addMessage(conv, { senderId: session.user.id, kind: "SYSTEM", content: `درخواست ${ticketNumber(ticket.id)}: ${step}`, serviceRequestId: ticket.id });
+    }
+  }
   await notifyUser(ticket.customerId, "ticket_update", "به‌روزرسانی درخواست شما", `وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`);
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
@@ -51,7 +61,11 @@ async function replyToTicket(formData: FormData) {
   const content = (formData.get("content") as string)?.trim();
   if (!content) return;
   const ticket = await prisma.serviceRequest.findUniqueOrThrow({ where: { id: ticketId } });
-  await prisma.message.create({ data: { serviceRequestId: ticketId, senderId: session.user.id, content } });
+  // A request opened in the app also lives in its contract conversation: the reply goes there too, or the
+  // customer would never see it in the app.
+  const conv = ticket.conversationId ? await prisma.conversation.findUnique({ where: { id: ticket.conversationId } }) : null;
+  if (conv) await addMessage(conv, { senderId: session.user.id, content, serviceRequestId: ticketId });
+  else await prisma.message.create({ data: { serviceRequestId: ticketId, senderId: session.user.id, content } });
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticketId, action: "reply_sent", note: `Reply from ${session.user.name}`, actorId: session.user.id },
   });
