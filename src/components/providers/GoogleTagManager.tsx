@@ -8,8 +8,12 @@ import { getConsent, CONSENT_CHANGED_EVENT, CONSENT_KEY, type ConsentValue } fro
 // the internal ops area each have their own root layout and all render this; they must never drift onto different ids.
 const GTM_ID = "GTM-M2LGN5WC";
 
+// The container script is served by our own tagging server (server-side GTM, see /opt/tarefe.de/sgtm on the server),
+// so it comes from the first-party domain. If that server ever cannot be reached, the loader falls back to Google's address.
+const GTM_HOST = "https://sgtm.tarefe.de";
+
 /**
- * Google Tag Manager, loaded on EVERY page view straight away (2026-10-22), before the visitor answers the cookie
+ * Google Tag Manager (served from sgtm.tarefe.de, 2026-10-23), loaded on EVERY page view straight away (2026-10-22), before the visitor answers the cookie
  * banner — but in Google Consent Mode v2 with everything DENIED until they accept:
  *
  *  - The default consent state is written to the dataLayer BEFORE the container loads (the order matters: a tag
@@ -36,8 +40,11 @@ gtag('set','url_passthrough',true);
 gtag('set','ads_data_redaction',true);
 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+dl=l!='dataLayer'?'&l='+l:'';
+function load(host){var j=d.createElement(s);j.async=true;j.src=host+'/gtm.js?id='+i+dl;
+if(host!=='https://www.googletagmanager.com'){j.onerror=function(){load('https://www.googletagmanager.com');};}
+f.parentNode.insertBefore(j,f);}
+load('${GTM_HOST}');
 })(window,document,'script','dataLayer','${GTM_ID}');`;
 
 function updateConsent(state: "granted" | "denied") {
