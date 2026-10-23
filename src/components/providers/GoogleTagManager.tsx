@@ -8,9 +8,11 @@ import { getConsent, CONSENT_CHANGED_EVENT, CONSENT_KEY, type ConsentValue } fro
 // the internal ops area each have their own root layout and all render this; they must never drift onto different ids.
 const GTM_ID = "GTM-M2LGN5WC";
 
-// The container script is served by our own tagging server (server-side GTM, see /opt/tarefe.de/sgtm on the server),
-// so it comes from the first-party domain. If that server ever cannot be reached, the loader falls back to Google's address.
-const GTM_HOST = "https://sgtm.tarefe.de";
+// Where the container script (gtm.js) comes from. Serving it from our own tagging server (https://sgtm.tarefe.de, via the
+// "GTM Web Container" client) was tried on 2026-10-23 and ROLLED BACK: the container then loaded a second time from Google,
+// which produced two page_view events per page view and pings with consent already "granted" before any choice.
+// The tags still send their DATA to sgtm.tarefe.de (server_container_url inside the container) - only the script itself is Google-hosted.
+const GTM_HOST = "https://www.googletagmanager.com";
 
 /**
  * Google Tag Manager (served from sgtm.tarefe.de, 2026-10-23), loaded on EVERY page view straight away (2026-10-22), before the visitor answers the cookie
@@ -42,7 +44,7 @@ gtag('set','ads_data_redaction',true);
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 dl=l!='dataLayer'?'&l='+l:'';
 function load(host){var j=d.createElement(s);j.async=true;j.src=host+'/gtm.js?id='+i+dl;
-if(host!=='https://www.googletagmanager.com'){j.onerror=function(){load('https://www.googletagmanager.com');};}
+if(host!=='https://www.googletagmanager.com'){j.onerror=function(){if(w.google_tag_manager&&w.google_tag_manager[i])return;load('https://www.googletagmanager.com');};}
 f.parentNode.insertBefore(j,f);}
 load('${GTM_HOST}');
 })(window,document,'script','dataLayer','${GTM_ID}');`;
