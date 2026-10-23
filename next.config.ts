@@ -67,11 +67,11 @@ import type { NextConfig } from "next";
 // the in-page Tag Assistant badge loads /debug/badge.css from there.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://sgtm.tarefe.de https://www.googletagmanager.com https://tagmanager.google.com https://www.google.com https://*.doubleclick.net",
+  "script-src 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://sgtm.tarefe.de https://www.googletagmanager.com https://tagmanager.google.com https://www.google.com https://*.doubleclick.net",
   "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
-  "img-src 'self' data: https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://sgtm.tarefe.de https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
+  "img-src 'self' data: https://*.clarity.ms https://c.bing.com https://picsum.photos https://images.unsplash.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://sgtm.tarefe.de https://*.google-analytics.com https://www.google.com https://*.doubleclick.net",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://sgtm.tarefe.de https://www.google.com https://*.doubleclick.net https://www.googleadservices.com",
+  "connect-src 'self' https://*.clarity.ms https://c.bing.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://sgtm.tarefe.de https://www.google.com https://*.doubleclick.net https://www.googleadservices.com",
   "frame-src https://www.google.com https://maps.google.com https://www.googletagmanager.com https://sgtm.tarefe.de",
   "frame-ancestors 'none'",
   "base-uri 'self'",
