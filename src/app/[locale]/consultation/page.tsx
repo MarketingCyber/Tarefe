@@ -13,9 +13,9 @@ export function generateStaticParams() {
 // Also shown on the page itself, right under the h1 — kept in one place so
 // the meta description and the visible copy can't drift apart.
 const DESCRIPTION: Record<Locale, string> = {
-  fa: "اطلاعات خود را وارد کنید؛ مشاوران ما ظرف کمتر از ۳ ساعت با شما تماس خواهند گرفت.",
-  de: "Teilen Sie uns Ihre Daten mit — unsere Berater melden sich innerhalb von 3 Stunden bei Ihnen.",
-  ru: "Поделитесь данными — наши консультанты свяжутся с вами в течение 3 часов.",
+  fa: "اطلاعات خود را وارد کنید؛ مشاوران ما تا چند ساعت آینده با شما تماس می‌گیرند.",
+  de: "Teilen Sie uns Ihre Daten mit — unsere Berater melden sich in den nächsten Stunden bei Ihnen.",
+  ru: "Поделитесь данными — наши консультанты свяжутся с вами в ближайшие часы.",
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {

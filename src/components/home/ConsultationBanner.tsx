@@ -11,7 +11,7 @@ export function ConsultationBanner({ locale, dict }: { locale: Locale; dict: Dic
         <div>
           <h2 className="text-xl font-bold text-white md:text-2xl">{dict.cta.whatsappConsultation}</h2>
           <p className="mt-1.5 text-sm text-white/70">
-            {locale === "fa" ? "بدون نیاز به ثبت‌نام اجباری، پاسخگویی در کمتر از ۳ ساعت." : locale === "de" ? "Ohne Pflichtregistrierung, Antwort in unter 3 Stunden." : "Без обязательной регистрации, ответ менее чем за 3 часа."}
+            {locale === "fa" ? "بدون نیاز به ثبت‌نام اجباری، تماس مشاور تا چند ساعت آینده." : locale === "de" ? "Ohne Pflichtregistrierung, Rückruf in den nächsten Stunden." : "Без обязательной регистрации, звонок консультанта в ближайшие часы."}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-center gap-3">

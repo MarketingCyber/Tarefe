@@ -71,13 +71,13 @@ export const LANDING_COPY = {
   yourTariff: t("تعرفه انتخابی", "Gewählter Tarif", "Выбранный тариф"),
   submit: t("درخواست مشاوره رایگان", "Kostenlose Beratung anfragen", "Запросить бесплатную консультацию"),
   promise: t(
-    "رایگان. مشاور فارسی‌زبان ما ظرف حدود ۳ ساعت کاری تماس می‌گیرد و کارهای قرارداد و کاغذبازی را انجام می‌دهد.",
-    "Kostenlos. Ein Berater in Ihrer Sprache meldet sich innerhalb von etwa 3 Werktagsstunden und erledigt Vertrag und Papierkram.",
-    "Бесплатно. Консультант на вашем языке свяжется в течение примерно 3 рабочих часов и займётся договором и бумагами."
+    "رایگان. مشاور فارسی‌زبان ما تا چند ساعت آینده تماس می‌گیرد و کارهای قرارداد و کاغذبازی را انجام می‌دهد.",
+    "Kostenlos. Ein Berater in Ihrer Sprache meldet sich in den nächsten Stunden und erledigt Vertrag und Papierkram.",
+    "Бесплатно. Консультант на вашем языке свяжется в ближайшие часы и займётся договором и бумагами."
   ),
 
   doneTitle: t("درخواستت ثبت شد", "Ihre Anfrage ist eingegangen", "Ваша заявка принята"),
-  doneBody: t("مشاور فارسی‌زبانت ظرف حدود ۳ ساعت کاری با تو تماس می‌گیرد.", "Ihr Berater meldet sich innerhalb von etwa 3 Werktagsstunden.", "Ваш консультант свяжется в течение примерно 3 рабочих часов."),
+  doneBody: t("مشاور فارسی‌زبانت تا چند ساعت آینده با تو تماس می‌گیرد.", "Ihr Berater meldet sich in den nächsten Stunden.", "Ваш консультант свяжется в ближайшие часы."),
   next: [
     t("تماس مشاور", "Anruf Ihres Beraters", "Звонок консультанта"),
     t("درخواست و Kündigung قرارداد قبلی", "Antrag und Kündigung des alten Vertrags", "Заявка и Kündigung старого договора"),

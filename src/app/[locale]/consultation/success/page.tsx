@@ -24,10 +24,10 @@ export default async function ConsultationSuccessPage({ params }: { params: Prom
       </h1>
       <p className="mt-3 max-w-[48ch] text-secondary">
         {locale === "fa"
-          ? "مشاوران ما ظرف کمتر از ۳ ساعت کاری با شما تماس خواهند گرفت."
+          ? "مشاوران ما تا چند ساعت آینده با شما تماس می‌گیرند."
           : locale === "de"
-            ? "Unsere Berater melden sich innerhalb von 3 Werkstunden bei Ihnen."
-            : "Наши консультанты свяжутся с вами в течение 3 рабочих часов."}
+            ? "Unsere Berater melden sich in den nächsten Stunden bei Ihnen."
+            : "Наши консультанты свяжутся с вами в ближайшие часы."}
       </p>
       <div className="mt-7 flex flex-wrap justify-center gap-3">
         <a

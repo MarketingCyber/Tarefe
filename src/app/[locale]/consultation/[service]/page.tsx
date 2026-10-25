@@ -11,9 +11,9 @@ export function generateStaticParams() {
 }
 
 const DESCRIPTION: Record<Locale, (serviceLabel: string) => string> = {
-  fa: (s) => `درخواست مشاوره رایگان تعرفه برای ${s} — مشاوری فارسی‌زبان ظرف کمتر از ۳ ساعت با شما تماس می‌گیرد.`,
-  de: (s) => `Kostenlose Beratungsanfrage von Tarefe für ${s} — ein Berater in Ihrer Sprache meldet sich innerhalb von 3 Stunden.`,
-  ru: (s) => `Бесплатная консультация Tarefe по теме «${s}» — консультант на вашем языке свяжется с вами в течение 3 часов.`,
+  fa: (s) => `درخواست مشاوره رایگان تعرفه برای ${s} — مشاوری فارسی‌زبان تا چند ساعت آینده با شما تماس می‌گیرد.`,
+  de: (s) => `Kostenlose Beratungsanfrage von Tarefe für ${s} — ein Berater in Ihrer Sprache meldet sich in den nächsten Stunden.`,
+  ru: (s) => `Бесплатная консультация Tarefe по теме «${s}» — консультант на вашем языке свяжется с вами в ближайшие часы.`,
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; service: string }> }): Promise<Metadata> {

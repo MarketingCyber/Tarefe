@@ -436,9 +436,9 @@ export async function PlpView({
             <h2 className="text-xl font-bold text-white md:text-2xl">{byLocale(locale, { fa: "بیا با هم شرایطت را بررسی کنیم", de: "Sollen wir Ihre Situation prüfen?", ru: "Проверим вашу ситуацию?" })}</h2>
             <p className="mt-2 max-w-[42ch] text-sm text-white/70 md:mx-0 mx-auto">
               {byLocale(locale, {
-                fa: "فقط چند اطلاعات ساده — یک مشاور فارسی ظرف کمتر از سه ساعت کاری با تو تماس می‌گیرد.",
-                de: "Nur ein paar einfache Angaben — ein Berater in Ihrer Sprache meldet sich innerhalb von drei Werktagsstunden.",
-                ru: "Всего пара простых данных — консультант на вашем языке свяжется в течение трёх рабочих часов.",
+                fa: "فقط چند اطلاعات ساده — یک مشاور فارسی تا چند ساعت آینده با تو تماس می‌گیرد.",
+                de: "Nur ein paar einfache Angaben — ein Berater in Ihrer Sprache meldet sich in den nächsten Stunden.",
+                ru: "Всего пара простых данных — консультант на вашем языке свяжется в ближайшие часы.",
               })}
             </p>
             <div className="mt-5 flex items-center justify-center gap-1.5 text-xs font-medium text-white/60 md:justify-start">
