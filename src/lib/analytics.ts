@@ -16,12 +16,12 @@
  * Object.values(EVENT) wasn't returning the real event-name strings
  * through that boundary.
  *
- * track() only fires with cookie-consent's "accepted" state (see
- * src/lib/cookie-consent.ts) — this module writes a session id to
- * localStorage, which needs opt-in consent under TTDSG same as a tracking
- * cookie would, and the default (no consent recorded yet) blocks it.
+ * track() fires unless the visitor chose "necessary only" (owner, 2026-10-29 — see
+ * trackingAllowed() in src/lib/cookie-consent.ts). It writes a session id to
+ * localStorage from the first page view; that was opt-in before the owner chose
+ * on-by-default tracking.
  */
-import { getConsent } from "./cookie-consent";
+import { trackingAllowed } from "./cookie-consent";
 
 export const EVENT = {
   PAGE_VIEW: "page_view",
@@ -77,8 +77,8 @@ export type EventName = (typeof EVENT)[keyof typeof EVENT];
  *  - "last": the last NON-direct touch, overwritten whenever a visit carries a
  *    real source — the model paid-ads platforms use for conversion attribution.
  *    A direct visit never erases it.
- * Same consent gate as sessionId below: only STORED once cookie consent is
- * "accepted" (TTDSG). The landing URL/referrer are *read* (not stored) as soon
+ * Same gate as sessionId below: stored from the first page view unless the
+ * visitor chose "necessary only". The landing URL/referrer are *read* as soon
  * as the script loads and kept in memory only, so a visitor who accepts the
  * banner on the second page still gets the source they arrived with.
  */
@@ -185,7 +185,7 @@ function resolveVisit(): UtmSnapshot {
 
 /** Visit / first-touch / last-touch snapshots — read by track() and by ConsultationForm (for Lead's own attribution fields). */
 export function getAttribution(): { first: UtmSnapshot | null; last: UtmSnapshot | null; visit: UtmSnapshot | null } {
-  if (getConsent() !== "accepted") return { first: null, last: null, visit: null };
+  if (!trackingAllowed()) return { first: null, last: null, visit: null };
   try {
     const visit = resolveVisit();
     return { first: readStoredUtm(UTM_FIRST_KEY) ?? visit, last: readStoredUtm(UTM_LAST_KEY) ?? visit, visit };
@@ -266,7 +266,7 @@ function countWithoutConsent(name: string, path: string | undefined) {
 export function track(name: EventName, props: { path?: string; locale?: string; category?: string; service?: string; metadata?: Record<string, unknown> } = {}) {
   if (isInternalTraffic()) return; // a team member who opted out with ?internal=1
   countWithoutConsent(name, props.path);
-  if (getConsent() !== "accepted") return;
+  if (!trackingAllowed()) return;
 
   const sessionId = getSessionId();
   if (!sessionId) return;

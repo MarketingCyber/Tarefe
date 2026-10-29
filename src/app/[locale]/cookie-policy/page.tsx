@@ -36,15 +36,15 @@ const CHANGE_CHOICE_LABEL: Record<Locale, string> = {
 const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
   fa: [
     { heading: "کوکی‌های ضروری", body: "برای عملکرد پایه وب‌سایت، مانند حفظ زبان انتخابی شما، استفاده می‌شوند." },
-    { heading: "کوکی‌های تحلیلی", body: "برای بهبود عملکرد سایت به‌کار می‌روند و تنها با رضایت شما فعال خواهند شد." },
+    { heading: "کوکی‌های تحلیلی", body: "برای بهبود سایت و سنجش تبلیغات به‌کار می‌روند. می‌توانید آن‌ها را هر زمان در تنظیمات مرورگرتان پاک یا مسدود کنید." },
   ],
   de: [
     { heading: "Notwendige Cookies", body: "Werden für die Grundfunktionen der Website benötigt, z. B. zum Speichern Ihrer Sprachauswahl." },
-    { heading: "Analyse-Cookies", body: "Dienen der Verbesserung der Website und werden nur mit Ihrer Zustimmung aktiviert." },
+    { heading: "Analyse-Cookies", body: "Dienen der Verbesserung der Website und der Erfolgsmessung unserer Werbung. Sie können sie jederzeit in Ihren Browsereinstellungen löschen oder blockieren." },
   ],
   ru: [
     { heading: "Необходимые cookie", body: "Используются для базовой работы сайта, например для сохранения выбранного языка." },
-    { heading: "Аналитические cookie", body: "Используются для улучшения сайта и активируются только с вашего согласия." },
+    { heading: "Аналитические cookie", body: "Используются для улучшения сайта и оценки рекламы. Их можно в любой момент удалить или заблокировать в настройках браузера." },
   ],
 };
 

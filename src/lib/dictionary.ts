@@ -76,7 +76,6 @@ export interface Dictionary {
   cookieConsent: {
     body: string;
     acceptAll: string;
-    necessaryOnly: string;
     policyLink: string;
   };
 }
@@ -149,9 +148,8 @@ const fa: Dictionary = {
     cta: "بازگشت به صفحه اصلی",
   },
   cookieConsent: {
-    body: "ما از کوکی‌های ضروری برای عملکرد سایت استفاده می‌کنیم. با اجازه شما، از کوکی‌های تحلیلی هم برای بهبود تجربه شما استفاده می‌کنیم.",
-    acceptAll: "قبول همه",
-    necessaryOnly: "فقط ضروری",
+    body: "ما از کوکی‌ها و ابزارهای تحلیل و تبلیغات (Google، Meta و Microsoft Clarity) برای بهبود سایت و سنجش تبلیغات‌مان استفاده می‌کنیم.",
+    acceptAll: "باشه",
     policyLink: "سیاست کوکی",
   },
 };
@@ -224,9 +222,8 @@ const de: Dictionary = {
     cta: "Zur Startseite",
   },
   cookieConsent: {
-    body: "Wir verwenden notwendige Cookies für die Grundfunktionen der Website. Mit Ihrer Zustimmung nutzen wir auch Analyse-Cookies, um Ihre Erfahrung zu verbessern.",
-    acceptAll: "Alle akzeptieren",
-    necessaryOnly: "Nur notwendige",
+    body: "Wir nutzen Cookies sowie Analyse- und Werbedienste (Google, Meta, Microsoft Clarity), um unsere Website und Werbung zu verbessern.",
+    acceptAll: "OK",
     policyLink: "Cookie-Richtlinie",
   },
 };
@@ -299,9 +296,8 @@ const ru: Dictionary = {
     cta: "На главную",
   },
   cookieConsent: {
-    body: "Мы используем необходимые cookie для базовой работы сайта. С вашего согласия мы также используем аналитические cookie для улучшения вашего опыта.",
-    acceptAll: "Принять все",
-    necessaryOnly: "Только необходимые",
+    body: "Мы используем cookie, а также сервисы аналитики и рекламы (Google, Meta, Microsoft Clarity), чтобы улучшать сайт и рекламу.",
+    acceptAll: "OK",
     policyLink: "Политика cookie",
   },
 };

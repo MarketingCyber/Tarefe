@@ -1,29 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { getConsent, setConsent } from "@/lib/cookie-consent";
 import type { Locale } from "@/lib/taxonomy";
 
+// The stored banner state only changes through this component, so there is nothing to subscribe to.
+const subscribeNever = () => () => {};
+
 /**
- * Opt-in consent banner, gating src/lib/analytics.ts's track() calls (see
- * that file's comment). Renders nothing until mount confirms there's truly
- * no stored choice yet — avoids a hydration flash where server-rendered
- * markup assumes "no consent" but the visitor already chose on a previous
- * visit.
+ * Cookie notice (owner's decision, 2026-10-29: no consent check in any tag or tool, so there is nothing to choose —
+ * the banner only informs and "OK" dismisses it). Renders nothing until mount confirms it hasn't been dismissed yet,
+ * which avoids a hydration flash for returning visitors.
  */
-export function CookieConsentBanner({ locale, label }: { locale: Locale; label: { body: string; acceptAll: string; necessaryOnly: string; policyLink: string } }) {
-  const [visible, setVisible] = useState(false);
+export function CookieConsentBanner({ locale, label }: { locale: Locale; label: { body: string; acceptAll: string; policyLink: string } }) {
+  // Server render and first client render both say "dismissed", so nothing flashes for returning visitors.
+  const seenBefore = useSyncExternalStore(subscribeNever, () => getConsent() !== null, () => true);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    setVisible(getConsent() === null);
-  }, []);
+  if (seenBefore || dismissed) return null;
 
-  if (!visible) return null;
-
-  function choose(value: "accepted" | "necessary") {
-    setConsent(value);
-    setVisible(false);
+  function dismiss() {
+    setConsent("accepted");
+    setDismissed(true);
   }
 
   return (
@@ -39,22 +38,13 @@ export function CookieConsentBanner({ locale, label }: { locale: Locale; label: 
             {label.policyLink}
           </Link>
         </p>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => choose("necessary")}
-            className="press rounded-full border border-border-strong px-4 py-2 text-xs font-semibold text-purple-900 transition-colors hover:border-purple-600"
-          >
-            {label.necessaryOnly}
-          </button>
-          <button
-            type="button"
-            onClick={() => choose("accepted")}
-            className="press rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-purple-900"
-          >
-            {label.acceptAll}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="press shrink-0 rounded-full bg-purple-600 px-5 py-2 text-xs font-semibold text-white transition-colors hover:bg-purple-900"
+        >
+          {label.acceptAll}
+        </button>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
 import { track, EVENT, getAttribution } from "@/lib/analytics";
-import { getConsent } from "@/lib/cookie-consent";
+import { trackingAllowed } from "@/lib/cookie-consent";
 import { germanPhoneError } from "@/lib/phone";
 
 /**
@@ -25,6 +25,17 @@ function getOrCreateGaClientId(): string {
     if (m) return m[1];
   }
   return `${Math.floor(Math.random() * 2147483647)}.${Math.floor(Date.now() / 1000)}`;
+}
+
+/**
+ * The current GA4 session id from the `_ga_<property>` cookie (old "GS1.1.<id>.…" and new "GS2.1.s<id>$…" formats),
+ * so the server-side generate_lead joins the visitor's session in GA4 instead of starting a new one.
+ */
+function getGaSessionId(): string | undefined {
+  const match = document.cookie.match(/(?:^|; )_ga_[A-Z0-9]+=([^;]+)/);
+  if (!match) return undefined;
+  const v = decodeURIComponent(match[1]);
+  return (/^GS2\.\d\.s(\d+)/.exec(v) ?? /^GS1\.\d\.(\d+)\./.exec(v))?.[1];
 }
 
 const MIN_TOKEN_AGE_MS = 2_200;
@@ -151,7 +162,7 @@ export function ConsultationForm({
 
     const form = new FormData(e.currentTarget);
     const { first, last, visit } = getAttribution();
-    const consentAccepted = getConsent() === "accepted";
+    const consentAccepted = trackingAllowed();
     const metaEventId = newMetaEventId();
     try {
       const send = (formToken: string | null) =>
@@ -186,6 +197,7 @@ export function ConsultationForm({
           utmVisitContent: visit?.content,
           consentAccepted,
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
+          gaSessionId: consentAccepted ? getGaSessionId() : undefined,
           metaEventId,
           ...extra,
         }),

@@ -21,12 +21,13 @@
  * proxying client-side hits for visitors who *do* consent, where it
  * gives ad-blocker resistance and a durable first-party cookie.
  *
- * Consent: gated on the SAME "accepted" value GtmScript.tsx checks
- * (see cookie-consent.ts) — sending server-side removes the *technical*
- * dependency on the script loading in time, not the legal requirement
- * for the visitor to have actually consented. Consent lives in
- * localStorage (client-only), so the caller reads it and passes
+ * Gate: the same trackingAllowed() rule GtmScript.tsx uses (cookie-consent.ts;
+ * since 2026-10-29 on unless the visitor chose "necessary only"). The choice
+ * lives in localStorage (client-only), so the caller reads it and passes
  * `consentAccepted` through — the server can't read it directly.
+ *
+ * Needs GA4_MEASUREMENT_ID + GA4_MP_API_SECRET in the server .env; without
+ * them this is a silent no-op.
  */
 
 const MP_ENDPOINT = "https://www.google-analytics.com/mp/collect";

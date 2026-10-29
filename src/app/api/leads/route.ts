@@ -72,9 +72,11 @@ const LeadSchema = z.object({
   // See src/lib/ga4-measurement-protocol.ts's own comment for the full
   // "why" — sending server-side so a lead form submission is counted even
   // when the consent-gated client GTM script never loaded in time.
-  // consentAccepted mirrors cookie-consent.ts's getConsent() === "accepted"
-  // (localStorage-only, unreadable server-side, so the client passes it).
+  // consentAccepted mirrors cookie-consent.ts's trackingAllowed() (true unless the
+  // visitor chose "necessary only"; localStorage-only, so the client passes it).
   gaClientId: z.string().trim().max(100).optional(),
+  // GA4 session id from the _ga_<property> cookie, so the event joins that session.
+  gaSessionId: z.string().regex(/^\d{6,20}$/).optional(),
   consentAccepted: z.boolean().optional(),
   // Meta: the event id the browser pixel used for this Lead, so Meta can deduplicate it with ours (lib/meta-capi.ts).
   metaEventId: z.string().trim().min(8).max(64).optional(),
@@ -159,6 +161,7 @@ export async function POST(request: Request) {
     gclid,
     landing,
     gaClientId,
+    gaSessionId,
     consentAccepted,
     metaEventId,
     website,
@@ -219,13 +222,25 @@ export async function POST(request: Request) {
 
   // Best-effort, never blocks or fails the lead response — see
   // ga4-measurement-protocol.ts's comment for the full architecture.
+  // Runs after the response, like the Meta call below. session_id + engagement_time_msec make GA4 count it inside
+  // the visitor's own session (and show it in Realtime); the lead_* params let reports split leads by service.
   if (consentAccepted && gaClientId) {
-    await sendGA4Event({
-      clientId: gaClientId,
-      eventName: "generate_lead",
-      userAgent: request.headers.get("user-agent") ?? undefined,
-      ipOverride: getClientIp(request),
-    });
+    const leadUserAgent = request.headers.get("user-agent") ?? undefined;
+    after(() =>
+      sendGA4Event({
+        clientId: gaClientId,
+        eventName: "generate_lead",
+        eventParams: {
+          ...(gaSessionId ? { session_id: gaSessionId } : {}),
+          engagement_time_msec: 100,
+          lead_category: category ?? "general",
+          lead_service: serviceSlug ?? "general",
+          page_location: `${new URL(request.url).origin}${sourcePage ?? ""}`,
+        },
+        userAgent: leadUserAgent,
+        ipOverride: ip,
+      })
+    );
   }
 
   // Meta Conversions API: after the response, so the visitor never waits for Meta (owner, 2026-10-23: every

@@ -18,6 +18,16 @@ export const CONSENT_CHANGED_EVENT = "tarefe:consent-changed";
 
 export type ConsentValue = "accepted" | "necessary";
 
+/**
+ * Owner's decision (2026-10-29), replacing the opt-in model described above: no consent check in any tag or tool.
+ * Analytics, ads and our own attribution always run; the banner is only a notice (CookieConsentBanner.tsx).
+ * Every former tracking gate (analytics.ts, ConsultationForm.tsx) still calls this, so a future change of policy
+ * is one line here.
+ */
+export function trackingAllowed(): boolean {
+  return true;
+}
+
 export function getConsent(): ConsentValue | null {
   try {
     const v = window.localStorage.getItem(CONSENT_KEY);
