@@ -24,3 +24,10 @@ To undo: delete tarefe-next.conf, copy tarefe.conf back from the backup folder, 
 ## Still to do by the domain owner
 - DNS: the A record of tarefe.de (and www) must point to 87.106.38.19.
 - The HTTPS certificate for tarefe.de expires on 2026-11-17. Check that automatic renewal works.
+
+## Mobile app home-screen build (/m), added 2026-10-29
+
+The Expo app's web export is served by the website itself at https://tarefe.de/m (iPhone: Safari → Share →
+Add to Home Screen). It is not in git: build it in the app repo (C:\Claude\Tarefe-app) with
+`EXPO_PUBLIC_API_URL=https://tarefe.de npx expo export -p web`, copy `dist/` to `/opt/tarefe.de/app/public/m`,
+then rebuild `web`. next.config.ts rewrites app routes under /m to /m/index.html; proxy.ts leaves /m alone.
