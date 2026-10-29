@@ -18,7 +18,6 @@ const fmt = (v: number | null) => (v === null ? "—" : v.toLocaleString("en-US"
 export function EventsTable({ filters: f, groupBy, rows, totals }: { filters: AnalyticsFilters; groupBy: Dim[]; rows: EventTableRow[]; totals: Record<EventTableColumn, number | null> }) {
   const levels = [groupBy[0], groupBy[1] ?? "", groupBy[2] ?? ""];
   const options = EVENT_TABLE_DIMS.map((d) => ({ value: d, label: DIM_LABEL[d] ?? d }));
-  const showRequests = rows.some((r) => r.values.requests !== null);
 
   return (
     <section className="mt-10">
@@ -56,7 +55,7 @@ export function EventsTable({ filters: f, groupBy, rows, totals }: { filters: An
                   {DIM_LABEL[d] ?? d}
                 </th>
               ))}
-              {EVENT_TABLE_COLUMNS.filter((c) => c.key !== "requests" || showRequests).map((c) => (
+              {EVENT_TABLE_COLUMNS.map((c) => (
                 <th key={c.key} className="whitespace-nowrap px-4 py-3 text-right">
                   <span className="inline-flex items-center justify-end gap-1.5">
                     {c.label}
@@ -81,7 +80,7 @@ export function EventsTable({ filters: f, groupBy, rows, totals }: { filters: An
                     <bdi className={groupBy[i] === "landing" || groupBy[i] === "landing_group" ? "font-latin" : ""}>{dimValueLabel(groupBy[i], k)}</bdi>
                   </td>
                 ))}
-                {EVENT_TABLE_COLUMNS.filter((c) => c.key !== "requests" || showRequests).map((c) => (
+                {EVENT_TABLE_COLUMNS.map((c) => (
                   <td key={c.key} className="font-latin whitespace-nowrap px-4 py-2.5 text-right text-body">
                     {fmt(r.values[c.key])}
                   </td>
@@ -95,7 +94,7 @@ export function EventsTable({ filters: f, groupBy, rows, totals }: { filters: An
                 <td colSpan={groupBy.length} className="px-4 py-3">
                   Total
                 </td>
-                {EVENT_TABLE_COLUMNS.filter((c) => c.key !== "requests" || showRequests).map((c) => (
+                {EVENT_TABLE_COLUMNS.map((c) => (
                   <td key={c.key} className="font-latin whitespace-nowrap px-4 py-3 text-right">
                     {fmt(totals[c.key])}
                   </td>

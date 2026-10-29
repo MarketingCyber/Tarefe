@@ -311,11 +311,9 @@ export const EVENT_TABLE_COLUMNS = [
   { key: "calculator", label: "Used the calculator", hint: "Visitors who used the electricity or gas calculator." },
   { key: "tariff_clicks", label: "Tariff button clicks", hint: "Visitors who clicked a tariff button." },
   { key: "form_starts", label: "Form starts", hint: "Visitors who started the consultation form." },
+  { key: "requests", label: "Form submissions", hint: "Consultation requests actually sent (leads in the database). Shown when grouping by source, medium, campaign, content or term; a request carries no channel, device or page of arrival, so other groupings show \"—\"." },
   { key: "whatsapp", label: "WhatsApp clicks", hint: "Visitors who clicked a WhatsApp button." },
   { key: "phone", label: "Phone clicks", hint: "Visitors who clicked a phone number." },
-  { key: "accepted", label: "Accepted cookies", hint: "Visitors who clicked Accept on the banner (counted from the day the click counter was added)." },
-  { key: "declined", label: "Necessary only", hint: "Visitors who clicked \"necessary only\" on the banner." },
-  { key: "requests", label: "Requests (leads)", hint: "Real consultation requests from the database. Only available when grouping by source, medium, campaign, content or term, because a request cannot be matched to a channel or device." },
 ] as const;
 export type EventTableColumn = (typeof EVENT_TABLE_COLUMNS)[number]["key"];
 
@@ -370,9 +368,7 @@ export async function eventTable(f: AnalyticsFilters, groupBy: Dim[]): Promise<{
       count(DISTINCT visitor) FILTER (WHERE ev = 'tariff_cta_clicked') AS tariff_clicks,
       count(DISTINCT visitor) FILTER (WHERE ev = 'consultation_form_started') AS form_starts,
       count(DISTINCT visitor) FILTER (WHERE ev = 'whatsapp_clicked') AS whatsapp,
-      count(DISTINCT visitor) FILTER (WHERE ev = 'phone_clicked') AS phone,
-      count(DISTINCT visitor) FILTER (WHERE ev = 'consent_accepted') AS accepted,
-      count(DISTINCT visitor) FILTER (WHERE ev = 'consent_declined') AS declined
+      count(DISTINCT visitor) FILTER (WHERE ev = 'phone_clicked') AS phone
     FROM t ${Prisma.raw(grouped ? `GROUP BY ${groupCols} ORDER BY visits DESC, ${groupCols} LIMIT 200` : "")}`;
 
   const leadsGroupable = useDims.every((d) => LEAD_DIM_COLUMN[d]);
