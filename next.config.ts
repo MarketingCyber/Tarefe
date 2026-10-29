@@ -119,8 +119,19 @@ const nextConfig: NextConfig = {
     return rules;
   },
   // Google Ads landing journey: its own root layout lives under /landing/..., the public URL keeps the locale prefix.
+  //
+  // Mobile app, home-screen (web) build (2026-10-29): the Expo web export lives in public/m (copied there at
+  // deploy, not in git; see deploy/README). Every app route (/m, /m/contracts/abc, ...) has no file of its own, so
+  // it gets the app's index.html; real files (bundles, icons, manifest) all contain a dot and are served as they are.
   async rewrites() {
-    return [{ source: "/:locale(fa|de|ru)/landing/:kind(electricity|gas)", destination: "/landing/:locale/:kind" }];
+    return {
+      beforeFiles: [
+        { source: "/m", destination: "/m/index.html" },
+        { source: "/m/:path([^.]*)", destination: "/m/index.html" },
+      ],
+      afterFiles: [{ source: "/:locale(fa|de|ru)/landing/:kind(electricity|gas)", destination: "/landing/:locale/:kind" }],
+      fallback: [],
+    };
   },
 };
 

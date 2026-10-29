@@ -13,6 +13,17 @@ import type { Locale } from "@/lib/taxonomy";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_CODES_PER_WINDOW = 3;
+
+/**
+ * Closed test (2026-10-29, owner's decision): while APP_BETA_EMAILS is set (comma-separated), only those addresses
+ * get a code. Unset = open to every customer. Saying "not invited" reveals that an address isn't on the short test
+ * list, nothing about customers.
+ */
+function invited(email: string) {
+  const list = process.env.APP_BETA_EMAILS?.trim();
+  if (!list) return true;
+  return list.split(",").map((e) => normalizeEmail(e)).includes(email);
+}
 const WINDOW_MS = 10 * 60 * 1000;
 
 const MAIL: Record<Locale, (code: string) => { subject: string; text: string }> = {
@@ -29,6 +40,7 @@ export async function POST(request: Request) {
   const email = typeof body?.email === "string" ? normalizeEmail(body.email) : "";
   if (email.length > 254 || !EMAIL_RE.test(email)) return fail(400, "invalid_email", "Enter a valid email address");
   const locale: Locale = isLocale(body?.locale) ? body.locale : "fa";
+  if (!invited(email)) return fail(403, "not_invited", "The app is in a closed test; ask Tarefe for an invitation");
 
   const recent = await prisma.appLoginCode.count({ where: { email, createdAt: { gt: new Date(Date.now() - WINDOW_MS) } } });
   if (recent >= MAX_CODES_PER_WINDOW) return fail(429, "too_many_codes", "Too many codes requested, wait a few minutes");

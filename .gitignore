@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Uploaded customer documents (local disk storage, see src/lib/document-storage.ts) - never commit
 /private-uploads
+
+# Mobile app home-screen build (Expo web export, copied in at deploy; see deploy/README.md)
+/public/m/

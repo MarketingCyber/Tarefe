@@ -45,9 +45,10 @@ export const config = {
     /*
      * Run on every path except:
      *  - /app and /ops (separate, unprefixed root layouts)
+     *  - /m (the mobile app's home-screen build, static files rewritten in next.config.ts)
      *  - Next internals, static files, and well-known metadata files
      */
-    "/((?!app|ops|landing|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)",
+    "/((?!m/|m$|app|ops|landing|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)",
     // The mobile app paths, only so the switch above can close them (lib/app-flag.ts).
     "/api/v1/:path*",
     "/ops/conversations/:path*",
