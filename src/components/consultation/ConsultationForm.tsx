@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Locale } from "@/lib/taxonomy";
 import { track, EVENT, getAttribution } from "@/lib/analytics";
-import { trackingAllowed } from "@/lib/cookie-consent";
+import { adsAllowed, trackingAllowed } from "@/lib/cookie-consent";
 import { germanPhoneError } from "@/lib/phone";
 
 /**
@@ -196,6 +196,7 @@ export function ConsultationForm({
           utmVisitTerm: visit?.term,
           utmVisitContent: visit?.content,
           consentAccepted,
+          adsAccepted: adsAllowed(),
           gaClientId: consentAccepted ? getOrCreateGaClientId() : undefined,
           gaSessionId: consentAccepted ? getGaSessionId() : undefined,
           metaEventId,

@@ -75,7 +75,17 @@ export interface Dictionary {
   };
   cookieConsent: {
     body: string;
-    acceptAll: string;
+    settings: string;
+    close: string;
+    title: string;
+    intro: string;
+    necessary: string;
+    alwaysOn: string;
+    analytics: string;
+    analyticsNote: string;
+    ads: string;
+    adsNote: string;
+    save: string;
     policyLink: string;
   };
 }
@@ -148,8 +158,18 @@ const fa: Dictionary = {
     cta: "بازگشت به صفحه اصلی",
   },
   cookieConsent: {
-    body: "ما از کوکی‌ها و ابزارهای تحلیل و تبلیغات (Google، Meta و Microsoft Clarity) برای بهبود سایت و سنجش تبلیغات‌مان استفاده می‌کنیم.",
-    acceptAll: "باشه",
+    body: "ما برای بهبود تجربه شما و عملکرد سایت از کوکی‌ها و ابزارهای تحلیل و تبلیغات استفاده می‌کنیم. می‌توانید تنظیمات کوکی را در هر زمان تغییر دهید.",
+    settings: "تنظیمات کوکی",
+    close: "بستن",
+    title: "تنظیمات کوکی",
+    intro: "برخی کوکی‌ها برای عملکرد صحیح سایت ضروری هستند. سایر کوکی‌ها به ما کمک می‌کنند عملکرد سایت و کمپین‌های تبلیغاتی را بهتر بررسی و بهینه کنیم.",
+    necessary: "ضروری",
+    alwaysOn: "همیشه فعال",
+    analytics: "تحلیل و آمار",
+    analyticsNote: "Google Analytics، Microsoft Clarity و آمار داخلی سایت",
+    ads: "تبلیغات و شخصی‌سازی",
+    adsNote: "Google Ads و Meta (فیسبوک و اینستاگرام)",
+    save: "ذخیره تنظیمات",
     policyLink: "سیاست کوکی",
   },
 };
@@ -222,8 +242,18 @@ const de: Dictionary = {
     cta: "Zur Startseite",
   },
   cookieConsent: {
-    body: "Wir nutzen Cookies sowie Analyse- und Werbedienste (Google, Meta, Microsoft Clarity), um unsere Website und Werbung zu verbessern.",
-    acceptAll: "OK",
+    body: "Wir verwenden Cookies sowie Analyse- und Werbetools, um Ihr Erlebnis und die Leistung unserer Website zu verbessern. Sie können Ihre Cookie-Einstellungen jederzeit ändern.",
+    settings: "Cookie-Einstellungen",
+    close: "Schließen",
+    title: "Cookie-Einstellungen",
+    intro: "Einige Cookies sind für die Funktion der Website notwendig. Andere helfen uns, die Leistung der Website und unserer Werbekampagnen besser zu verstehen und zu verbessern.",
+    necessary: "Notwendig",
+    alwaysOn: "Immer aktiv",
+    analytics: "Analyse und Statistik",
+    analyticsNote: "Google Analytics, Microsoft Clarity und unsere Websitestatistik",
+    ads: "Werbung und Personalisierung",
+    adsNote: "Google Ads und Meta (Facebook, Instagram)",
+    save: "Einstellungen speichern",
     policyLink: "Cookie-Richtlinie",
   },
 };
@@ -296,8 +326,18 @@ const ru: Dictionary = {
     cta: "На главную",
   },
   cookieConsent: {
-    body: "Мы используем cookie, а также сервисы аналитики и рекламы (Google, Meta, Microsoft Clarity), чтобы улучшать сайт и рекламу.",
-    acceptAll: "OK",
+    body: "Мы используем cookie, а также инструменты аналитики и рекламы, чтобы улучшать ваш опыт и работу сайта. Вы можете изменить настройки cookie в любое время.",
+    settings: "Настройки cookie",
+    close: "Закрыть",
+    title: "Настройки cookie",
+    intro: "Некоторые cookie необходимы для правильной работы сайта. Другие помогают нам лучше понимать и улучшать работу сайта и рекламных кампаний.",
+    necessary: "Необходимые",
+    alwaysOn: "Всегда активны",
+    analytics: "Аналитика и статистика",
+    analyticsNote: "Google Analytics, Microsoft Clarity и собственная статистика сайта",
+    ads: "Реклама и персонализация",
+    adsNote: "Google Ads и Meta (Facebook, Instagram)",
+    save: "Сохранить настройки",
     policyLink: "Политика cookie",
   },
 };

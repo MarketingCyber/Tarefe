@@ -78,6 +78,8 @@ const LeadSchema = z.object({
   // GA4 session id from the _ga_<property> cookie, so the event joins that session.
   gaSessionId: z.string().regex(/^\d{6,20}$/).optional(),
   consentAccepted: z.boolean().optional(),
+  // The visitor's "ads" cookie switch (cookie-consent.ts adsAllowed()); false = no server-side Meta lead.
+  adsAccepted: z.boolean().optional(),
   // Meta: the event id the browser pixel used for this Lead, so Meta can deduplicate it with ours (lib/meta-capi.ts).
   metaEventId: z.string().trim().min(8).max(64).optional(),
   // Anti-abuse (see lib/lead-guard.ts). `website` is the honeypot — a field
@@ -163,6 +165,7 @@ export async function POST(request: Request) {
     gaClientId,
     gaSessionId,
     consentAccepted,
+    adsAccepted,
     metaEventId,
     website,
     formToken,
@@ -244,11 +247,12 @@ export async function POST(request: Request) {
   }
 
   // Meta Conversions API: after the response, so the visitor never waits for Meta (owner, 2026-10-23: every
-  // lead, hashed email/phone). Real leads only: bots and replays returned earlier.
+  // lead, hashed email/phone). Real leads only: bots and replays returned earlier. Skipped when the visitor
+  // switched "ads" off in the cookie settings (2026-10-29); a missing flag (older cached page) counts as on.
   const origin = new URL(request.url).origin;
   const cookieHeader = request.headers.get("cookie");
   const userAgent = request.headers.get("user-agent");
-  after(() =>
+  if (adsAccepted !== false) after(() =>
     sendMetaLead({
       eventId: metaEventId ?? lead.id,
       eventSourceUrl: request.headers.get("referer") ?? `${origin}${sourcePage ?? ""}`,

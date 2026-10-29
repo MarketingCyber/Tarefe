@@ -1,51 +1,66 @@
 /**
- * Consent for non-essential storage (Phase 12.2 / the cookie-policy page's
- * own "consent management will land in a later phase" note — this is that
- * phase). Scoped to what the site actually does: `src/lib/analytics.ts`
- * writes a session id to localStorage, and under Germany's TTDSG (which
- * covers "storage of information on the terminal device" generally, not
- * just cookies by name) that needs opt-in consent same as a tracking
- * cookie would — the NextAuth session cookie is separately exempt as
- * strictly necessary and isn't gated by this.
+ * Cookie settings (2026-10-29, owner's design). Analytics and advertising run from the first page view; a visitor
+ * can switch either group off at any time in "Cookie settings" (CookieConsentBanner.tsx, also reachable from the
+ * footer and the cookie-policy page), and the switch is real:
  *
- * Default is "no consent yet" → analytics stays off until a visitor
- * explicitly accepts, which is the opt-in model GDPR/TTDSG actually
- * require (not opt-out with a dismissible banner that doesn't block
- * anything).
+ *   analytics  Google Analytics 4, Microsoft Clarity, our own analytics + lead attribution (analytics.ts)
+ *   ads        Google Ads, Meta Pixel, the server-side Meta Conversions API lead
+ *
+ * GoogleTagManager.tsx turns the two groups into Google Consent Mode (analytics_storage / ad_storage …), and the
+ * Meta and Clarity tags in GTM require those same consent types, so nothing fires for a group that is off.
+ * Stored in localStorage, read client-side only.
  */
-export const CONSENT_KEY = "tarefe:cookie_consent";
+export const CONSENT_KEY = "tarefe:cookie_consent"; // "seen" once the notice was closed or settings were saved
+export const PREFS_KEY = "tarefe:cookie_prefs";
 export const CONSENT_CHANGED_EVENT = "tarefe:consent-changed";
+export const OPEN_SETTINGS_EVENT = "tarefe:open-cookie-settings";
 
-export type ConsentValue = "accepted" | "necessary";
+export type CookiePrefs = { analytics: boolean; ads: boolean };
+export const DEFAULT_PREFS: CookiePrefs = { analytics: true, ads: true };
 
-/**
- * Owner's decision (2026-10-29), replacing the opt-in model described above: no consent check in any tag or tool.
- * Analytics, ads and our own attribution always run; the banner is only a notice (CookieConsentBanner.tsx).
- * Every former tracking gate (analytics.ts, ConsultationForm.tsx) still calls this, so a future change of policy
- * is one line here.
- */
-export function trackingAllowed(): boolean {
-  return true;
-}
-
-export function getConsent(): ConsentValue | null {
+export function getCookiePrefs(): CookiePrefs {
   try {
-    const v = window.localStorage.getItem(CONSENT_KEY);
-    return v === "accepted" || v === "necessary" ? v : null;
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    if (!raw) return DEFAULT_PREFS;
+    const p = JSON.parse(raw) as Partial<CookiePrefs>;
+    return { analytics: p.analytics !== false, ads: p.ads !== false };
   } catch {
-    // localStorage unavailable (private mode, blocked storage) — treat as
-    // no consent given, which is the safe default (analytics stays off).
-    return null;
+    return DEFAULT_PREFS;
   }
 }
 
-/**
- * Counts the banner decision on our own server (cookie-free, nothing stored, no id sent —
- * see /api/funnel-event), only so the analytics page can show how many visitors accept.
- */
-function countDecision(value: ConsentValue) {
+/** Analytics group: own analytics, lead attribution, the server-side GA4 lead. */
+export function trackingAllowed(): boolean {
+  return getCookiePrefs().analytics;
+}
+
+/** Advertising group: the server-side Meta lead (the browser tags follow Consent Mode). */
+export function adsAllowed(): boolean {
+  return getCookiePrefs().ads;
+}
+
+/** True once the visitor closed the notice or saved settings (the notice then stays hidden). */
+export function noticeSeen(): boolean {
   try {
-    const body = JSON.stringify({ name: value === "accepted" ? "consent_accepted" : "consent_declined", path: window.location.pathname.slice(0, 300) });
+    return window.localStorage.getItem(CONSENT_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function markNoticeSeen() {
+  try {
+    window.localStorage.setItem(CONSENT_KEY, "seen");
+  } catch {
+    // storage blocked: the notice just shows again next visit
+  }
+}
+
+/** Counts the decision on our own server (cookie-free, no id sent) so the analytics page can show the share. */
+function countDecision(prefs: CookiePrefs) {
+  try {
+    const name = prefs.analytics && prefs.ads ? "consent_accepted" : "consent_declined";
+    const body = JSON.stringify({ name, path: window.location.pathname.slice(0, 300) });
     if (!navigator.sendBeacon?.("/api/funnel-event", new Blob([body], { type: "application/json" }))) {
       fetch("/api/funnel-event", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
     }
@@ -54,14 +69,17 @@ function countDecision(value: ConsentValue) {
   }
 }
 
-export function setConsent(value: ConsentValue) {
-  countDecision(value);
+export function setCookiePrefs(prefs: CookiePrefs) {
+  countDecision(prefs);
   try {
-    window.localStorage.setItem(CONSENT_KEY, value);
-    window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: value }));
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
-    // If storage is blocked, the choice can't persist — the banner will
-    // just reappear next visit, which is honest rather than silently
-    // pretending the choice was saved.
+    // storage blocked: the choice applies to this page view only
   }
+  markNoticeSeen();
+  window.dispatchEvent(new CustomEvent<CookiePrefs>(CONSENT_CHANGED_EVENT, { detail: prefs }));
+}
+
+export function openCookieSettings() {
+  window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT));
 }

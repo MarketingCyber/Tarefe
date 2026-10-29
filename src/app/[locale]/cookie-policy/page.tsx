@@ -28,23 +28,23 @@ const PENDING: Record<Locale, string> = {
 };
 
 const CHANGE_CHOICE_LABEL: Record<Locale, string> = {
-  fa: "تغییر انتخاب کوکی",
-  de: "Cookie-Auswahl ändern",
-  ru: "Изменить выбор cookie",
+  fa: "تنظیمات کوکی",
+  de: "Cookie-Einstellungen",
+  ru: "Настройки cookie",
 };
 
 const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
   fa: [
     { heading: "کوکی‌های ضروری", body: "برای عملکرد پایه وب‌سایت، مانند حفظ زبان انتخابی شما، استفاده می‌شوند." },
-    { heading: "کوکی‌های تحلیلی", body: "برای بهبود سایت و سنجش تبلیغات به‌کار می‌روند. می‌توانید آن‌ها را هر زمان در تنظیمات مرورگرتان پاک یا مسدود کنید." },
+    { heading: "کوکی‌های تحلیلی", body: "برای بهبود سایت و سنجش تبلیغات به‌کار می‌روند. می‌توانید آن‌ها را هر زمان در «تنظیمات کوکی» غیرفعال کنید." },
   ],
   de: [
     { heading: "Notwendige Cookies", body: "Werden für die Grundfunktionen der Website benötigt, z. B. zum Speichern Ihrer Sprachauswahl." },
-    { heading: "Analyse-Cookies", body: "Dienen der Verbesserung der Website und der Erfolgsmessung unserer Werbung. Sie können sie jederzeit in Ihren Browsereinstellungen löschen oder blockieren." },
+    { heading: "Analyse-Cookies", body: "Dienen der Verbesserung der Website und der Erfolgsmessung unserer Werbung. Sie können sie jederzeit in den „Cookie-Einstellungen“ deaktivieren." },
   ],
   ru: [
     { heading: "Необходимые cookie", body: "Используются для базовой работы сайта, например для сохранения выбранного языка." },
-    { heading: "Аналитические cookie", body: "Используются для улучшения сайта и оценки рекламы. Их можно в любой момент удалить или заблокировать в настройках браузера." },
+    { heading: "Аналитические cookie", body: "Используются для улучшения сайта и оценки рекламы. Их можно в любой момент отключить в «Настройках cookie»." },
   ],
 };
 

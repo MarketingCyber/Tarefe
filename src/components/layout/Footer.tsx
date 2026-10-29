@@ -5,6 +5,7 @@ import { byLocale, getSubcategory } from "@/lib/taxonomy";
 import type { Dictionary } from "@/lib/dictionary";
 import { Logo } from "./Logo";
 import { TrackedPhoneLink } from "@/components/shared/TrackedPhoneLink";
+import { CookieConsentControl } from "@/components/shared/CookieConsentControl";
 
 export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const year = new Date().getFullYear();
@@ -94,6 +95,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           <FooterLink href={`/${locale}/privacy-policy`}>{dict.footer.privacy}</FooterLink>
           <FooterLink href={`/${locale}/terms`}>{dict.footer.terms}</FooterLink>
           <FooterLink href={`/${locale}/cookie-policy`}>{dict.footer.cookiePolicy}</FooterLink>
+          <CookieConsentControl variant="link" label={dict.cookieConsent.settings} />
           {/* "My Tarefe" link intentionally removed — the customer-dashboard
               feature isn't publicly launched yet. dict.footer.myTarefe kept
               defined (unused) so this is a one-line re-add later. */}
