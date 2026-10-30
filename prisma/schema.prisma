@@ -68,6 +68,10 @@ model User {
   mfaSecret  String?
   mfaEnabled Boolean @default(false)
 
+  // Staff only (2026-10-31): who this staff member is in the old CRM (a Dynamics systemuser id from the mirror),
+  // chosen by themselves on /ops/tasks — the default "mine" filter for old-CRM tasks and contracts.
+  crmUserId String?
+
   // Mobile app (2026-10-23): random, non-guessable code a customer shares to invite friends (never built from the
   // name, owner's rule). Created on first request by /api/v1/referral.
   referralCode String? @unique

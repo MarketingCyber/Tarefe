@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { FilterChip, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 import { CONTRACT_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
+import { crmUsers } from "@/lib/crm/crm-users";
 
 /**
  * Contracts across both CRMs. Three views:
@@ -56,13 +57,10 @@ export default async function OpsContractsPage({
   const category = sp.category?.toLowerCase() || null;
 
   const [owners, categories] = await Promise.all([
-    prisma.crmRecord.findMany({ where: { entity: "systemuser", deletedAt: null }, select: { crmId: true, data: true } }),
+    crmUsers(),
     prisma.crmRecord.findMany({ where: { entity: "new_category", deletedAt: null }, select: { crmId: true, data: true } }),
   ]);
-  const ownerOptions = owners
-    .map((o) => ({ id: o.crmId.toLowerCase(), name: shown(o.data as Record<string, unknown>, "fullname") ?? "—" }))
-    .filter((o) => !/^(SYSTEM|INTEGRATION|# )/i.test(o.name))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const ownerOptions = owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (غیرفعال)` : o.name }));
   const categoryOptions = categories.map((c) => ({ id: c.crmId.toLowerCase(), name: shown(c.data as Record<string, unknown>, "new_name") ?? "—" })).sort((a, b) => a.name.localeCompare(b.name));
 
   const href = (patch: Record<string, string | null>) => {
