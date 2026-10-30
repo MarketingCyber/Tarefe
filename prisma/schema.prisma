@@ -999,3 +999,20 @@ model CrmForm {
 
   @@map("crm_forms")
 }
+
+// Nightly reconciliation of the old-CRM mirror (QA of the parallel run, docs/crm-redesign/04-migration-plan.md):
+// per table, the record count in Dynamics vs. the mirror, and a field-by-field comparison of a random sample.
+model CrmCheck {
+  id         String   @id @default(cuid())
+  entity     String
+  ranAt      DateTime @default(now())
+  live       Int? // records in Dynamics (null: the table couldn't be counted, see error)
+  mirror     Int // records in crm_records (not deleted)
+  sampled    Int      @default(0) // records compared field by field
+  mismatched Int      @default(0) // of those, records with a real difference
+  details    Json? // [{ crmId, fields: [...] }] for the mismatched records
+  error      String?
+
+  @@index([entity, ranAt])
+  @@map("crm_checks")
+}

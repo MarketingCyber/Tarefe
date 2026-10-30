@@ -16,7 +16,8 @@ every automation is in [02-old-crm-automations.md](02-old-crm-automations.md).
 | Vendor | **BayatSoft** built parts of it (BayatSoft.MSCRM, notifications, WhatsApp, Fulmakht/Vollmacht) |
 
 Not readable with the owner's role (would need a read-only role from the CRM team): webhooks/service endpoints,
-solutions, finance transactions (`new_finance_record`), emails, phone calls, tasks, chatbots.
+solutions, finance transactions (`new_finance_record`), chatbots. Emails (86k), tasks (67k), phone calls and
+appointments ARE readable, just not with change tracking — the mirror copies them by `modifiedon`.
 
 ## 2. The data (records on 2026-10-30)
 
@@ -145,7 +146,7 @@ commission) need either the source from BayatSoft/the CRM team, or to be re-deri
 5. Data migration later: 6.8k customers, 27k contracts, 25k tickets, 100k notes/files, 19k points.
 
 ## 6. Open questions for the CRM team / BayatSoft
-- Read-only role covering webhooks, solutions, finance transactions, emails, phone calls, tasks.
+- Read-only role covering webhooks, solutions, finance transactions, and change tracking on activities.
 - What triggers the scheduled ("called by other processes") deadline workflows?
 - C# source (or a description) of the custom code in §4, especially points, customer level, commission.
 - Who uses the Outlook add-in, and which reports matter (TB_Report)?

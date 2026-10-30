@@ -7,7 +7,7 @@ import { crmGet, CrmError } from "@/lib/dynamics/client";
  * Tarefe-relevant Dynamics tables into `crm_records`, unchanged (all fields + Persian display texts).
  *
  * Two ways to see what changed, depending on the table:
- *  - change-tracked tables (contact, account, opportunity, incident, lead, task, annotation, systemuser): Dynamics'
+ *  - change-tracked tables (contact, account, opportunity, incident, lead, annotation, systemuser): Dynamics'
  *    own change tracking. The first run reads everything and ends with a "delta link"; each later run asks that
  *    link for changes AND deletions since the previous run.
  *  - all other (custom) tables: records modified since the newest `modifiedon` already copied. Deletions there are
@@ -15,7 +15,7 @@ import { crmGet, CrmError } from "@/lib/dynamics/client";
  * Work is done in pages with a time budget; an unfinished import resumes from its saved page link next run.
  */
 
-type Table = { name: string; set: string; tracked: boolean; select?: string };
+type Table = { name: string; set: string; tracked: boolean; select?: string; id?: string };
 
 // Tarefe's own tables plus the standard ones it uses. Not mirrored: new_sitesyncer (the old site's outbound queue,
 // not business data) and Microsoft's built-in system tables.
@@ -25,7 +25,6 @@ export const CRM_TABLES: Table[] = [
   { name: "opportunity", set: "opportunities", tracked: true },
   { name: "incident", set: "incidents", tracked: true },
   { name: "lead", set: "leads", tracked: true },
-  { name: "task", set: "tasks", tracked: true },
   { name: "systemuser", set: "systemusers", tracked: true },
   // Notes without the file bytes (documentbody, ~0.7 GB in total) — files are copied separately.
   {
@@ -46,12 +45,18 @@ export const CRM_TABLES: Table[] = [
     ["new_opportunityformaklerfertrak", "new_opportunityformaklerfertraks"], ["bs_whatsapp", "bs_whatsapps"], ["bs_whatsappsetting", "bs_whatsappsettings"],
     ["bsnotif_notification", "bsnotif_notifications"], ["bsnotif_notificationsetting", "bsnotif_notificationsettings"], ["bsfulm_fulmakht", "bsfulm_fulmakhts"],
   ].map(([name, set]) => ({ name, set, tracked: false })),
+  // Activities (operators' history: tasks, emails, calls, appointments). Their id is `activityid`, and reading them
+  // with change tracking is refused for the current CRM login, so they go by modifiedon. Last in the list: their
+  // first import (~150k records) only uses what's left of each round's time, after the other tables' changes.
+  ...[["task", "tasks"], ["email", "emails"], ["phonecall", "phonecalls"], ["appointment", "appointments"]]
+    .map(([name, set]) => ({ name, set, tracked: false, id: "activityid" })),
 ];
 
 type Page = { value: Record<string, unknown>[]; "@odata.nextLink"?: string; "@odata.deltaLink"?: string };
 export type TableResult = { table: string; upserted: number; deleted: number; done: boolean; error?: string };
 
-const idOf = (table: Table, row: Record<string, unknown>) => (row[`${table.name}id`] ?? row.id) as string | undefined;
+const idField = (table: Table) => table.id ?? `${table.name}id`;
+const idOf = (table: Table, row: Record<string, unknown>) => (row[idField(table)] ?? row.id) as string | undefined;
 const isDeletion = (row: Record<string, unknown>) =>
   typeof row["@odata.context"] === "string" && (row["@odata.context"] as string).includes("$deletedEntity");
 
@@ -153,7 +158,7 @@ export async function reconcileDeletions(tableName: string): Promise<number> {
   const table = CRM_TABLES.find((t) => t.name === tableName);
   if (!table || table.tracked) return 0;
   const ids = new Set<string>();
-  let url: string | null = `${table.set}?$select=${table.name}id`;
+  let url: string | null = `${table.set}?$select=${idField(table)}`;
   while (url) {
     const page: Page = await crmGet<Page>(url);
     for (const row of page.value ?? []) {
@@ -238,4 +243,70 @@ export async function syncForms(): Promise<number> {
     count++;
   }
   return count;
+}
+
+const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
+
+/** Live record count of a table. Aggregates stop at 50,000 records, so bigger ranges are split by creation date. */
+async function liveCount(table: Table): Promise<number> {
+  const count = async (from?: Date, to?: Date): Promise<number> => {
+    const filter = from && to ? `filter(createdon ge ${from.toISOString()} and createdon lt ${to.toISOString()})/` : "";
+    try {
+      return (await crmGet<{ value: { c: number }[] }>(`${table.set}?$apply=${filter}aggregate($count as c)`)).value[0]?.c ?? 0;
+    } catch (error) {
+      if (!(error instanceof CrmError && error.status === 400 && error.message.includes("AggregateQueryRecordLimit"))) throw error;
+      const start = from ?? new Date("2010-01-01T00:00:00Z"), end = to ?? new Date(Date.now() + 86_400_000);
+      const mid = new Date((start.getTime() + end.getTime()) / 2);
+      return (await count(start, mid)) + (await count(mid, end));
+    }
+  };
+  return count();
+}
+
+/** Fields that differ between the mirror and Dynamics. Display texts (@… annotations) are skipped: same value, other format. */
+function differingFields(live: Record<string, unknown>, mirror: Record<string, unknown>): string[] {
+  const norm = (k: string, v: unknown) => (v === undefined || (k === "processid" && v === ZERO_GUID) ? null : v);
+  return [...new Set([...Object.keys(live), ...Object.keys(mirror)])]
+    .filter((k) => !k.includes("@"))
+    .filter((k) => JSON.stringify(norm(k, live[k])) !== JSON.stringify(norm(k, mirror[k])));
+}
+
+/**
+ * Nightly QA of the mirror: per table, Dynamics' record count vs. the mirror's, and `sample` random records compared
+ * field by field (records changed in Dynamics since the last sync round are skipped; the next round copies them).
+ * Each result is saved in crm_checks and shown in /ops/old-crm.
+ */
+export async function checkMirror(sample = 20, only?: string[]) {
+  const results = [];
+  for (const table of CRM_TABLES) {
+    if (only && !only.includes(table.name)) continue;
+    const mirror = await prisma.crmRecord.count({ where: { entity: table.name, deletedAt: null } });
+    let live: number | null = null, sampled = 0, error: string | null = null;
+    const details: { crmId: string; fields: string[] }[] = [];
+    try {
+      live = await liveCount(table);
+      const rows = await prisma.$queryRaw<{ crmId: string; data: Record<string, unknown> }[]>`
+        SELECT "crmId", data FROM crm_records WHERE entity = ${table.name} AND "deletedAt" IS NULL ORDER BY random() LIMIT ${sample}`;
+      for (const row of rows) {
+        let current: Record<string, unknown>;
+        try {
+          current = await crmGet<Record<string, unknown>>(`${table.set}(${row.crmId})${table.select ? `?$select=${table.select}` : ""}`);
+        } catch (e) {
+          if (e instanceof CrmError && e.status === 404) { sampled++; details.push({ crmId: row.crmId, fields: ["(deleted in Dynamics)"] }); continue; }
+          throw e;
+        }
+        if (current.modifiedon !== row.data.modifiedon) continue;
+        sampled++;
+        const fields = differingFields(current, row.data);
+        if (fields.length) details.push({ crmId: row.crmId, fields });
+      }
+    } catch (e) {
+      error = (e instanceof CrmError ? `${e.status || "network"}: ${e.message}` : String(e)).slice(0, 500);
+    }
+    const saved = await prisma.crmCheck.create({
+      data: { entity: table.name, live, mirror, sampled, mismatched: details.length, details: details.length ? details : undefined, error },
+    });
+    results.push({ table: table.name, live, mirror, sampled, mismatched: saved.mismatched, error });
+  }
+  return results;
 }

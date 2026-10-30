@@ -12,6 +12,9 @@ export const TABLE_LABELS: Record<string, string> = {
   incident: "تیکت‌ها",
   lead: "سرنخ‌ها",
   task: "تسک‌ها",
+  email: "ایمیل‌ها",
+  phonecall: "تماس‌های تلفنی",
+  appointment: "قرارهای ملاقات",
   systemuser: "کاربران CRM",
   annotation: "یادداشت‌ها و فایل‌ها",
   new_points: "امتیازات",
@@ -57,7 +60,7 @@ export function displayName(entity: string, data: Data): string {
     const v = data[key];
     if (typeof v === "string" && v.trim()) return v;
   }
-  return `${TABLE_LABELS[entity] ?? entity} ${String(data[`${entity}id`] ?? "").slice(0, 8)}`;
+  return `${TABLE_LABELS[entity] ?? entity} ${String(data[`${entity}id`] ?? data.activityid ?? "").slice(0, 8)}`;
 }
 
 export type FieldValue = { text: string; link?: { entity: string; id: string } } | null;
