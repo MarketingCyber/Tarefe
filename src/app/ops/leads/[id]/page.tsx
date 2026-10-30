@@ -13,6 +13,8 @@ import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { trackServer } from "@/lib/analytics-server";
 import { EVENT } from "@/lib/analytics";
 import { canAccessPipeline } from "@/lib/permissions";
+import { isGuid } from "@/lib/dynamics/identity";
+import { CrmLead } from "@/components/crm/customer/CrmLead";
 import { LeadAttributionPanel } from "@/components/crm/LeadAttribution";
 
 const STATUS_OPTIONS = ["NEW", "CONTACTED", "QUALIFIED", "CONSULTATION_SCHEDULED", "APPLICATION_STARTED", "APPLICATION_SUBMITTED", "CONTRACT_ACTIVE", "LOST"] as const;
@@ -54,11 +56,13 @@ async function addNote(formData: FormData) {
   revalidatePath(`/ops/leads/${leadId}`);
 }
 
-export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LeadDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string }> }) {
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
   const { id } = await params;
+  // Old-CRM leads have Dynamics GUIDs; website leads (cuid ids) keep this page.
+  if (isGuid(id)) return <CrmLead id={id} history={(await searchParams).history} />;
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
