@@ -974,3 +974,28 @@ model CrmSyncState {
 
   @@map("crm_sync_state")
 }
+
+// Field labels of the old CRM, per table (Dynamics attribute metadata), so /ops/old-crm shows every field under the
+// exact Persian/German label operators know from Dynamics. Refreshed by syncFieldLabels() in lib/dynamics/sync.ts.
+model CrmField {
+  entity String
+  name   String // logical name, e.g. new_step
+  label  String // display label in Dynamics
+  type   String // Dynamics AttributeType: String, Picklist, Lookup, DateTime, Money …
+  custom Boolean @default(false)
+  hidden Boolean @default(false) // the old CRM marks fields it no longer uses «استفاده نشود»
+
+  @@id([entity, name])
+  @@map("crm_fields")
+}
+
+// The old CRM's main form per table (Dynamics systemform layout: tabs → sections → fields, with the labels as they
+// appear on the form), so /ops/old-crm shows a record laid out like the Dynamics screen operators know.
+model CrmForm {
+  entity   String   @id
+  name     String // form name in Dynamics, e.g. "Opportunity", "Information"
+  layout   Json // [{ label, hidden, sections: [{ label, hidden, fields: [{ name, label, hidden }] }] }]
+  syncedAt DateTime @default(now()) @updatedAt
+
+  @@map("crm_forms")
+}

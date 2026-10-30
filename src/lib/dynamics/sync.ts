@@ -167,3 +167,75 @@ export async function reconcileDeletions(tableName: string): Promise<number> {
   if (gone.length) await prisma.crmRecord.updateMany({ where: { entity: table.name, crmId: { in: gone } }, data: { deletedAt: new Date() } });
   return gone.length;
 }
+
+type AttributeMeta = { LogicalName: string; AttributeType: string; IsCustomAttribute: boolean; AttributeOf: string | null; DisplayName?: { UserLocalizedLabel?: { Label?: string } | null } };
+
+/** Copies the field labels of every mirrored table (Dynamics attribute metadata) into crm_fields. */
+export async function syncFieldLabels(): Promise<number> {
+  let count = 0;
+  for (const table of CRM_TABLES) {
+    let attrs: AttributeMeta[];
+    try {
+      attrs = (await crmGet<{ value: AttributeMeta[] }>(`EntityDefinitions(LogicalName='${table.name}')/Attributes?$select=LogicalName,AttributeType,IsCustomAttribute,AttributeOf,DisplayName`)).value;
+    } catch {
+      continue;
+    }
+    for (const a of attrs) {
+      if (a.AttributeOf || ["Virtual", "EntityName", "ManagedProperty", "CalendarRules"].includes(a.AttributeType)) continue;
+      const label = a.DisplayName?.UserLocalizedLabel?.Label?.trim() || a.LogicalName;
+      const data = { label, type: a.AttributeType, custom: a.IsCustomAttribute, hidden: label.includes("استفاده نشود") };
+      await prisma.crmField.upsert({ where: { entity_name: { entity: table.name, name: a.LogicalName } }, create: { entity: table.name, name: a.LogicalName, ...data }, update: data });
+      count++;
+    }
+  }
+  return count;
+}
+
+export type FormField = { name: string; label: string; hidden: boolean };
+export type FormSection = { label: string; hidden: boolean; fields: FormField[] };
+export type FormTab = { label: string; hidden: boolean; sections: FormSection[] };
+
+// Which Dynamics main form operators use per table (others: the first active main form, usually "Information").
+const MAIN_FORM: Record<string, string> = { contact: "Contact", account: "Account", opportunity: "Opportunity", incident: "Case", lead: "Lead", task: "Task" };
+
+const xmlText = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'");
+const firstLabel = (xml: string) => xmlText(/<labels>\s*<label description="([^"]*)"/.exec(xml)?.[1] ?? "");
+const isHidden = (openTag: string) => /\bvisible="false"/.test(openTag);
+
+/** Reads a Dynamics form XML into tabs → sections → fields (subgrids and web resources are skipped). */
+export function parseFormXml(xml: string): FormTab[] {
+  const tabs: FormTab[] = [];
+  for (const tab of xml.matchAll(/(<tab\b[^>]*>)([\s\S]*?)<\/tab>/g)) {
+    const sections: FormSection[] = [];
+    for (const sec of tab[2].matchAll(/(<section\b[^>]*>)([\s\S]*?)<\/section>/g)) {
+      const fields: FormField[] = [];
+      for (const cell of sec[2].matchAll(/(<cell\b[^>]*>)([\s\S]*?)<\/cell>/g)) {
+        const field = /<control\b[^>]*\bdatafieldname="([^"]+)"/.exec(cell[2])?.[1];
+        if (!field) continue;
+        fields.push({ name: field, label: firstLabel(cell[2]), hidden: isHidden(cell[1]) });
+      }
+      if (fields.length) sections.push({ label: firstLabel(sec[2]), hidden: isHidden(sec[1]), fields });
+    }
+    if (sections.length) tabs.push({ label: firstLabel(tab[2]), hidden: isHidden(tab[1]), sections });
+  }
+  return tabs;
+}
+
+/** Copies the main form layout of every mirrored table into crm_forms. */
+export async function syncForms(): Promise<number> {
+  let count = 0;
+  for (const table of CRM_TABLES) {
+    let forms: { name: string; formxml: string }[];
+    try {
+      forms = (await crmGet<{ value: { name: string; formxml: string }[] }>(`systemforms?$select=name,formxml&$filter=objecttypecode eq '${table.name}' and type eq 2 and formactivationstate eq 1`)).value;
+    } catch {
+      continue;
+    }
+    const form = forms.find((f) => f.name === MAIN_FORM[table.name]) ?? forms.find((f) => f.name === "Information") ?? forms[0];
+    if (!form) continue;
+    const layout = parseFormXml(form.formxml) as unknown as Prisma.InputJsonValue;
+    await prisma.crmForm.upsert({ where: { entity: table.name }, create: { entity: table.name, name: form.name, layout }, update: { name: form.name, layout } });
+    count++;
+  }
+  return count;
+}

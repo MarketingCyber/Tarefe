@@ -30,6 +30,7 @@ import {
   IdentificationBadge,
   Lightning,
   CaretDown,
+  Database,
   type Icon,
 } from "@phosphor-icons/react";
 import { NotificationBell, type NotificationItem } from "@/components/shared/NotificationBell";
@@ -78,6 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/ops/contracts", label: "قراردادها", icon: FileText },
       { href: "/ops/conversations", label: "گفتگوهای اپ", icon: ChatsCircle, app: true },
       { href: "/ops/tickets", label: "تیکت‌ها", icon: Headset },
+      { href: "/ops/old-crm", label: "CRM قدیم", icon: Database },
     ],
   },
   {

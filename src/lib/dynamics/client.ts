@@ -37,7 +37,7 @@ export class CrmError extends Error {
   }
 }
 
-const PREFER = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue",odata.maxpagesize=500';
+const PREFER = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue,Microsoft.Dynamics.CRM.lookuplogicalname",odata.maxpagesize=500';
 
 function getOnce(url: string, extraPrefer?: string): Promise<{ status: number; body: string }> {
   const l = login();
