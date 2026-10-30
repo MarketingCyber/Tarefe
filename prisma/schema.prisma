@@ -954,9 +954,13 @@ model CrmRecord {
   crmModifiedAt DateTime? // Dynamics' modifiedon
   deletedAt     DateTime? // set when Dynamics reports the record deleted (kept, never hard-deleted here)
   syncedAt      DateTime  @default(now()) @updatedAt
+  // Its own id, the ids of every record it points at, and for people e-mail/phone keys (lib/dynamics/identity.ts):
+  // "everything about this customer / contract" and "which old-CRM person is this tarefe.de account" in one lookup.
+  refs          String[]  @default([])
 
   @@unique([entity, crmId])
   @@index([entity, crmModifiedAt])
+  @@index([refs], type: Gin)
   @@map("crm_records")
 }
 

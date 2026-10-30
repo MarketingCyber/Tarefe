@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { crmGet, CrmError } from "@/lib/dynamics/client";
+import { refsOf } from "@/lib/dynamics/identity";
 
 /**
  * Old CRM → tarefe.de mirror (phase 1 of docs/crm-redesign/04-migration-plan.md). Copies every record of the
@@ -65,7 +66,9 @@ const isDeletion = (row: Record<string, unknown>) =>
 // plain text. Any field whose name looks like a secret is dropped too, so a new one in Dynamics can't slip through.
 const SECRET_NAME = /(password|secret|token|api_?key)/i;
 const SECRET_FIELDS: Record<string, string[]> = { contact: ["new_username"], systemuser: ["new_username"] };
-const isSecretField = (table: string, name: string) => SECRET_NAME.test(name) || (SECRET_FIELDS[table] ?? []).includes(name);
+const NOT_SECRET = ["trackingtoken"]; // e-mails: the CRM:000123 code that matches replies to their thread
+const isSecretField = (table: string, name: string) =>
+  (SECRET_NAME.test(name) && !NOT_SECRET.includes(name)) || (SECRET_FIELDS[table] ?? []).includes(name);
 
 /** The record without its secret fields (and their display-text annotations). */
 export function withoutSecrets(table: string, row: Record<string, unknown>): Record<string, unknown> {
@@ -98,11 +101,13 @@ async function saveRows(table: Table, rows: Record<string, unknown>[]) {
       continue;
     }
     const modified = typeof row.modifiedon === "string" ? new Date(row.modifiedon) : null;
-    const data = withoutSecrets(table.name, row) as Prisma.InputJsonValue;
+    const clean = withoutSecrets(table.name, row);
+    const data = clean as Prisma.InputJsonValue;
+    const refs = refsOf(table.name, crmId, clean);
     await prisma.crmRecord.upsert({
       where: { entity_crmId: { entity: table.name, crmId } },
-      create: { entity: table.name, crmId, data, crmModifiedAt: modified },
-      update: { data, crmModifiedAt: modified, deletedAt: null },
+      create: { entity: table.name, crmId, data, crmModifiedAt: modified, refs },
+      update: { data, crmModifiedAt: modified, deletedAt: null, refs },
     });
     upserted++;
   }
@@ -165,7 +170,10 @@ export async function syncTable(table: Table, deadline: number): Promise<TableRe
   return result;
 }
 
-/** One sync round over all tables, within `budgetMs`. Tables that didn't finish continue next round. */
+/**
+ * One sync round over all tables, within `budgetMs`. Tables that didn't finish continue next round. Time left over
+ * goes to indexing records copied before crm_records.refs existed (a no-op once that's done).
+ */
 export async function syncAll(budgetMs = 50_000, only?: string[]): Promise<TableResult[]> {
   const deadline = Date.now() + budgetMs;
   const results: TableResult[] = [];
@@ -174,6 +182,7 @@ export async function syncAll(budgetMs = 50_000, only?: string[]): Promise<Table
     if (Date.now() > deadline) break;
     results.push(await syncTable(table, deadline));
   }
+  if (!only && Date.now() < deadline) await backfillRefs(deadline);
   return results;
 }
 
@@ -336,4 +345,24 @@ export async function checkMirror(sample = 20, only?: string[]) {
     results.push({ table: table.name, live, mirror, sampled, mismatched: saved.mismatched, error });
   }
   return results;
+}
+
+/**
+ * Fills crm_records.refs for records copied before the index existed (every indexed record holds at least its own
+ * id, so an empty list means "not done yet"). Runs in batches until the deadline; returns how many it filled.
+ */
+export async function backfillRefs(deadline: number, batch = 1000): Promise<number> {
+  let done = 0;
+  while (Date.now() < deadline) {
+    const rows = await prisma.$queryRaw<{ id: string; entity: string; crmId: string; data: Record<string, unknown> }[]>`
+      SELECT id, entity, "crmId", data FROM crm_records WHERE refs = '{}' LIMIT ${batch}`;
+    if (!rows.length) break;
+    const ids = rows.map((r) => r.id);
+    const refs = rows.map((r) => JSON.stringify(refsOf(r.entity, r.crmId, r.data)));
+    await prisma.$executeRaw`
+      UPDATE crm_records c SET refs = ARRAY(SELECT jsonb_array_elements_text(u.refs::jsonb))
+      FROM unnest(${ids}::text[], ${refs}::text[]) AS u(id, refs) WHERE c.id = u.id`;
+    done += rows.length;
+  }
+  return done;
 }

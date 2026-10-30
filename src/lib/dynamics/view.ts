@@ -90,10 +90,12 @@ export function fieldValue(data: Data, name: string, type: string): FieldValue {
 
 /** Records in other mirrored tables that point at this record (e.g. a customer's contracts, tickets, notes). */
 export async function relatedRecords(crmId: string, limitPerTable = 50) {
-  const rows = await prisma.$queryRaw<{ entity: string; crmId: string; data: Data; crmModifiedAt: Date | null }[]>`
-    SELECT entity, "crmId", data, "crmModifiedAt" FROM crm_records
-    WHERE "deletedAt" IS NULL AND "crmId" <> ${crmId} AND data::text LIKE ${`%${crmId}%`}
-    ORDER BY "crmModifiedAt" DESC NULLS LAST LIMIT 1000`;
+  const rows = (await prisma.crmRecord.findMany({
+    where: { deletedAt: null, refs: { has: crmId.toLowerCase() }, NOT: { crmId } },
+    select: { entity: true, crmId: true, data: true, crmModifiedAt: true },
+    orderBy: { crmModifiedAt: "desc" },
+    take: 1000,
+  })) as { entity: string; crmId: string; data: Data; crmModifiedAt: Date | null }[];
   const byTable: Record<string, typeof rows> = {};
   for (const r of rows) {
     const list = (byTable[r.entity] ??= []);
