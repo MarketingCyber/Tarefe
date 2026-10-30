@@ -14,6 +14,8 @@ import { computeTicketSla } from "@/lib/sla";
 import { Clock } from "@phosphor-icons/react/dist/ssr";
 import { TICKET_STATUS_FA, PRIORITY_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
+import { isGuid } from "@/lib/dynamics/identity";
+import { CrmTicket } from "@/components/crm/customer/CrmTicket";
 import { addMessage } from "@/lib/app-conversations";
 import { requestStep, STATUS_WORDS, ticketNumber } from "@/lib/app-api";
 
@@ -73,11 +75,13 @@ async function replyToTicket(formData: FormData) {
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
 
-export default async function OpsTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OpsTicketDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string }> }) {
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
   const { id } = await params;
+  // Old-CRM tickets have Dynamics GUIDs; tarefe.de tickets (cuid ids) keep this page.
+  if (isGuid(id)) return <CrmTicket id={id} history={(await searchParams).history} />;
   const ticket = await prisma.serviceRequest.findUnique({
     where: { id },
     include: {

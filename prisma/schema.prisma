@@ -962,7 +962,7 @@ model CrmRecord {
   // "everything about this customer / contract" and "which old-CRM person is this tarefe.de account" in one lookup.
   refs          String[]  @default([])
   // Copied out of `data` so the work screens can filter and sort fast (lib/dynamics/sync.ts → projectionOf):
-  dueAt         DateTime? // the date operators act on: contract → cancellation deadline, task/call → due, appointment → start
+  dueAt         DateTime? // the date operators act on: contract → cancellation deadline, ticket → follow-up, task/call → due, appointment → start
   state         Int? // Dynamics statecode (contract 0 open / 1 won / 2 lost; activity 0 open / 1 done / 2 cancelled)
   ownerId       String? // Dynamics owner (systemuser) of the record
 

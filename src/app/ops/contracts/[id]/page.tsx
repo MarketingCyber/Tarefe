@@ -4,7 +4,7 @@ import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { isGuid } from "@/lib/dynamics/identity";
-import { loadContract } from "@/lib/crm/contract360";
+import { loadWithRelated } from "@/lib/crm/record360";
 import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
 import { Badge } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, TicketCard, happenedAt, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
@@ -33,9 +33,9 @@ export default async function ContractPage({ params, searchParams }: { params: P
   const { history } = await searchParams;
   if (!isGuid(id)) notFound();
 
-  const loaded = await loadContract(id);
+  const loaded = await loadWithRelated("opportunity", id);
   if (!loaded) notFound();
-  const { contract, related } = loaded;
+  const { record: contract, related } = loaded;
   const d = contract.data;
   const self = `/ops/contracts/${contract.crmId}`;
 

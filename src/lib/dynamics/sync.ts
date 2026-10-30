@@ -91,7 +91,14 @@ export async function purgeSecretFields(): Promise<number> {
 }
 
 // Which field is a table's "due" date (crm_records.dueAt).
-const DUE_FIELD: Record<string, string> = { opportunity: "new_datelaqve", task: "scheduledend", phonecall: "scheduledend", appointment: "scheduledstart" };
+// Ticket: «پیگیری مجدد» (follow up again on).
+const DUE_FIELD: Record<string, string> = {
+  opportunity: "new_datelaqve",
+  incident: "new_follow_up_again",
+  task: "scheduledend",
+  phonecall: "scheduledend",
+  appointment: "scheduledstart",
+};
 
 /** The columns copied out of `data` for fast filtering (crm_records.dueAt / state / ownerId). */
 export function projectionOf(entity: string, data: Record<string, unknown>) {

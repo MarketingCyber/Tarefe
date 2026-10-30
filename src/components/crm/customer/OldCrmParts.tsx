@@ -27,7 +27,7 @@ const STANDARD_FA: Record<string, string> = {
   Open: "باز", Completed: "انجام‌شده", Canceled: "لغوشده", Cancelled: "لغوشده", Scheduled: "زمان‌بندی‌شده",
   Active: "فعال", Resolved: "حل‌شده", Won: "موفق", Lost: "ناموفق", "In Progress": "در جریان", "On Hold": "متوقف",
   "Out-Sold": "از دست رفته", Made: "انجام‌شده", Received: "دریافت‌شده", Sent: "ارسال‌شده", Draft: "پیش‌نویس",
-  Incoming: "ورودی", Outgoing: "خروجی",
+  Incoming: "ورودی", Outgoing: "خروجی", Low: "پایین", Normal: "عادی", High: "بالا",
 };
 /** A status as Persian operators read it. */
 export const statusFa = (text: string | null) => (text ? (STANDARD_FA[text] ?? text) : null);
@@ -43,7 +43,9 @@ export function shownDate(data: Data, field: string, withTime = false): string |
     : d.toLocaleDateString("fa-IR", { calendar: "gregory", timeZone: "Europe/Berlin" });
 }
 
-const recordHref = (r: CrmRow) => `/ops/old-crm/${r.entity}/${r.crmId}`;
+// Contracts and tickets open their workspace pages; everything else the Dynamics-form view of the mirror.
+const recordHref = (r: CrmRow) =>
+  r.entity === "opportunity" ? `/ops/contracts/${r.crmId}` : r.entity === "incident" ? `/ops/tickets/${r.crmId}` : `/ops/old-crm/${r.entity}/${r.crmId}`;
 
 // Dynamics statecode: opportunity 0 open / 1 won / 2 lost; incident 0 active / 1 resolved / 2 cancelled.
 const STATE_TONE: Record<string, BadgeTone[]> = { opportunity: ["purple", "success", "neutral"], incident: ["warning", "success", "neutral"] };
@@ -132,7 +134,8 @@ export const happenedAt = (r: CrmRow) => {
   return v ? new Date(v).getTime() : 0;
 };
 
-const plain = (html: unknown) =>
+/** Text of an HTML or plain field (e-mail bodies, descriptions) without tags and entities. */
+export const plain = (html: unknown) =>
   typeof html === "string"
     ? html.replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim()
     : "";
