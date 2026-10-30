@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { META_PIXEL_ID } from "@/lib/meta-pixel";
 
 /**
- * Meta Conversions API (server side, 2026-10-23): sends the Lead event straight from our server to Meta, so a
- * lead is counted even when an ad blocker stopped the browser pixel. Same event id as the browser event, so
+ * Meta Conversions API (server side, 2026-10-23): sends the Lead event (and since 2026-10-30 PageView/ViewContent)
+ * straight from our server to Meta, so it is counted even when an ad blocker stopped the browser pixel. Same event id as the browser event, so
  * Meta deduplicates the two.
  *
  * Owner's choices: sent for every lead (not gated on the cookie banner); email and phone go along SHA-256
@@ -64,32 +64,82 @@ export type MetaLeadInput = {
 };
 
 export async function sendMetaLead(input: MetaLeadInput): Promise<void> {
+  const phone = input.phone ? normalizePhoneForMeta(input.phone) : null;
+  await sendMetaEvent({
+    eventName: "Lead",
+    eventId: input.eventId,
+    eventSourceUrl: input.eventSourceUrl,
+    ip: input.ip,
+    userAgent: input.userAgent,
+    cookieHeader: input.cookieHeader,
+    userData: {
+      em: input.email ? [sha256(input.email.trim().toLowerCase())] : undefined,
+      ph: phone ? [sha256(phone)] : undefined,
+      fn: input.firstName ? [sha256(input.firstName.trim().toLowerCase())] : undefined,
+      ln: input.lastName ? [sha256(input.lastName.trim().toLowerCase())] : undefined,
+    },
+    customData: { content_category: input.category ?? undefined, content_name: input.service ?? undefined },
+  });
+}
+
+/**
+ * Page events (2026-10-30, marketer's request): PageView and ViewContent from the server too, with the same event id
+ * the browser pixel uses (lib/meta-pixel.ts), so Meta sees the visit even when the pixel is blocked and counts it
+ * once when both arrive. No personal data beyond what the browser pixel itself sends (IP, user agent, Meta's own
+ * _fbp/_fbc cookies or the ad's fbclid).
+ */
+export type MetaPageEventInput = {
+  eventName: "PageView" | "ViewContent";
+  eventId: string;
+  eventSourceUrl: string;
+  ip: string;
+  userAgent: string | null;
+  cookieHeader: string | null;
+  category?: string;
+  name?: string;
+};
+
+export async function sendMetaPageEvent(input: MetaPageEventInput): Promise<void> {
+  await sendMetaEvent({
+    ...input,
+    customData: input.eventName === "ViewContent" ? { content_category: input.category, content_name: input.name } : undefined,
+  });
+}
+
+type MetaEvent = {
+  eventName: string;
+  eventId: string;
+  eventSourceUrl: string;
+  ip: string;
+  userAgent: string | null;
+  cookieHeader: string | null;
+  userData?: Record<string, unknown>;
+  customData?: Record<string, unknown>;
+};
+
+async function sendMetaEvent(event: MetaEvent): Promise<void> {
   const token = process.env.META_CAPI_TOKEN;
   if (!META_PIXEL_ID || !token) return;
 
-  const phone = input.phone ? normalizePhoneForMeta(input.phone) : null;
   const userData: Record<string, unknown> = {
-    client_ip_address: input.ip !== "unknown" ? input.ip : undefined,
-    client_user_agent: input.userAgent ?? undefined,
-    fbp: readCookie(input.cookieHeader, "_fbp"),
-    fbc: readCookie(input.cookieHeader, "_fbc") ?? fbcFromUrl(input.eventSourceUrl),
-    em: input.email ? [sha256(input.email.trim().toLowerCase())] : undefined,
-    ph: phone ? [sha256(phone)] : undefined,
-    fn: input.firstName ? [sha256(input.firstName.trim().toLowerCase())] : undefined,
-    ln: input.lastName ? [sha256(input.lastName.trim().toLowerCase())] : undefined,
+    client_ip_address: event.ip !== "unknown" ? event.ip : undefined,
+    client_user_agent: event.userAgent ?? undefined,
+    fbp: readCookie(event.cookieHeader, "_fbp"),
+    fbc: readCookie(event.cookieHeader, "_fbc") ?? fbcFromUrl(event.eventSourceUrl),
+    ...event.userData,
     country: [sha256("de")],
   };
 
   const body = {
     data: [
       {
-        event_name: "Lead",
+        event_name: event.eventName,
         event_time: Math.floor(Date.now() / 1000),
-        event_id: input.eventId,
+        event_id: event.eventId,
         action_source: "website",
-        event_source_url: input.eventSourceUrl,
+        event_source_url: event.eventSourceUrl,
         user_data: userData,
-        custom_data: { content_category: input.category ?? undefined, content_name: input.service ?? undefined },
+        ...(event.customData ? { custom_data: event.customData } : {}),
       },
     ],
     ...(process.env.META_TEST_EVENT_CODE ? { test_event_code: process.env.META_TEST_EVENT_CODE } : {}),
@@ -104,9 +154,9 @@ export async function sendMetaLead(input: MetaLeadInput): Promise<void> {
     });
     if (!res.ok) {
       const text = (await res.text().catch(() => "")).slice(0, 300).replaceAll(token, "[token]");
-      console.warn(`[meta-capi] Lead not accepted: HTTP ${res.status} ${text}`);
+      console.warn(`[meta-capi] ${event.eventName} not accepted: HTTP ${res.status} ${text}`);
     }
   } catch (error) {
-    console.warn(`[meta-capi] Lead not sent: ${error instanceof Error ? error.name : "error"}`);
+    console.warn(`[meta-capi] ${event.eventName} not sent: ${error instanceof Error ? error.name : "error"}`);
   }
 }
