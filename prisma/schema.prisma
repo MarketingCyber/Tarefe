@@ -940,3 +940,37 @@ model AppBanner {
   @@index([active, locale, sort])
   @@map("app_banners")
 }
+
+// Old CRM mirror (2026-10-30, owner's plan: both CRMs run in parallel, synced, then a full migration — see
+// docs/crm-redesign/04-migration-plan.md). Every record of the old Dynamics 365 CRM is kept here exactly as its Web
+// API returns it: every field, plus the Persian display text of choice/lookup fields (OData FormattedValue
+// annotations). Nothing is dropped or renamed, so the /ops screens can show operators what they know, and new
+// CRM fields added later in Dynamics arrive without a schema change. src/lib/dynamics/sync.ts fills it.
+model CrmRecord {
+  id            String    @id @default(cuid())
+  entity        String // Dynamics logical name: contact, opportunity, incident, new_points …
+  crmId         String // the record's GUID in Dynamics
+  data          Json // the full record as returned by the Web API
+  crmModifiedAt DateTime? // Dynamics' modifiedon
+  deletedAt     DateTime? // set when Dynamics reports the record deleted (kept, never hard-deleted here)
+  syncedAt      DateTime  @default(now()) @updatedAt
+
+  @@unique([entity, crmId])
+  @@index([entity, crmModifiedAt])
+  @@map("crm_records")
+}
+
+// Where the sync stands per Dynamics table: the change-tracking delta link (tables with change tracking) or the
+// last modifiedon seen (tables without), a page link while a first import is still running, and the last error.
+model CrmSyncState {
+  entity        String    @id
+  deltaLink     String? // @odata.deltaLink — next "what changed since" for change-tracked tables
+  nextLink      String? // @odata.nextLink — resume point of an import that ran out of time
+  lastModified  DateTime? // high-water mark for tables without change tracking
+  lastRunAt     DateTime?
+  lastSuccessAt DateTime?
+  lastError     String?
+  records       Int       @default(0)
+
+  @@map("crm_sync_state")
+}

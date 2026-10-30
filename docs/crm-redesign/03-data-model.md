@@ -63,7 +63,14 @@ The old 44 categories (insurance 37, telecom 2, finance 2, energy 2, other) map 
 
 ## 3. Contracts — `Contract` (old `opportunity`, 27,383)
 
-*(Field-usage numbers for contracts are being computed; this section will be checked against them.)*
+Usage over all 27,505 contracts: 171 custom fields — 63 used in ≥5% of contracts, 57 rarely, 37 never (all kept).
+Stage: Aktuell T 13,604 · Angebot 11,984 · Aktuell 1,687 · empty 230. Outcome: lost 13,450 (11,213 of them
+"expired without review" — the 2-month offer rule) · won 7,192 · open 6,863. Created via: CRM 25,686 · app 1 ·
+empty 1,818. Top products: car insurance 7,773 · electricity 5,735 · dental 4,035 · GKV 1,761 · legal protection
+1,321 · liability 1,291 · SIM/phone 1,129. Portals: none 13,418 · Fondsfinanz 3,723 · Tarifcheck 3,021 · Maxpool 1,311
+· Energiespardienst24 1,253 · ADAC 950 · Stromkreis 947 · Neue Energie 828 · Nafi 824 · O2 602 · Check24 379.
+Term: 12 months 21,189 · 24 months 3,540 · other 1,753. Payment: monthly 10,580 · yearly 3,172 · quarterly 1,075 ·
+half-yearly 684 · empty 11,994.
 
 Common columns:
 - **stage**: OFFER (*Angebot*) · ACTIVE_T (*Aktuell T*, contract running with Tarefe) · ACTIVE (*Aktuell*) · ENDED (*Ende*); `previousStage`
@@ -84,7 +91,8 @@ Old `incident` (25,124; 81% linked to a contract; all but 3 closed) → the exis
 customer + contract, already used by the app), plus: `status` (new · answered · waiting for reply · finished ·
 closed · trash), `ticketNumber`, `title`, `followUpAt` ("review" banner), category.
 Old notes (`annotation`, 100,750) split into: customer-visible **messages**, **internal notes** (staff only, new
-`InternalNote`) and **files** (`Document`). *(Split ratios being measured.)*
+`InternalNote`) and **files** (`Document`). Measured: 101,483 notes (0.7 GB of files) — contracts 61,420 text + 520 files · tickets 16,746 text + 9,692 files ·
+customers 5,199 · emails 4,074 · leads 1,959 · received letters 804 files.
 AI helpers (3 suggested replies, translate reply, translate history) become server functions on the conversation.
 
 ## 5. Loyalty — `PointEntry` (old `new_points`, 18,983) and `GiftCode`
