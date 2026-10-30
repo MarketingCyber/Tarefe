@@ -60,6 +60,33 @@ const idOf = (table: Table, row: Record<string, unknown>) => (row[idField(table)
 const isDeletion = (row: Record<string, unknown>) =>
   typeof row["@odata.context"] === "string" && (row["@odata.context"] as string).includes("$deletedEntity");
 
+// Secrets are never copied: the old CRM keeps API keys and tokens (new_sitesetting, bs_whatsappsetting), staff
+// logins (systemuser.new_username / new_password) and the old customer site's logins (contact.new_username / new_password) in
+// plain text. Any field whose name looks like a secret is dropped too, so a new one in Dynamics can't slip through.
+const SECRET_NAME = /(password|secret|token|api_?key)/i;
+const SECRET_FIELDS: Record<string, string[]> = { contact: ["new_username"], systemuser: ["new_username"] };
+const isSecretField = (table: string, name: string) => SECRET_NAME.test(name) || (SECRET_FIELDS[table] ?? []).includes(name);
+
+/** The record without its secret fields (and their display-text annotations). */
+export function withoutSecrets(table: string, row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !isSecretField(table, k.split("@")[0])));
+}
+
+/** Removes secret fields from records copied before they were filtered out. Returns the number of records cleaned. */
+export async function purgeSecretFields(): Promise<number> {
+  const fields = await prisma.crmField.findMany({ select: { entity: true, name: true } });
+  const byTable = new Map<string, string[]>();
+  for (const f of fields) if (isSecretField(f.entity, f.name)) byTable.set(f.entity, [...(byTable.get(f.entity) ?? []), f.name]);
+  for (const [table, names] of Object.entries(SECRET_FIELDS)) byTable.set(table, [...new Set([...(byTable.get(table) ?? []), ...names])]);
+  let cleaned = 0;
+  for (const [table, names] of byTable) {
+    const keys = names.flatMap((n) => [n, `${n}@OData.Community.Display.V1.FormattedValue`]);
+    cleaned += await prisma.$executeRaw`
+      UPDATE crm_records SET data = data - ${keys}::text[] WHERE entity = ${table} AND data ?| ${keys}::text[]`;
+  }
+  return cleaned;
+}
+
 async function saveRows(table: Table, rows: Record<string, unknown>[]) {
   let upserted = 0, deleted = 0;
   for (const row of rows) {
@@ -71,7 +98,7 @@ async function saveRows(table: Table, rows: Record<string, unknown>[]) {
       continue;
     }
     const modified = typeof row.modifiedon === "string" ? new Date(row.modifiedon) : null;
-    const data = row as Prisma.InputJsonValue;
+    const data = withoutSecrets(table.name, row) as Prisma.InputJsonValue;
     await prisma.crmRecord.upsert({
       where: { entity_crmId: { entity: table.name, crmId } },
       create: { entity: table.name, crmId, data, crmModifiedAt: modified },
@@ -297,7 +324,7 @@ export async function checkMirror(sample = 20, only?: string[]) {
         }
         if (current.modifiedon !== row.data.modifiedon) continue;
         sampled++;
-        const fields = differingFields(current, row.data);
+        const fields = differingFields(withoutSecrets(table.name, current), row.data);
         if (fields.length) details.push({ crmId: row.crmId, fields });
       }
     } catch (e) {
