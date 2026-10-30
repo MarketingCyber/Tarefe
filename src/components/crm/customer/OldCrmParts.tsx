@@ -68,7 +68,7 @@ export function ContractCard({ r }: { r: CrmRow }) {
   const d = r.data;
   const amount = typeof d.new_mablaq === "number" && d.new_mablaq > 0 ? `${d.new_mablaq.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €` : null;
   return (
-    <Link href={recordHref(r)} className="block rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
+    <Link href={`/ops/contracts/${r.crmId}`} className="block rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium text-purple-900">{shown(d, "name") ?? "قرارداد بدون عنوان"}</p>
@@ -83,7 +83,8 @@ export function ContractCard({ r }: { r: CrmRow }) {
         items={[
           ["شروع", shownDate(d, "new_startdate")],
           ["پایان", shownDate(d, "new_dateend")],
-          ["لغو", shownDate(d, "new_datelaqve") ?? shownDate(d, "new_cancellation_date")],
+          ["مهلت لغو", shownDate(d, "new_datelaqve")],
+          ["لغو شد", shownDate(d, "new_cancellation_date")],
           ["مدت", shown(d, "new_modat")],
           ["مبلغ", amount && [amount, shown(d, "new_mah")].filter(Boolean).join(" / ")],
           ["Vertragsnummer", shown(d, "new_shomareh")],
@@ -172,5 +173,18 @@ export function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }
         )}
       </div>
     </li>
+  );
+}
+
+/** A filter link styled as a chip (history type, contract view …). */
+export function FilterChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${active ? "border-purple-600 bg-purple-600 text-white" : "border-border-strong text-purple-900 hover:border-purple-600"}`}
+    >
+      {children}
+    </Link>
   );
 }

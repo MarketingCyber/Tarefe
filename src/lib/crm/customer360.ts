@@ -10,10 +10,11 @@ import { emailKey, isGuid, personKeys, phoneKey } from "@/lib/dynamics/identity"
 
 export type CrmRow = { entity: string; crmId: string; data: Record<string, unknown>; crmModifiedAt: Date | null };
 
-const ACTIVITY_TABLES = ["task", "email", "phonecall", "appointment", "annotation"];
+export const ACTIVITY_TABLES = ["task", "email", "phonecall", "appointment", "annotation"];
 const MAX_ROWS = 2000;
 
-const rowsReferencing = (ids: string[], entities?: string[]) =>
+/** Old-CRM records that point at any of `ids` (newest first), optionally only from some tables. */
+export const rowsReferencing = (ids: string[], entities?: string[]) =>
   ids.length
     ? (prisma.crmRecord.findMany({
         where: { refs: { hasSome: ids.map((i) => i.toLowerCase()) }, deletedAt: null, ...(entities ? { entity: { in: entities } } : {}) },

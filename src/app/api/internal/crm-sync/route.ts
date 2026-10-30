@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { crmConfigured } from "@/lib/dynamics/client";
-import { backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncAll, syncFieldLabels, syncForms, CRM_TABLES } from "@/lib/dynamics/sync";
+import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncAll, syncFieldLabels, syncForms, CRM_TABLES } from "@/lib/dynamics/sync";
 
 /**
  * POST /api/internal/crm-sync — one round of the old-CRM mirror (lib/dynamics/sync.ts), called every minute by the
@@ -9,6 +9,7 @@ import { backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncA
  * Query: ?tables=contact,opportunity to limit the round; ?reconcile=1 for the nightly deletion check followed by the
  * reconciliation report (counts + field-by-field sample per table, saved in crm_checks); ?check=1 for the report alone;
  * ?refs=1 only indexes records copied before crm_records.refs existed (normal rounds also do it with spare time);
+ * ?columns=1 fills the filter columns (dueAt / state / ownerId) of records copied before they existed;
  * ?purge=1 removes secret fields (passwords, API keys, tokens) from records copied before they were filtered out;
  * ?labels=1 to refresh the field labels (crm_fields) and form layouts (crm_forms).
  */
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ removed, checks: await checkMirror(20, only) });
   }
   if (params.get("refs") === "1") return NextResponse.json({ indexed: await backfillRefs(Date.now() + (Number(params.get("budget")) || 50_000)) });
+  if (params.get("columns") === "1") return NextResponse.json({ filled: await backfillProjection() });
   if (params.get("purge") === "1") return NextResponse.json({ cleaned: await purgeSecretFields() });
   if (params.get("check") === "1") return NextResponse.json({ checks: await checkMirror(Number(params.get("sample")) || 20, only) });
   const results = await syncAll(Number(params.get("budget")) || 50_000, only);

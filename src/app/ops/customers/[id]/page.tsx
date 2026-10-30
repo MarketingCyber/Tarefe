@@ -9,7 +9,7 @@ import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
 import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { TaskList } from "@/components/crm/TaskList";
 import { QuickAddTask } from "@/components/crm/QuickAddTask";
-import { ContractCard, HISTORY_TYPES, HistoryItem, TicketCard, happenedAt, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
+import { ContractCard, FilterChip, HISTORY_TYPES, HistoryItem, TicketCard, happenedAt, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { ConfirmDeleteForm } from "@/components/shared/ConfirmDeleteForm";
 import { uploadDocument, deleteDocument } from "@/lib/document-actions";
@@ -480,18 +480,6 @@ function PointRow({ r }: { r: CrmRow }) {
       </Link>
       <span className="shrink-0 tabular-nums text-secondary">{typeof amount === "number" ? amount.toLocaleString("fa-IR") : shownDate(r.data, "createdon")}</span>
     </li>
-  );
-}
-
-function FilterChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${active ? "border-purple-600 bg-purple-600 text-white" : "border-border-strong text-purple-900 hover:border-purple-600"}`}
-    >
-      {children}
-    </Link>
   );
 }
 

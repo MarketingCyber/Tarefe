@@ -90,6 +90,31 @@ export async function purgeSecretFields(): Promise<number> {
   return cleaned;
 }
 
+// Which field is a table's "due" date (crm_records.dueAt).
+const DUE_FIELD: Record<string, string> = { opportunity: "new_datelaqve", task: "scheduledend", phonecall: "scheduledend", appointment: "scheduledstart" };
+
+/** The columns copied out of `data` for fast filtering (crm_records.dueAt / state / ownerId). */
+export function projectionOf(entity: string, data: Record<string, unknown>) {
+  const due = DUE_FIELD[entity] ? data[DUE_FIELD[entity]] : null;
+  const dueAt = typeof due === "string" && !Number.isNaN(Date.parse(due)) ? new Date(due) : null;
+  const state = typeof data.statecode === "number" ? data.statecode : null;
+  const ownerId = typeof data._ownerid_value === "string" ? data._ownerid_value.toLowerCase() : null;
+  return { dueAt, state, ownerId };
+}
+
+/** Fills dueAt / state / ownerId for records copied before those columns existed (same rules as projectionOf). */
+export async function backfillProjection(): Promise<number> {
+  let n = await prisma.$executeRaw`
+    UPDATE crm_records SET state = (data->>'statecode')::int, "ownerId" = lower(data->>'_ownerid_value')
+    WHERE state IS NULL AND (data->>'statecode') ~ '^[0-9]+$'`;
+  for (const [entity, field] of Object.entries(DUE_FIELD)) {
+    n += await prisma.$executeRaw`
+      UPDATE crm_records SET "dueAt" = (data->>${field})::timestamptz
+      WHERE entity = ${entity} AND "dueAt" IS NULL AND (data->>${field}) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'`;
+  }
+  return n;
+}
+
 async function saveRows(table: Table, rows: Record<string, unknown>[]) {
   let upserted = 0, deleted = 0;
   for (const row of rows) {
@@ -104,10 +129,11 @@ async function saveRows(table: Table, rows: Record<string, unknown>[]) {
     const clean = withoutSecrets(table.name, row);
     const data = clean as Prisma.InputJsonValue;
     const refs = refsOf(table.name, crmId, clean);
+    const projection = projectionOf(table.name, clean);
     await prisma.crmRecord.upsert({
       where: { entity_crmId: { entity: table.name, crmId } },
-      create: { entity: table.name, crmId, data, crmModifiedAt: modified, refs },
-      update: { data, crmModifiedAt: modified, deletedAt: null, refs },
+      create: { entity: table.name, crmId, data, crmModifiedAt: modified, refs, ...projection },
+      update: { data, crmModifiedAt: modified, deletedAt: null, refs, ...projection },
     });
     upserted++;
   }
