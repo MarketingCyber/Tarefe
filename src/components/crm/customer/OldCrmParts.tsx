@@ -191,3 +191,12 @@ export function FilterChip({ href, active, children }: { href: string; active: b
     </Link>
   );
 }
+
+/** Where an activity's «درباره» (regarding) record opens: contracts, customers, tickets, leads have their pages. */
+export function regardingHref(data: Data): string | null {
+  const id = data._regardingobjectid_value;
+  const type = data["_regardingobjectid_value@Microsoft.Dynamics.CRM.lookuplogicalname"];
+  if (typeof id !== "string" || typeof type !== "string") return null;
+  const page: Record<string, string> = { opportunity: "contracts", contact: "customers", incident: "tickets", lead: "leads" };
+  return page[type] ? `/ops/${page[type]}/${id}` : `/ops/old-crm/${type}/${id}`;
+}

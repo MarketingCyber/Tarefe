@@ -7,7 +7,7 @@ import { TaskList } from "@/components/crm/TaskList";
 import { QuickAddTask } from "@/components/crm/QuickAddTask";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
-import { FilterChip, HISTORY_TYPES, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
+import { FilterChip, HISTORY_TYPES, regardingHref, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 import { crmUserOf, crmUsers } from "@/lib/crm/crm-users";
 import { setMyCrmUser } from "@/lib/crm/crm-user-actions";
 import { ListChecks } from "@phosphor-icons/react/dist/ssr";
@@ -30,12 +30,6 @@ const OPEN_ACTIVITIES = ["task", "phonecall", "appointment"];
 type Due = "overdue" | "today" | "week" | "later" | "none";
 const DUE_LABEL: Record<Due, string> = { overdue: "عقب‌افتاده", today: "امروز", week: "۷ روز آینده", later: "بعدتر", none: "بدون موعد" };
 const DUE_TONE: Record<Due, BadgeTone> = { overdue: "danger", today: "warning", week: "purple", later: "neutral", none: "neutral" };
-
-// Where an activity's "about" link goes: contracts and customers have their 360 pages, the rest the mirror view.
-const ABOUT_HREF: Record<string, (id: string) => string> = {
-  opportunity: (id) => `/ops/contracts/${id}`,
-  contact: (id) => `/ops/customers/${id}`,
-};
 
 export default async function TasksPage({
   searchParams,
@@ -181,9 +175,7 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
               {rows.slice(0, PAGE).map((r) => {
                 const d = r.data as Record<string, unknown>;
                 const bucket = dueOf(r.dueAt);
-                const aboutId = typeof d._regardingobjectid_value === "string" ? d._regardingobjectid_value : null;
-                const aboutType = d["_regardingobjectid_value@Microsoft.Dynamics.CRM.lookuplogicalname"];
-                const aboutHref = aboutId && typeof aboutType === "string" ? (ABOUT_HREF[aboutType]?.(aboutId) ?? `/ops/old-crm/${aboutType}/${aboutId}`) : null;
+                const aboutHref = regardingHref(d);
                 return (
                   <tr key={r.crmId} className="border-b border-border last:border-0 hover:bg-tint/40">
                     <td className="whitespace-nowrap px-4 py-3">

@@ -19,4 +19,5 @@ export async function setMyCrmUser(formData: FormData) {
   }
   await prisma.user.update({ where: { id: session.user.id }, data: { crmUserId: id || null } });
   revalidatePath("/ops/tasks");
+  revalidatePath("/ops/my-work");
 }
