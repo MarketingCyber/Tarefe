@@ -43,6 +43,11 @@ export default async function OldCrmPage() {
         </p>
       )}
 
+      <p className="mt-2 text-sm">
+        <Link href="/ops/old-crm/automations" className="font-medium text-purple-600 hover:underline">
+          اتوماسیون‌ها در حالت آزمایشی ←
+        </Link>
+      </p>
       <p className="mt-2 text-sm text-secondary">
         فایل‌های پیوست یادداشت‌ها: {files.copied.toLocaleString("fa-IR")} از {files.expected.toLocaleString("fa-IR")} کپی شده
         {files.copied < files.expected ? " — کپی ادامه دارد" : ""}

@@ -1045,3 +1045,20 @@ model CrmFile {
 
   @@map("crm_files")
 }
+
+// Old-CRM automations rebuilt in test mode ("shadow", docs/crm-redesign/04-migration-plan.md phase 3): per automation
+// and Berlin day, what our code would have done (planned before Dynamics runs) and how that compared with what
+// Dynamics actually did (checked afterwards). Nothing is written to Dynamics. lib/automations/*.
+model AutomationRun {
+  id         String    @id @default(cuid())
+  automation String // e.g. "kuendigungsfrist"
+  day        String // Berlin date, YYYY-MM-DD
+  retro      Boolean   @default(false) // planned after the fact from the current data (statuses may have changed since)
+  plannedAt  DateTime  @default(now())
+  expected   Json // what our code would do: [{ id, name, variant, ownerId, customerId, state, … }]
+  checkedAt  DateTime?
+  result     Json? // { matched, mismatched, missing, extra } — see lib/automations/shadow.ts
+
+  @@unique([automation, day])
+  @@map("automation_runs")
+}

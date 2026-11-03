@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { crmConfigured } from "@/lib/dynamics/client";
 import { syncAttachments } from "@/lib/dynamics/files";
+import { backfillShadows, runShadows } from "@/lib/automations/shadow";
 import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncAll, syncFieldLabels, syncForms, CRM_TABLES } from "@/lib/dynamics/sync";
 
 /**
@@ -10,6 +11,8 @@ import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, recon
  * Query: ?tables=contact,opportunity to limit the round; ?reconcile=1 for the nightly deletion check followed by the
  * reconciliation report (counts + field-by-field sample per table, saved in crm_checks); ?check=1 for the report alone;
  * ?refs=1 only indexes records copied before crm_records.refs existed (normal rounds also do it with spare time);
+ * ?shadows=backfill&days=30 fills the old-automation test runs for past days (marked retro); normal rounds plan and
+ * check them each morning (lib/automations/shadow.ts);
  * ?files=1 only copies note attachments (normal rounds also do it with spare time);
  * ?columns=1 fills the filter columns (dueAt / state / ownerId) of records copied before they existed;
  * ?purge=1 removes secret fields (passwords, API keys, tokens) from records copied before they were filtered out;
@@ -37,10 +40,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ removed, checks: await checkMirror(20, only) });
   }
   if (params.get("refs") === "1") return NextResponse.json({ indexed: await backfillRefs(Date.now() + (Number(params.get("budget")) || 50_000)) });
+  if (params.get("shadows") === "backfill") return NextResponse.json({ log: await backfillShadows(Math.min(90, Number(params.get("days")) || 30)) });
   if (params.get("files") === "1") return NextResponse.json({ copied: await syncAttachments(Date.now() + (Number(params.get("budget")) || 50_000)) });
   if (params.get("columns") === "1") return NextResponse.json({ filled: await backfillProjection() });
   if (params.get("purge") === "1") return NextResponse.json({ cleaned: await purgeSecretFields() });
   if (params.get("check") === "1") return NextResponse.json({ checks: await checkMirror(Number(params.get("sample")) || 20, only) });
   const results = await syncAll(Number(params.get("budget")) || 50_000, only);
-  return NextResponse.json({ results });
+  // After a full round the mirror is current: plan / check the old-automation test runs that are due.
+  const shadows = only ? [] : await runShadows().catch((e) => [`shadows failed: ${e instanceof Error ? e.message : e}`]);
+  return NextResponse.json({ results, shadows });
 }
