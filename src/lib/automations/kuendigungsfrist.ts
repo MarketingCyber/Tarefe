@@ -47,7 +47,8 @@ export const kuendigungsfrist: Automation = {
       SELECT "crmId", data FROM crm_records
       WHERE entity = 'task' AND "deletedAt" IS NULL AND (data->>'isworkflowcreated')::boolean
         AND data->>'_regardingobjectid_value@Microsoft.Dynamics.CRM.lookuplogicalname' = 'opportunity'
-        AND data->>'description' LIKE '%Kündigung%'
+        -- Its two fixed texts only: the Vertragsende task (lib/automations/vertragsende.ts) mentions Kündigung too.
+        AND (data->>'description' LIKE '%Termin für die Kündigung%' OR data->>'description' LIKE '%Kündigungstermin des aktuellen%')
         AND ((data->>'createdon')::timestamptz AT TIME ZONE 'Europe/Berlin')::date = ${day}::date`;
     return rows.map((r) => ({
       key: lower(r.data._regardingobjectid_value) ?? r.crmId,

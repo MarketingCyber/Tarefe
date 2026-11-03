@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { kuendigungsfrist } from "@/lib/automations/kuendigungsfrist";
+import { vertragsende } from "@/lib/automations/vertragsende";
 
 /**
  * Old-CRM automations rebuilt in test mode (phase 3 of docs/crm-redesign/04-migration-plan.md). Each automation
@@ -28,7 +29,7 @@ export type Automation = {
   actual: (day: string) => Promise<Action[]>;
 };
 
-export const AUTOMATIONS: Automation[] = [kuendigungsfrist];
+export const AUTOMATIONS: Automation[] = [kuendigungsfrist, vertragsende];
 
 export type RunResult = {
   matched: { key: string; name: string }[];
@@ -83,14 +84,17 @@ export async function runShadows(now = new Date()): Promise<string[]> {
 
 /**
  * Fills past days from today's data (marked retro: statuses may have changed since, so "missing" and "extra" there
- * are hints, not proof). Days that already have a run are left alone.
+ * are hints, not proof). Earlier estimates are redone; days with a real run are left alone.
  */
 export async function backfillShadows(days: number): Promise<string[]> {
   const log: string[] = [];
   for (const a of AUTOMATIONS) {
     for (let i = days; i >= 1; i--) {
       const day = berlinDay(new Date(Date.now() - i * 86_400_000));
-      if (await prisma.automationRun.findUnique({ where: { automation_day: { automation: a.key, day } } })) continue;
+      // Earlier estimates are redone (the rule may have been corrected); real runs are never touched.
+      const existing = await prisma.automationRun.findUnique({ where: { automation_day: { automation: a.key, day } } });
+      if (existing && !existing.retro) continue;
+      if (existing) await prisma.automationRun.delete({ where: { id: existing.id } });
       const expected = await a.plan(day);
       const result = compareActions(a, expected, await a.actual(day));
       await prisma.automationRun.create({ data: { automation: a.key, day, retro: true, expected: json(expected), checkedAt: new Date(), result: json(result) } });
