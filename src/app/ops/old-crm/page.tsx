@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { CRM_TABLES } from "@/lib/dynamics/sync";
 import { TABLE_LABELS } from "@/lib/dynamics/view";
+import { attachmentCounts } from "@/lib/dynamics/files";
 
 /**
  * Old CRM (Dynamics 365) — read-only mirror, phase 1 of docs/crm-redesign/04-migration-plan.md. Every table with
@@ -19,10 +20,11 @@ export default async function OldCrmPage() {
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
-  const [counts, states, checks] = await Promise.all([
+  const [counts, states, checks, files] = await Promise.all([
     prisma.crmRecord.groupBy({ by: ["entity"], where: { deletedAt: null }, _count: { _all: true } }),
     prisma.crmSyncState.findMany(),
     prisma.crmCheck.findMany({ distinct: ["entity"], orderBy: [{ entity: "asc" }, { ranAt: "desc" }] }),
+    attachmentCounts(),
   ]);
   const count = Object.fromEntries(counts.map((c) => [c.entity, c._count._all]));
   const state = Object.fromEntries(states.map((s) => [s.entity, s]));
@@ -40,6 +42,11 @@ export default async function OldCrmPage() {
           آخرین بررسی تطبیق با CRM قدیم: {fmt(lastCheck)} — {checkedOk.toLocaleString("fa-IR")} جدول از {checks.length.toLocaleString("fa-IR")} بدون اختلاف
         </p>
       )}
+
+      <p className="mt-2 text-sm text-secondary">
+        فایل‌های پیوست یادداشت‌ها: {files.copied.toLocaleString("fa-IR")} از {files.expected.toLocaleString("fa-IR")} کپی شده
+        {files.copied < files.expected ? " — کپی ادامه دارد" : ""}
+      </p>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-white">
         <table className="w-full text-sm">

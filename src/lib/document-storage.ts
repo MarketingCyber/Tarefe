@@ -51,6 +51,18 @@ export async function saveUploadedFile(file: File): Promise<{ storagePath: strin
   return { storagePath, size: buffer.byteLength };
 }
 
+/**
+ * Old-CRM attachments (Dynamics note files) copied by lib/dynamics/files.ts, kept in crm-files/ next to the site's
+ * documents (same private directory, same backups) and named by the note's GUID only — never the original file name.
+ */
+export async function saveCrmFile(annotationId: string, data: Buffer): Promise<string> {
+  if (!/^[0-9a-f-]{36}$/i.test(annotationId)) throw new Error("Not a Dynamics id");
+  const storagePath = `crm-files/${annotationId.toLowerCase()}`;
+  await mkdir(path.join(UPLOAD_DIR, "crm-files"), { recursive: true });
+  await writeFile(path.join(UPLOAD_DIR, storagePath), data);
+  return storagePath;
+}
+
 /** `storagePath` must be exactly what saveUploadedFile returned — never accept this from user input, it's a filesystem path component. */
 export async function readUploadedFile(storagePath: string): Promise<Buffer> {
   const fullPath = path.join(UPLOAD_DIR, storagePath);

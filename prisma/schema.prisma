@@ -1030,3 +1030,18 @@ model CrmCheck {
   @@index([entity, ranAt])
   @@map("crm_checks")
 }
+
+// A file attached to an old-CRM note (Dynamics annotation with isdocument), copied into the site's private upload
+// directory (lib/dynamics/files.ts) and served to pipeline staff by /api/crm-files/[id]. Re-copied when the note
+// changes in Dynamics.
+model CrmFile {
+  annotationId  String   @id // the note's GUID in Dynamics
+  fileName      String
+  mimeType      String?
+  size          Int
+  storagePath   String // relative to DOCUMENT_UPLOAD_DIR, e.g. crm-files/<guid>
+  crmModifiedAt DateTime? // the note's modifiedon when it was copied
+  copiedAt      DateTime @default(now()) @updatedAt
+
+  @@map("crm_files")
+}

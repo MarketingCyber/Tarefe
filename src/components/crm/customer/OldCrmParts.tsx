@@ -168,11 +168,20 @@ export function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }
           {title}
         </Link>
         {about && <p className="text-xs text-secondary">درباره: {about}</p>}
-        {body && <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-secondary">{body}</p>}
-        {isNote && d.isdocument === true && (
-          <p className="mt-1 inline-flex items-center gap-1 text-xs text-secondary">
-            <Paperclip size={12} /> <span className="font-latin">{String(d.filename ?? "")}</span>
+        {body && (
+          <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-secondary">
+            <Linkified text={body} />
           </p>
+        )}
+        {isNote && d.isdocument === true && Number(d.filesize) > 0 && (
+          <a
+            href={`/api/crm-files/${r.crmId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600"
+          >
+            <Paperclip size={12} /> <span className="font-latin">{String(d.filename ?? "فایل")}</span>
+          </a>
         )}
       </div>
     </li>
@@ -189,6 +198,25 @@ export function FilterChip({ href, active, children }: { href: string; active: b
     >
       {children}
     </Link>
+  );
+}
+
+/** Text with its http(s) links clickable (notes often point at files on cdn.tarefe.de). */
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s<>"]+)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 ? (
+          <a key={i} href={part} target="_blank" rel="noreferrer" className="font-latin text-purple-600 underline">
+            {part.replace(/^https?:\/\//, "").slice(0, 60)}
+            {part.length > 68 ? "…" : ""}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </>
   );
 }
 

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { crmGet, CrmError } from "@/lib/dynamics/client";
 import { refsOf } from "@/lib/dynamics/identity";
+import { syncAttachments } from "@/lib/dynamics/files";
 
 /**
  * Old CRM → tarefe.de mirror (phase 1 of docs/crm-redesign/04-migration-plan.md). Copies every record of the
@@ -205,7 +206,8 @@ export async function syncTable(table: Table, deadline: number): Promise<TableRe
 
 /**
  * One sync round over all tables, within `budgetMs`. Tables that didn't finish continue next round. Time left over
- * goes to indexing records copied before crm_records.refs existed (a no-op once that's done).
+ * goes to indexing records copied before crm_records.refs existed (a no-op once that's done), then to copying note
+ * attachments (lib/dynamics/files.ts).
  */
 export async function syncAll(budgetMs = 50_000, only?: string[]): Promise<TableResult[]> {
   const deadline = Date.now() + budgetMs;
@@ -216,6 +218,7 @@ export async function syncAll(budgetMs = 50_000, only?: string[]): Promise<Table
     results.push(await syncTable(table, deadline));
   }
   if (!only && Date.now() < deadline) await backfillRefs(deadline);
+  if (!only && Date.now() < deadline) await syncAttachments(deadline).catch((e) => console.error("crm attachments:", e instanceof Error ? e.message : e));
   return results;
 }
 
