@@ -5,7 +5,8 @@ import type { Action, Automation } from "@/lib/automations/shadow";
  * Dynamics' Vertragsende reminder, found while testing the Kündigungsfrist one: on a contract's end date
  * (new_dateend) "System Administrator" creates a task "Sonstig-Vertragsende " — «قرارداد مربوطه تاریخ اتمامش رسید.
  * لطفا برسی کن …» (check whether it ended or was renewed, and update it) — about the contract, for its customer,
- * owned by the contract's owner. Seen on Won and active contracts (state 1 / 0); the daily comparison shows the rest.
+ * owned by the contract's owner. Unlike the Kündigungsfrist task it leaves the task's customer field empty (all 221
+ * checked in the first 30 days), so the customer isn't compared. Seen on Won and active contracts (state 1 / 0).
  */
 
 export const vertragsende: Automation = {
@@ -14,7 +15,7 @@ export const vertragsende: Automation = {
   description: "روز پایان هر قرارداد (تاریخ اتمام)، یک تسک «Sonstig-Vertragsende» برای مسئول قرارداد، تا بررسی کند قرارداد تمام شده یا تمدید شده.",
   planFromHour: 5,
   checkFromHour: 7,
-  compare: ["ownerId", "customerId"],
+  compare: ["ownerId"],
 
   async plan(day: string): Promise<Action[]> {
     const rows = await prisma.$queryRaw<{ crmId: string; data: Record<string, unknown>; state: number | null }[]>`
