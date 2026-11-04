@@ -104,8 +104,8 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           <span className="inline-flex items-center gap-1.5">
             <MapPin size={14} /> Kesselstraße 3, 40221 Düsseldorf
           </span>
-          <TrackedPhoneLink locale={locale} className="inline-flex items-center gap-1.5 font-latin transition-colors hover:text-purple-600">
-            <Phone size={14} /> +49 211 5421 8000
+          <TrackedPhoneLink locale={locale} className="inline-flex items-center gap-1.5 transition-colors hover:text-purple-600">
+            <Phone size={14} /> <span className="font-latin">+49 211 5421 8000</span>
           </TrackedPhoneLink>
           <span>
             © {year} Tarefe. {dict.footer.rights}

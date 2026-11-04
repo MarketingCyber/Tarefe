@@ -80,6 +80,19 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /*
+   * …and in right-to-left pages they're laid out left-to-right as one isolated unit. Without this the bidi
+   * algorithm reorders a run that starts with a digit or "+": "+49 211 5421 8000" showed as "8000 5421 211 49+".
+   * Blocks keep the page's right alignment; alignment utilities (text-center …) still win, being a later layer.
+   * Flex containers would flip their item order too, so put the class on the text itself, not on an icon+text row.
+   */
+  [dir="rtl"] .font-latin,
+  [dir="rtl"] .number-font {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: right;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-purple-600);
     outline-offset: 2px;

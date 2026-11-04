@@ -1,3 +1,4 @@
+import { ltr } from "@/lib/bidi";
 import type { Metadata } from "next";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { getDictionary } from "@/lib/dictionary";
@@ -36,37 +37,36 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 // left-to-right mark so it doesn't get bidi-reordered inside the
 // surrounding RTL paragraph — same convention already used elsewhere on
 // this page before this rewrite (see git history) and in Footer.tsx.
-const LRM = "‎";
 
 const SECTIONS: Record<Locale, { heading: string; body: string }[]> = {
   fa: [
     {
       heading: "دامنه اعتبار",
-      body: `این صفحه برای وب‌سایت ${LRM}https://tarefe.de${LRM} و تمام زیردامنه‌های آن معتبر است.`,
+      body: `این صفحه برای وب‌سایت ${ltr("https://tarefe.de")} و تمام زیردامنه‌های آن معتبر است.`,
     },
     {
-      heading: "اطلاعات طبق § 5 DDG",
-      body: `${LRM}Hamid Eshaghi${LRM}\n${LRM}Kesselstr. 3${LRM}\n${LRM}40221 Düsseldorf${LRM}\nتلفن: ${LRM}+49 211 54218000${LRM}\nایمیل: ${LRM}info@tarefe.de${LRM}\nواتساپ: ${LRM}+49 152 24318691${LRM}`,
+      heading: `اطلاعات طبق ${ltr("§ 5 DDG")}`,
+      body: `${ltr("Hamid Eshaghi")}\n${ltr("Kesselstr. 3")}\n${ltr("40221 Düsseldorf")}\nتلفن: ${ltr("+49 211 54218000")}\nایمیل: ${ltr("info@tarefe.de")}\nواتساپ: ${ltr("+49 152 24318691")}`,
     },
     {
       heading: "ثبت",
-      body: `شماره ثبت نزد اتاق صنعت و بازرگانی (${LRM}IHK${LRM}): ${LRM}D-ZEWI-FHRZG-90${LRM}`,
+      body: `شماره ثبت نزد اتاق صنعت و بازرگانی (${ltr("IHK")}): ${ltr("D-ZEWI-FHRZG-90")}`,
     },
     {
       heading: "شناسه مالیات بر ارزش‌افزوده",
-      body: `شماره شناسایی مالیات بر ارزش‌افزوده طبق § 27a قانون مالیات بر ارزش‌افزوده آلمان: ${LRM}DE356741347${LRM}`,
+      body: `شماره شناسایی مالیات بر ارزش‌افزوده طبق ${ltr("§ 27a")} قانون مالیات بر ارزش‌افزوده آلمان: ${ltr("DE356741347")}`,
     },
     {
       heading: "شخص دارای اختیار نمایندگی",
-      body: `${LRM}Hamid Eshaghi${LRM}، مالک (${LRM}Inhaber${LRM})`,
+      body: `${ltr("Hamid Eshaghi")}، مالک (${ltr("Inhaber")})`,
     },
     {
       heading: "بیمه مسئولیت حرفه‌ای",
-      body: `${LRM}HDI${LRM}\n${LRM}Postfach 10 10 59${LRM}\n${LRM}40710 Hilden${LRM}`,
+      body: `${ltr("HDI")}\n${ltr("Postfach 10 10 59")}\n${ltr("40710 Hilden")}`,
     },
     {
       heading: "تاریخ اعتبار",
-      body: `این اطلاعات از تاریخ ${LRM}10 اکتبر 2023${LRM} معتبر است.`,
+      body: `این اطلاعات از تاریخ ${ltr("10 اکتبر 2023")} معتبر است.`,
     },
   ],
   de: [
