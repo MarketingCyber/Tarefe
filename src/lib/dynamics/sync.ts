@@ -148,6 +148,23 @@ async function saveRows(table: Table, rows: Record<string, unknown>[]) {
   return { upserted, deleted };
 }
 
+/**
+ * Stores records Dynamics just returned for a write from /ops (lib/dynamics/write.ts) the same way the sync would,
+ * so the new CRM shows Dynamics' version right away instead of after the next round.
+ */
+export async function saveMirrorRecords(tableName: string, rows: Record<string, unknown>[]) {
+  const table = CRM_TABLES.find((t) => t.name === tableName);
+  if (!table) throw new Error(`${tableName} isn't a mirrored table`);
+  return saveRows(table, rows);
+}
+
+/** Read and select of one mirrored record, as the sync reads it (for write-back read-backs). */
+export function mirrorReadPath(tableName: string, id: string) {
+  const table = CRM_TABLES.find((t) => t.name === tableName);
+  if (!table) throw new Error(`${tableName} isn't a mirrored table`);
+  return `${table.set}(${id})${table.select ? `?$select=${table.select}` : ""}`;
+}
+
 /** Syncs one table until it is up to date or the deadline passes. */
 export async function syncTable(table: Table, deadline: number): Promise<TableResult> {
   const state = await prisma.crmSyncState.upsert({ where: { entity: table.name }, create: { entity: table.name }, update: {} });

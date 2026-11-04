@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import { writeMode } from "@/lib/dynamics/write";
+import { AddNoteForm, CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import Link from "next/link";
 import { ArrowRight, ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
@@ -68,6 +70,7 @@ export default async function CustomerDetailPage({
   const { contact, account, related } = customer;
   const c = contact?.data ?? {};
   const self = `/ops/customers/${id}`;
+  const writes = writeMode();
 
   const contracts = related.opportunity ?? [];
   const tickets = related.incident ?? [];
@@ -232,6 +235,11 @@ export default async function CustomerDetailPage({
 
           {contact && (
             <Section title={`تاریخچه (${historyAll.length})`} note="ایمیل‌ها، تماس‌ها، تسک‌ها، قرارها و یادداشت‌های CRM قدیم — هم آن‌هایی که روی خود مشتری ثبت شده‌اند و هم روی قراردادها و تیکت‌هایش.">
+              {writes !== "off" && (
+                <div className="mb-4">
+                  <AddNoteForm entity="contact" id={contact.crmId} returnPath={self} dry={writes === "dry"} />
+                </div>
+              )}
               <div className="mb-4 flex flex-wrap gap-1.5">
                 <FilterChip href={self} active={!history}>
                   همه
@@ -389,8 +397,8 @@ export default async function CustomerDetailPage({
                 ) : (
                   <ul className="space-y-2">
                     {openCrmTasks.slice(0, 15).map((t) => (
-                      <li key={t.crmId}>
-                        <Link href={`/ops/old-crm/task/${t.crmId}`} className="block rounded-lg border border-border p-2.5 text-sm hover:border-purple-600">
+                      <li key={t.crmId} className="rounded-lg border border-border p-2.5 text-sm">
+                        <Link href={`/ops/old-crm/task/${t.crmId}`} className="block hover:text-purple-600">
                           <span className="font-medium text-body">{shown(t.data, "subject") ?? "تسک"}</span>
                           <span className="mt-0.5 block text-xs text-secondary">
                             {[shownDate(t.data, "scheduledend") && `موعد ${shownDate(t.data, "scheduledend")}`, shown(t.data, "ownerid"), shown(t.data, "regardingobjectid")]
@@ -398,6 +406,11 @@ export default async function CustomerDetailPage({
                               .join(" · ")}
                           </span>
                         </Link>
+                        {writes !== "off" && (
+                          <div className="mt-2">
+                            <CloseActivityButton entity="task" id={t.crmId} returnPath={self} dry={writes === "dry"} />
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

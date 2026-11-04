@@ -2,7 +2,7 @@ import fs from "node:fs";
 import httpntlm from "httpntlm";
 
 /**
- * Read-only client for the old CRM (Dynamics 365 on-premise 9.1, `tarefe.online/Tarefe`), used by the mirror sync
+ * Client for the old CRM (Dynamics 365 on-premise 9.1, `tarefe.online/Tarefe`), used by the mirror sync
  * (sync.ts). Dynamics only accepts Windows sign-in (NTLM), which Node's fetch can't do, hence httpntlm — the same
  * library the old api.tarefe.de server uses against this CRM.
  *
@@ -11,7 +11,8 @@ import httpntlm from "httpntlm";
  *   DYNAMICS_CRM_USER      the CRM service user (DOMAIN\name or name)
  *   DYNAMICS_CRM_PASSWORD
  *   DYNAMICS_CRM_CREDENTIALS_FILE  alternative for the laptop: a 2-line file (username, password)
- * Only GET requests exist here: this client cannot change anything in Dynamics.
+ * Reads go through crmGet. The only way to change Dynamics is crmWrite (write-back from /ops, lib/dynamics/write.ts),
+ * which is off unless CRM_WRITES is set.
  */
 const BASE = (process.env.DYNAMICS_CRM_URL || "http://tarefe.online/Tarefe/api/data/v9.1/").replace(/\/?$/, "/");
 
@@ -91,4 +92,47 @@ export async function crmGet<T = unknown>(pathOrUrl: string, opts: { trackChange
     }
     await new Promise((r) => setTimeout(r, attempt * 2000));
   }
+}
+
+/**
+ * POST or PATCH a Web API path with a JSON body; returns the record as Dynamics stored it (Prefer: return=
+ * representation), so its own rules (e.g. the task subject prefix) are visible. Never retried: a write that timed
+ * out may still have happened, and a second try could duplicate it.
+ */
+export function crmWrite<T = Record<string, unknown>>(method: "POST" | "PATCH", path: string, body: Record<string, unknown>): Promise<T> {
+  const l = login();
+  if (!l) return Promise.reject(new CrmError(0, "Dynamics login not configured"));
+  return new Promise((resolve, reject) => {
+    httpntlm[method === "POST" ? "post" : "patch"](
+      {
+        url: BASE + path.replace(/^\//, ""),
+        username: l.username,
+        password: l.password,
+        domain: l.domain,
+        workstation: "",
+        ntlm_version: 2,
+        timeout: 60_000,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json; charset=utf-8",
+          "OData-MaxVersion": "4.0",
+          "OData-Version": "4.0",
+          Prefer: `return=representation,${PREFER}`,
+        },
+        body: JSON.stringify(body),
+      },
+      (err: Error | null, res: { statusCode: number; body: string } | undefined) => {
+        if (err || !res) return reject(new CrmError(0, err?.message ?? "no response"));
+        let json: Record<string, unknown> | null = null;
+        try {
+          json = res.body ? JSON.parse(res.body) : null;
+        } catch {
+          // not JSON
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) return resolve((json ?? {}) as T);
+        const message = (json?.error as { message?: string } | undefined)?.message ?? res.body?.slice(0, 300) ?? "";
+        reject(new CrmError(res.statusCode, message));
+      },
+    );
+  });
 }

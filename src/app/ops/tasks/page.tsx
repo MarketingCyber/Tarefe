@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { writeMode } from "@/lib/dynamics/write";
+import { CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -103,6 +105,7 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
   };
   const dueOf = (d: Date | null): Due => (!d ? "none" : d.getTime() < today ? "overdue" : d.getTime() < today + DAY ? "today" : d.getTime() < today + 8 * DAY ? "week" : "later");
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const writes = writeMode();
 
   return (
     <>
@@ -186,6 +189,11 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
                       <Link href={`/ops/old-crm/${r.entity}/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
                         {shown(d, "subject") ?? HISTORY_TYPES[r.entity]?.label}
                       </Link>
+                      {writes !== "off" && (
+                        <div className="mt-1.5">
+                          <CloseActivityButton entity={r.entity} id={r.crmId} returnPath="/ops/tasks" dry={writes === "dry"} />
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {aboutHref ? (

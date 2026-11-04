@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { writeMode } from "@/lib/dynamics/write";
+import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound, redirect } from "next/navigation";
 import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
@@ -148,6 +150,11 @@ export default async function ContractPage({ params, searchParams }: { params: P
 
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-sm font-bold text-purple-900">تاریخچه ({historyAll.length.toLocaleString("fa-IR")})</h2>
+            {writeMode() !== "off" && (
+              <div className="mt-3">
+                <AddNoteForm entity="opportunity" id={contract.crmId} returnPath={self} dry={writeMode() === "dry"} />
+              </div>
+            )}
             <div className="mb-4 mt-3 flex flex-wrap gap-1.5">
               <FilterChip href={self} active={!history}>
                 همه

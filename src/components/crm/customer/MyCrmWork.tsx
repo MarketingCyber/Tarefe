@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { writeMode } from "@/lib/dynamics/write";
+import { CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import { prisma } from "@/lib/db";
 import { crmUserOf, crmUsers } from "@/lib/crm/crm-users";
 import { setMyCrmUser } from "@/lib/crm/crm-user-actions";
@@ -72,6 +74,7 @@ export async function MyCrmWork({ userId }: { userId: string }) {
     prisma.crmRecord.count({ where: leadWhere }),
   ]);
   const owner = encodeURIComponent(me.id);
+  const writes = writeMode();
 
   return (
     <section className="rounded-2xl border border-border bg-white p-6">
@@ -117,7 +120,10 @@ export async function MyCrmWork({ userId }: { userId: string }) {
                         </Link>
                       )}
                     </div>
-                    <Badge tone={due.tone}>{due.text}</Badge>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <Badge tone={due.tone}>{due.text}</Badge>
+                      {writes !== "off" && <CloseActivityButton entity={r.entity} id={r.crmId} returnPath="/ops/my-work" dry={writes === "dry"} />}
+                    </div>
                   </li>
                 );
               })}

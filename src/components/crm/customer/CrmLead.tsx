@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { writeMode } from "@/lib/dynamics/write";
+import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
 import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
@@ -143,6 +145,11 @@ export async function CrmLead({ id, history }: { id: string; history?: string })
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <section className="rounded-2xl border border-border bg-white p-6 2xl:col-span-2">
           <h2 className="text-sm font-bold text-purple-900">تاریخچه ({historyAll.length.toLocaleString("fa-IR")})</h2>
+          {writeMode() !== "off" && (
+            <div className="mt-3">
+              <AddNoteForm entity="lead" id={record.crmId} returnPath={self} dry={writeMode() === "dry"} />
+            </div>
+          )}
           {historyAll.length > 0 && (
             <div className="mb-4 mt-3 flex flex-wrap gap-1.5">
               <FilterChip href={self} active={!history}>
