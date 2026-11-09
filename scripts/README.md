@@ -1,5 +1,13 @@
 # Ops scripts
 
+## Local backup on the laptop (`local-backup.sh`)
+
+Refreshes the owner's local copy of the whole project in `C:\Pourya\Tarefe\Local backups\` — run after every change
+(see PROJECT-STATUS.md). `bash scripts/local-backup.sh` = quick (git bundles of the website and the app, the status
+file, Claude's notes, laptop .env files → `latest/`); `--full` = also the live database (pg_dump, checked), uploaded
+files (compared with the server) and server setup into a new dated folder, with checksums. Holds customer data and
+passwords — encrypted drive only.
+
 ## Database backups (`backup-db.sh`)
 
 Daily `pg_dump` of `tarefe_prod` to `/var/backups/tarefe-db/`, custom
