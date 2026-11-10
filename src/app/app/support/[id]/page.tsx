@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
@@ -39,6 +40,8 @@ async function replyToTicket(formData: FormData) {
 export default async function SupportTicketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  // Waits for the same old-CRM refresh the layout runs (they render in parallel).
+  if (session?.user?.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
   // Same fresh-login race as PortalDashboard (app/page.tsx) — auth() can
   // return null right after sign-in. Distinguish that from "not your
   // ticket": the former should bounce to login, not show a misleading 404.

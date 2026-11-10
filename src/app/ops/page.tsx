@@ -23,12 +23,12 @@ export default async function OpsOverview() {
   const [newLeads, totalLeads, activeContracts, openTickets, deadlinesSoon] = await Promise.all([
     prisma.lead.count({ where: { status: "NEW" } }),
     prisma.lead.count(),
-    prisma.contract.count({ where: { status: "ACTIVE" } }),
-    prisma.serviceRequest.count({ where: { status: { not: "COMPLETED" } } }),
+    prisma.contract.count({ where: { status: "ACTIVE", crmId: null } }),
+    prisma.serviceRequest.count({ where: { status: { not: "COMPLETED" }, crmId: null } }),
     // Overdue + due within a week — the same window /ops/contracts' own
     // "Overdue"/"Due today"/"Due this week" buckets cover, surfaced here
     // as one org-wide count so it doesn't need its own visit to notice.
-    prisma.contract.count({ where: { cancellationDeadline: { lte: weekFromNow }, status: { not: "CANCELLED" }, NOT: { cancellationDeadline: null } } }),
+    prisma.contract.count({ where: { crmId: null, cancellationDeadline: { lte: weekFromNow }, status: { not: "CANCELLED" }, NOT: { cancellationDeadline: null } } }),
   ]);
 
   const stats = [

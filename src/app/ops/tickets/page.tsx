@@ -270,6 +270,7 @@ function Select({ name, value, label, options }: { name: string; value: string |
 
 async function SiteTickets() {
   const tickets = await prisma.serviceRequest.findMany({
+    where: { crmId: null }, // projected Dynamics tickets are in the old-CRM view
     orderBy: { createdAt: "desc" },
     include: {
       customer: { select: { id: true, name: true, email: true } },

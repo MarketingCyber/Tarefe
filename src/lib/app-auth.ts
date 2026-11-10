@@ -33,7 +33,7 @@ function key(purpose: string): Uint8Array {
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
-export const normalizeEmail = (email: string) => email.trim().toLowerCase();
+export { normalizeEmail } from "@/lib/email-address";
 
 export function newLoginCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");

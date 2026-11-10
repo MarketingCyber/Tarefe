@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findUserByEmail, normalizeEmail } from "@/lib/email-address";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: z.prettifyError(parsed.error) }, { status: 400 });
   }
-  const { name, email, password, locale } = parsed.data;
+  const { name, password, locale } = parsed.data;
+  const email = normalizeEmail(parsed.data.email);
   const resolvedLocale: Locale = LOCALES.includes(locale as Locale) ? (locale as Locale) : "fa";
 
   // Explicit pre-check rather than relying on the DB's own unique
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
   // a narrow (and here, harmless) race between two simultaneous signups
   // for the same address — the unique constraint is still the real
   // backstop if that ever happens.
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await findUserByEmail(email);
   if (existing) {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });
   }

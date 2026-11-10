@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import { prisma } from "@/lib/db";
 import { inter, iransansx } from "@/lib/fonts";
 import { PortalNav } from "@/components/customer/PortalNav";
@@ -30,6 +31,8 @@ export const metadata: Metadata = {
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/app");
+  // The customer's contracts and tickets from the old CRM (only when something changed there; never blocks the page).
+  if (session.user.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
 
   const notifications = await prisma.notification.findMany({
     where: { userId: session.user.id },

@@ -1,5 +1,6 @@
 "use server";
 
+import { findUserByEmail, normalizeEmail } from "@/lib/email-address";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
@@ -31,7 +32,7 @@ export async function createStaffAccount(formData: FormData) {
   if (!admin) return;
 
   const name = (formData.get("name") as string)?.trim();
-  const email = (formData.get("email") as string)?.trim();
+  const email = normalizeEmail((formData.get("email") as string) ?? "");
   const role = formData.get("role") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -48,7 +49,7 @@ export async function createStaffAccount(formData: FormData) {
   // the same outcome with none of that path's own validation.
   if (!ASSIGNABLE_STAFF_ROLES.includes(role as UserRole)) return;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await findUserByEmail(email);
   if (existing) redirect("/ops/team?teamError=email_taken");
 
   const passwordHash = await bcrypt.hash(password, 10);

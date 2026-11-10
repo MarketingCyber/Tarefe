@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { PlusCircle } from "@phosphor-icons/react/dist/ssr";
@@ -53,6 +54,8 @@ async function createTicket(formData: FormData) {
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ contractId?: string }> }) {
   const session = await auth();
+  // Waits for the same old-CRM refresh the layout runs (they render in parallel).
+  if (session?.user?.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
   // See PortalDashboard (app/page.tsx) — same fix, same reason: don't trust
   // the layout's auth gate blindly here, auth() has been seen returning
   // null on a fresh-login race.

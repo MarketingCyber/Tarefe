@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import Link from "next/link";
 import { ArrowRight, FileText, Headset } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
@@ -16,6 +17,8 @@ const REQUEST_STATUS_LABEL: Record<string, string> = {
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  // Waits for the same old-CRM refresh the layout runs (they render in parallel).
+  if (session?.user?.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
   if (!session?.user?.id) redirect(`/login?callbackUrl=/app/contracts/${id}`);
 
   const contract = await prisma.contract.findUnique({

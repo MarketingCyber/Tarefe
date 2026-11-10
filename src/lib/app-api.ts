@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAppUser, type AppUser } from "@/lib/app-auth";
+import { refreshCustomerFromCrm } from "@/lib/crm/customer-link";
 import { TAXONOMY, byLocale, type Locale } from "@/lib/taxonomy";
 
 /**
@@ -26,7 +27,10 @@ export function fail(status: number, code: string, message?: string) {
 /** The signed-in customer, or a 401 response to return as-is. */
 export async function requireUser(request: Request): Promise<AppUser | NextResponse> {
   const user = await getAppUser(request);
-  return user ?? fail(401, "unauthorized", "Sign in again");
+  if (!user) return fail(401, "unauthorized", "Sign in again");
+  // The customer's contracts and tickets from the old CRM (only when something changed there; never blocks a call).
+  await refreshCustomerFromCrm(user.id).catch((e) => console.error("crm customer refresh:", e instanceof Error ? e.message : e));
+  return user;
 }
 
 export async function readJson<T = Record<string, unknown>>(request: Request): Promise<T | null> {

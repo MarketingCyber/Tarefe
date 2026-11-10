@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import { redirect } from "next/navigation";
 import { FileText } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
@@ -15,6 +16,8 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 export default async function ContractsPage() {
   const session = await auth();
+  // Waits for the same old-CRM refresh the layout runs (they render in parallel).
+  if (session?.user?.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
   // See PortalDashboard (app/page.tsx) — every page-level auth() call in
   // /app and /ops guards against the fresh-login race the same way now.
   if (!session?.user?.id) redirect("/login?callbackUrl=/app/contracts");

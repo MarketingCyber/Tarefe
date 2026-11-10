@@ -26,24 +26,33 @@ export const rowsReferencing = (ids: string[], entities?: string[]) =>
 
 /** The tarefe.de account of an old-CRM contact: same e-mail first, else same phone. */
 async function accountFor(contact: CrmRow) {
+  // The stored link first (lib/crm/customer-link.ts); the e-mail / phone match only for accounts staff haven't set.
+  const linked = await prisma.user.findFirst({ where: { role: "CUSTOMER", crmContactId: contact.crmId.toLowerCase() } });
+  if (linked) return linked;
+  const unset = { OR: [{ crmLinkMethod: null }, { crmLinkMethod: { not: "staff" } }] };
   const keys = personKeys(contact.data);
   const emails = keys.filter((k) => k.startsWith("email:")).map((k) => k.slice(6));
   if (emails.length) {
-    const byEmail = await prisma.user.findFirst({ where: { role: "CUSTOMER", OR: emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } })) } });
+    const byEmail = await prisma.user.findFirst({
+      where: { role: "CUSTOMER", crmContactId: null, AND: [unset, { OR: emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } })) }] },
+    });
     if (byEmail) return byEmail;
   }
   const phones = new Set(keys.filter((k) => k.startsWith("tel:")));
   if (!phones.size) return null;
   // Phone numbers are stored as typed; narrow by the last 7 digits, then compare normalised.
   const candidates = await prisma.user.findMany({
-    where: { role: "CUSTOMER", OR: [...phones].map((p) => ({ phone: { contains: p.slice(-7) } })) },
+    where: { role: "CUSTOMER", crmContactId: null, AND: [unset, { OR: [...phones].map((p) => ({ phone: { contains: p.slice(-7) } })) }] },
     take: 20,
   });
   return candidates.find((u) => phones.has(phoneKey(u.phone) ?? "")) ?? null;
 }
 
 /** The old-CRM contact of a tarefe.de account. */
-async function contactFor(user: { email: string; phone: string | null }) {
+async function contactFor(user: { email: string; phone: string | null; crmContactId: string | null; crmLinkMethod: string | null }) {
+  const select = { entity: true, crmId: true, data: true, crmModifiedAt: true };
+  if (user.crmContactId) return (await prisma.crmRecord.findFirst({ where: { entity: "contact", crmId: { equals: user.crmContactId, mode: "insensitive" } }, select })) as CrmRow | null;
+  if (user.crmLinkMethod === "staff") return null; // deliberately unlinked by staff
   const keys = [emailKey(user.email), phoneKey(user.phone)].filter((k): k is string => !!k);
   if (!keys.length) return null;
   return (await prisma.crmRecord.findFirst({
@@ -54,10 +63,10 @@ async function contactFor(user: { email: string; phone: string | null }) {
 }
 
 const ACCOUNT_INCLUDE = {
-  contracts: { orderBy: { createdAt: "desc" as const } },
+  contracts: { where: { crmId: null }, orderBy: { createdAt: "desc" as const } },
   applications: { orderBy: { createdAt: "desc" as const }, include: { advisor: { select: { name: true } } } },
   documents: { orderBy: { uploadedAt: "desc" as const } },
-  serviceRequests: { orderBy: { createdAt: "desc" as const }, include: { advisor: { select: { name: true } } } },
+  serviceRequests: { where: { crmId: null }, orderBy: { createdAt: "desc" as const }, include: { advisor: { select: { name: true } } } },
   conversations: { orderBy: { lastMessageAt: "desc" as const }, take: 10 },
   customerTasks: {
     orderBy: [{ status: "asc" as const }, { dueAt: { sort: "asc" as const, nulls: "last" as const } }],

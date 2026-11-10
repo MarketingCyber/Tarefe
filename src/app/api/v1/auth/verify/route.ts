@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { findUserByEmail } from "@/lib/email-address";
 import { ok, fail, readJson, isLocale } from "@/lib/app-api";
 import { MAX_CODE_ATTEMPTS, hashLoginCode, issueSession, normalizeEmail, sameHash } from "@/lib/app-auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
   const claimed = await prisma.appLoginCode.updateMany({ where: { id: record.id, usedAt: null }, data: { usedAt: new Date() } });
   if (claimed.count === 0) return fail(400, "code_expired", "This code is no longer valid, ask for a new one");
 
-  let user = await prisma.user.findUnique({ where: { email } });
+  let user = await findUserByEmail(email);
   const isNew = !user;
   if (!user) {
     user = await prisma.user.create({ data: { email, name: "", role: "CUSTOMER", locale: isLocale(body?.locale) ? body.locale : "fa" } });

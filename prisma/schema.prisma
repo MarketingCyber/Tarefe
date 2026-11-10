@@ -72,6 +72,14 @@ model User {
   // chosen by themselves on /ops/tasks — the default "mine" filter for old-CRM tasks and contracts.
   crmUserId String?
 
+  // Customer only (2026-11-10): which old-CRM customer (Dynamics contact GUID) this account is. Set automatically
+  // when exactly one contact has the account's e-mail (else phone), or by staff on the Customer 360 page; drives the
+  // projection of the customer's Dynamics contracts and tickets into the portal and app (lib/crm/customer-link.ts).
+  crmContactId  String?
+  crmLinkMethod String? // "email" | "phone" | "staff"
+  crmLinkedAt   DateTime?
+  crmSyncedAt   DateTime? // last projection of the contact's contracts / tickets
+
   // Mobile app (2026-10-23): random, non-guessable code a customer shares to invite friends (never built from the
   // name, owner's rule). Created on first request by /api/v1/referral.
   referralCode String? @unique
@@ -105,6 +113,7 @@ model User {
   createdTasks  Task[] @relation("TaskCreatedBy")
   customerTasks Task[] @relation("TaskCustomer")
 
+  @@index([crmContactId])
   @@map("users")
 }
 
@@ -253,9 +262,14 @@ model Contract {
   tasks          Task[]
   conversations  Conversation[]
 
+  // Set when this row is a read-only projection of an old-CRM contract (Dynamics opportunity GUID) for the portal and
+  // app — Dynamics stays the master; lib/crm/customer-link.ts refreshes it. Null for contracts created on the site.
+  crmId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([crmId])
   @@map("contracts")
 }
 
@@ -334,9 +348,13 @@ model ServiceRequest {
   messages Message[]
   tasks    Task[]
 
+  // Set when this row is a read-only projection of an old-CRM ticket (Dynamics incident GUID) — see Contract.crmId.
+  crmId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([crmId])
   @@map("service_requests")
 }
 

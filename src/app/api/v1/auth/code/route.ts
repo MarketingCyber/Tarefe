@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { findUserByEmail } from "@/lib/email-address";
 import { ok, fail, readJson, isLocale } from "@/lib/app-api";
 import { CODE_TTL_MINUTES, hashLoginCode, newLoginCode, normalizeEmail } from "@/lib/app-auth";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email";
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
   const sentAnswer = ok({ sent: true, expiresInMinutes: CODE_TTL_MINUTES });
 
-  const user = await prisma.user.findUnique({ where: { email }, select: { role: true, active: true } });
+  const user = await findUserByEmail(email);
   if (user && (user.role !== "CUSTOMER" || !user.active)) return sentAnswer;
 
   const code = newLoginCode();

@@ -1,4 +1,5 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
+import { findUserByEmail, normalizeEmail } from "@/lib/email-address";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
@@ -94,7 +95,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const totpCode = credentials?.totpCode as string | undefined;
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await findUserByEmail(email);
         if (!user) return null;
 
         if (!user.active) throw new AccountDeactivatedError();
@@ -163,7 +164,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const email = profile?.email;
       if (!email) return false;
 
-      const existing = await prisma.user.findUnique({ where: { email } });
+      const existing = await findUserByEmail(email);
       if (existing) {
         if (existing.role !== "CUSTOMER") return false;
         if (!existing.active) return false;
@@ -173,7 +174,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const created = await prisma.user.create({
-        data: { email, name: profile?.name ?? email, passwordHash: null, role: "CUSTOMER" },
+        data: { email: normalizeEmail(email), name: profile?.name ?? email, passwordHash: null, role: "CUSTOMER" },
       });
       user.id = created.id;
       user.role = created.role;

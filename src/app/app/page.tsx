@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import { redirect } from "next/navigation";
 import { FileText, PlusCircle } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
@@ -7,6 +8,8 @@ import { CONTRACT_STATUS_FA } from "@/lib/status-labels";
 
 export default async function PortalDashboard() {
   const session = await auth();
+  // Waits for the same old-CRM refresh the layout runs (they render in parallel).
+  if (session?.user?.role === "CUSTOMER") await refreshCustomerForRequest(session.user.id);
   // The layout above already redirects unauthenticated visitors, but
   // `session!.user!.id!` (non-null assertions — no runtime check at all)
   // used to sit here instead. auth() has been observed returning null on

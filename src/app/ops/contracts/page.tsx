@@ -315,6 +315,7 @@ const SITE_STATUS_TONE: Record<string, BadgeTone> = { ACTIVE: "success", PENDING
 
 async function SiteContracts() {
   const contracts = await prisma.contract.findMany({
+    where: { crmId: null }, // projected Dynamics contracts are in the views above
     orderBy: { createdAt: "desc" },
     include: { customer: { select: { id: true, name: true, email: true } } },
     take: 100,

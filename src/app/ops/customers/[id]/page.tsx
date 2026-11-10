@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { CustomerLinkForm, CustomerLinkStatus } from "@/components/crm/customer/CustomerLinkForms";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm, CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import Link from "next/link";
@@ -184,7 +185,15 @@ export default async function CustomerDetailPage({
             ))}
           </div>
         )}
-        {!contact && <p className="mt-4 text-xs text-secondary">این حساب در CRM قدیم با همین ایمیل یا شماره تلفن پیدا نشد.</p>}
+        {account && (
+          <div className="mt-4">
+            {account.crmContactId && contact ? (
+              <CustomerLinkStatus accountId={account.id} method={account.crmLinkMethod} returnPath={self} />
+            ) : (
+              <CustomerLinkForm accountId={account.id} suggested={contact?.crmId ?? null} returnPath={self} />
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
