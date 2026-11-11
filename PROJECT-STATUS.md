@@ -4,7 +4,7 @@
 what comes next.** Updated with every change (see [Keeping this file current](#keeping-this-file-current)); the
 [changelog](#changelog) at the end records each update.
 
-Last updated: **2026-11-10**
+Last updated: **2026-11-11**
 
 ---
 
@@ -67,8 +67,8 @@ claims, changes) for them.
 | Dynamics → new CRM | ✅ every record, every minute (mirror), attachments copied, nightly checks |
 | New CRM → Dynamics | 🟡 close task / add note — built, switch on **dry** (test mode) |
 | Website lead form → Dynamics | ✅ each lead is sent through `api.tarefe.de` into Dynamics |
-| Website/app accounts ↔ Dynamics customers | ✅ linked (`User.crmContactId`): automatically when exactly one customer has the e-mail (else phone), or by staff — built, not deployed |
-| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — built, not deployed; documents and points not yet |
+| Website/app accounts ↔ Dynamics customers | ✅ linked (`User.crmContactId`): automatically when exactly one customer has the e-mail (else phone), or by staff — live 2026-11-11 |
+| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — live 2026-11-11 (no customer accounts yet); documents in progress, points not yet |
 
 ## 3. Where everything lives
 
@@ -142,7 +142,7 @@ claims, changes) for them.
 Signed-in customers: contracts, applications, documents (upload / download), support tickets with chat, profile,
 GDPR data export (instant) and deletion request (reviewed by staff).
 
-**Real data from the old CRM (built 2026-11-10, not deployed yet)** — `src/lib/crm/customer-link.ts`:
+**Real data from the old CRM (live since 2026-11-11)** — `src/lib/crm/customer-link.ts`:
 - Each account is linked to its Dynamics customer (`User.crmContactId`): automatically when exactly one customer
   has the account's e-mail (else exactly one has its phone) — ambiguous matches are left to staff, never guessed;
   staff can link by customer number or unlink on Customer 360; a staff-unlinked account is never re-matched.
@@ -169,7 +169,7 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   tickets. Staff pick "who I am in the old CRM" once (`User.crmUserId`).
 - **Customers** (`/ops/customers`): search across all 6,854 Dynamics customers + site accounts (name, e-mail, phone
   in any format, customer number); the account ↔ CRM-customer link with how it was made, unlink / link by customer
-  number (built 2026-11-10, not deployed); **Customer 360** — header facts (customer number, referral code, points, IBAN
+  number (live 2026-11-11); **Customer 360** — header facts (customer number, referral code, points, IBAN
   masked, services), contracts, tickets, merged history (e-mails, calls, tasks, appointments, notes incl. those on
   their contracts/tickets), points, other records, site applications / documents / conversations.
 - **Contracts** (`/ops/contracts`): cancellation-deadline list (Kündigungsfrist, last 30 / next 90 days, bucketed),
@@ -234,8 +234,8 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   2026-11-03); the old app's Firebase apps are `com.app.tarefe` (Android + iOS), the new app is set to
   `de.tarefe.app` — **decision pending** (§13).
 - Home-screen web build served at `tarefe.de/m` (laptop-built, not deployed).
-- Shows the customer's **real contracts and tickets from Dynamics** once the account is linked (§6; built
-  2026-11-10, not deployed) — checked locally through the real app API: 22 active contracts with Persian service
+- Shows the customer's **real contracts and tickets from Dynamics** once the account is linked (§6; live on the server
+  2026-11-11, app itself still off) — checked locally through the real app API: 22 active contracts with Persian service
   names, monthly prices and upcoming deadlines, one conversation per contract created automatically.
 - Docs: `docs/app-redesign/` (goals, architecture, old app inventory, environments, roadmap, data mapping,
   notifications, customer test).
@@ -277,7 +277,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | built and tested locally, **not deployed** | deploy (additive database change); then documents + points (needs the owner's decision on visible documents), step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11 | documents (owner agreed: customer uploads + letters sent to them, as the old app), then points / referral code, then step 4 |
 
 ## 12. Plan for the future
 
@@ -286,10 +286,10 @@ In the order agreed / recommended (2026-11-07):
 1. **Write-back fully on**, then more operator actions: create a task (with Dynamics' "Sonstig-" naming), ticket
    status and follow-up date, contract key fields, new lead / customer. Swap the owner's login for the CRM
    **service user** when it exists.
-2. ~~One customer identity across platforms~~ — **built 2026-11-10** (not deployed): link by e-mail / phone, staff
+2. ~~One customer identity across platforms~~ — **live 2026-11-11**: link by e-mail / phone, staff
    link / unlink.
-3. **Customer portal + app show the real data** — contracts, deadlines and tickets **built 2026-11-10** (not
-   deployed); still open: documents (incl. copied attachments — owner decides which are customer-visible), points,
+3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; still open: documents (owner agreed 2026-11-11: only customer uploads
+   and letters sent to the customer, as the old app), points,
    referral code. Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
@@ -354,7 +354,7 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - Laptop: direct connections are sometimes blocked (use the proxy for SSH); Docker Desktop stops after restarts
   (local database needs it).
 - Old leads 2026-10-22..25 not in Dynamics (by decision).
-- **Fixed 2026-11-10 (not deployed): one person could get two accounts** — website sign-up stored the e-mail as
+- **Fixed 2026-11-10 (live 2026-11-11): one person could get two accounts** — website sign-up stored the e-mail as
   typed, app sign-in looked it up lowercase and created a second account. E-mails are now stored lowercase and looked
   up ignoring case everywhere (`src/lib/email-address.ts`); production had no duplicates (3 staff accounts).
 - The hourly notification rules (`scripts/run-notification-rules.ts`, in-app notifications only) are not scheduled on
@@ -416,4 +416,5 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-04 | Right-to-left number fix (phone numbers, § references); one real write-back test in Dynamics (TEST task) | yes |
 | 2026-11-05 | Write-back: close task / add note, switch `CRM_WRITES=dry` on the server | yes (dry) |
 | 2026-11-09 | Full local backup (`C:\Pourya\Tarefe\Local backups\2026-11-09`); this status file + `scripts/local-backup.sh` | file only |
-| 2026-11-10 | Plan steps 2–3: account ↔ Dynamics-customer link (auto by e-mail/phone, staff link/unlink on Customer 360); the linked customer's Dynamics contracts and tickets («Send To Site» only) in the portal and app API; passed deadlines of active contracts hidden; staff site tabs skip the projected copies; fix: one account per e-mail (case-insensitive) | no (tested locally) |
+| 2026-11-10 | Plan steps 2–3: account ↔ Dynamics-customer link (auto by e-mail/phone, staff link/unlink on Customer 360); the linked customer's Dynamics contracts and tickets («Send To Site» only) in the portal and app API; passed deadlines of active contracts hidden; staff site tabs skip the projected copies; fix: one account per e-mail (case-insensitive) | yes, 2026-11-11 |
+| 2026-11-11 | Deployed plan steps 2–3 (database: new optional columns only, 0 errors); owner's decision: customers see only their own uploads and letters sent to them | yes |
