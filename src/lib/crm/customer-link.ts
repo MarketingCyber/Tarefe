@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { ContractStatus, RequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emailKey, isGuid, phoneKey } from "@/lib/dynamics/identity";
+import { crmCdnUrl, crmLetterUrl } from "@/lib/document-storage";
 
 /**
  * One customer across the platforms (step 2–3 of the plan in PROJECT-STATUS.md):
@@ -13,6 +14,10 @@ import { emailKey, isGuid, phoneKey } from "@/lib/dynamics/identity";
  *    ServiceRequest tables (tagged with crmId), so the portal and the app — built on those tables, with a chat and
  *    requests per contract — show the customer's real data unchanged. Read-only: Dynamics stays the master and every
  *    refresh overwrites the copy. Only what the old app showed customers is copied: records with «Send To Site».
+ * 3. Documents — only what is the customer's to see, as in the old app: letters received for them (new_receive_letter,
+ *    the PDF stored in the record) and the files they uploaded themselves on the old site / app (notes the integration
+ *    accounts wrote on their tickets and contracts, with the file on cdn.tarefe.de). Never operators' notes, internal
+ *    papers or commission documents.
  */
 
 const F = "@OData.Community.Display.V1.FormattedValue";
@@ -37,6 +42,11 @@ const CATEGORY_SLUG: Record<string, string> = {
 
 /** Payment interval («نوع پرداخت») → months, to show every amount as a monthly price. */
 const INTERVAL_MONTHS: Record<string, number> = { ماهیانه: 1, "هر سه ماه": 3, "هر نیم سال": 6, سالیانه: 12 };
+
+/** The old site / app's Dynamics accounts («tarefe site», «tarefe site2», «tarefe app»): notes they wrote are the customer's own. */
+const CUSTOMER_UPLOAD_USERS = ["94c3c2d1-135a-ee11-8a02-963723c1adde", "bcae28e4-268d-ef11-8a0d-afd5082a56a4", "273d4d9f-135a-ee11-8a02-963723c1adde"];
+const CDN_LINK = /https:\/\/cdn\.tarefe\.de\/(?:opportunity|ticket)\/[A-Za-z0-9-]+\.[A-Za-z0-9]{2,5}/g;
+const UPLOAD_PREFIX = /^آپلود مدارک توسط کاربر\s*-\s*/;
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
 const date = (v: unknown) => (typeof v === "string" && !Number.isNaN(Date.parse(v)) ? new Date(v) : null);
@@ -91,6 +101,7 @@ export async function unlinkCustomer(userId: string) {
 
 /** Removes the projected rows of an account, except those a customer has already used (messages / documents). */
 async function unlinkProjection(userId: string) {
+  await prisma.document.deleteMany({ where: { ownerId: userId, crmId: { not: null }, messages: { none: {} } } });
   await prisma.serviceRequest.deleteMany({ where: { customerId: userId, crmId: { not: null }, messages: { none: {} } } });
   const contracts = await prisma.contract.findMany({
     where: { customerId: userId, crmId: { not: null } },
@@ -137,10 +148,17 @@ export async function refreshCustomerFromCrm(userId: string, opts: { force?: boo
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { crmSyncedAt: true } });
   if (!opts.force && user?.crmSyncedAt) {
     const changed = await prisma.crmRecord.findFirst({
-      where: { refs: { has: contactId }, entity: { in: ["opportunity", "incident"] }, syncedAt: { gt: user.crmSyncedAt } },
+      where: { refs: { has: contactId }, entity: { in: ["opportunity", "incident", "new_receive_letter"] }, syncedAt: { gt: user.crmSyncedAt } },
       select: { id: true },
     });
-    if (!changed) return;
+    // A note added to one of their tickets / contracts changes only the note (it points at the ticket, not the customer).
+    const changedNote =
+      !changed &&
+      (await prisma.crmRecord.findFirst({
+        where: { entity: "annotation", syncedAt: { gt: user.crmSyncedAt }, refs: { hasSome: await customerRecordIds(contactId) } },
+        select: { id: true },
+      }));
+    if (!changed && !changedNote) return;
   }
   const startedAt = new Date();
 
@@ -148,8 +166,9 @@ export async function refreshCustomerFromCrm(userId: string, opts: { force?: boo
     where: { refs: { has: contactId }, entity: { in: ["opportunity", "incident"] }, deletedAt: null },
     select: { entity: true, crmId: true, data: true, state: true, crmModifiedAt: true },
   })) as (Row & { entity: string })[];
+  const mine = rows.filter((r) => lower(r.data._customerid_value) === contactId);
   // The customer's own records that the old app showed them («Send To Site»).
-  const own = rows.filter((r) => lower(r.data._customerid_value) === contactId && r.data.new_send_to_site === true);
+  const own = mine.filter((r) => r.data.new_send_to_site === true);
 
   const contractIdByCrm = new Map<string, string>();
   const seenContracts = new Set<string>();
@@ -200,7 +219,100 @@ export async function refreshCustomerFromCrm(userId: string, opts: { force?: boo
     else await prisma.serviceRequest.create({ data: { ...fields, crmId, customerId: userId, createdAt: date(d.createdon) ?? undefined } });
   }
 
+  await projectDocuments(userId, contactId, mine, contractIdByCrm);
   await prisma.user.update({ where: { id: userId }, data: { crmSyncedAt: startedAt } });
+}
+
+/** The contact's own contracts and tickets in the mirror (any, not only «Send To Site»), plus the contact itself. */
+async function customerRecordIds(contactId: string): Promise<string[]> {
+  const rows = await prisma.crmRecord.findMany({
+    where: { refs: { has: contactId }, entity: { in: ["opportunity", "incident"] }, deletedAt: null },
+    select: { crmId: true, data: true },
+  });
+  return [contactId, ...rows.filter((r) => lower((r.data as Data)._customerid_value) === contactId).map((r) => r.crmId.toLowerCase())];
+}
+
+type DocFields = { crmId: string; title: string; type: "LETTER" | "OTHER"; fileUrl: string; summary: string | null; contractId: string | null; uploadedAt: Date };
+
+/** Received letters and the customer's own old uploads → the account's documents (see 3. at the top). */
+async function projectDocuments(userId: string, contactId: string, mine: (Row & { entity: string })[], contractIdByCrm: Map<string, string>) {
+  const docs: DocFields[] = [];
+  const contractOf = (opportunityId: unknown) => contractIdByCrm.get(lower(opportunityId) ?? "") ?? null;
+  const ticketContract = new Map(mine.filter((r) => r.entity === "incident").map((r) => [r.crmId.toLowerCase(), contractOf(r.data._new_opportunity_value)]));
+  const ownIds = [contactId, ...mine.map((r) => r.crmId.toLowerCase())];
+
+  // Letters received for the customer, addressed to them or to one of their contracts.
+  // The PDF (new_file_content, often several hundred KB) is left in the database; it's read only when opened.
+  const letters = await prisma.$queryRaw<{ crmId: string; data: Data; hasFile: boolean }[]>`
+    SELECT "crmId", data - 'new_file_content' AS data, coalesce(data->>'new_file_content', '') <> '' AS "hasFile"
+    FROM crm_records WHERE entity = 'new_receive_letter' AND "deletedAt" IS NULL AND refs && ${ownIds}::text[]`;
+  for (const l of letters) {
+    const d = l.data;
+    const forCustomer = lower(d._new_customer_value) === contactId;
+    const forContract = ownIds.includes(lower(d._new_opportunityref_value) ?? "");
+    if ((!forCustomer && !forContract) || !l.hasFile) continue;
+    docs.push({
+      crmId: l.crmId.toLowerCase(),
+      title: str(d.new_name) ?? "نامه",
+      type: "LETTER",
+      fileUrl: crmLetterUrl(l.crmId),
+      summary: letterSummary(d.new_description),
+      contractId: contractOf(d._new_opportunityref_value),
+      uploadedAt: date(d.createdon) ?? new Date(),
+    });
+  }
+
+  // Files the customer uploaded on the old site / app (notes the integration accounts wrote on their records).
+  const notes = await prisma.crmRecord.findMany({
+    where: { entity: "annotation", deletedAt: null, refs: { hasSome: ownIds } },
+    select: { crmId: true, data: true },
+  });
+  for (const n of notes) {
+    const d = n.data as Data;
+    const target = lower(d._objectid_value) ?? "";
+    if (!CUSTOMER_UPLOAD_USERS.includes(lower(d._createdby_value) ?? "") || !ownIds.includes(target)) continue;
+    const text = String(d.notetext ?? "");
+    const links = [...new Set(text.match(CDN_LINK) ?? [])];
+    const named = /^File uploaded:\s*([^#\n]+)/.exec(text)?.[1]?.trim();
+    const subject = (str(d.subject) ?? "").replace(UPLOAD_PREFIX, "").trim();
+    links.forEach((url, i) => {
+      const fileUrl = crmCdnUrl(url);
+      if (!fileUrl) return;
+      const ext = url.slice(url.lastIndexOf("."));
+      const base = named && links.length === 1 ? named : `${subject || "مدرک"}${links.length > 1 ? ` (${i + 1})` : ""}`;
+      docs.push({
+        crmId: `${n.crmId.toLowerCase()}:${i}`,
+        title: base.toLowerCase().endsWith(ext.toLowerCase()) ? base : `${base}${ext}`,
+        type: "OTHER",
+        fileUrl,
+        summary: null,
+        contractId: d.objecttypecode === "opportunity" ? contractOf(target) : (ticketContract.get(target) ?? null),
+        uploadedAt: date(d.createdon) ?? new Date(),
+      });
+    });
+  }
+
+  const existing = new Map(
+    (await prisma.document.findMany({ where: { ownerId: userId, crmId: { not: null } }, select: { id: true, crmId: true } })).map((x) => [x.crmId!, x.id]),
+  );
+  for (const doc of docs) {
+    const id = existing.get(doc.crmId);
+    existing.delete(doc.crmId);
+    if (id) await prisma.document.update({ where: { id }, data: doc });
+    else await prisma.document.create({ data: { ...doc, ownerId: userId, uploadedByStaff: false } });
+  }
+  // Gone from Dynamics (or no longer the customer's): removed, unless it is part of a chat.
+  if (existing.size) await prisma.document.deleteMany({ where: { id: { in: [...existing.values()] }, messages: { none: {} } } });
+}
+
+/** Received letters carry {clientName, clientAddress, contractNumber, summary} as JSON; only the summary is shown. */
+function letterSummary(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  try {
+    return str((JSON.parse(v) as { summary?: unknown }).summary);
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -40,9 +40,11 @@ export default async function DocumentsPage() {
       ) : (
         <div className="mt-6 space-y-2">
           {documents.map((doc) => (
-            <div key={doc.id} className="flex items-center justify-between rounded-xl border border-border bg-white p-4">
-              <div>
-                <p className="text-sm font-semibold text-purple-900">{doc.title}</p>
+            <div key={doc.id} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-white p-4">
+              <div className="min-w-0">
+                {/* Titles and summaries from the old CRM are often German file names — laid out in their own direction. */}
+                <p dir="auto" className="break-words text-sm font-semibold text-purple-900">{doc.title}</p>
+                {doc.summary && <p dir="auto" className="mt-1 line-clamp-3 max-w-[70ch] text-xs leading-relaxed text-body">{doc.summary}</p>}
                 <p className="text-xs text-secondary">
                   {TYPE_LABEL[doc.type] ?? doc.type}
                   {doc.contract && ` · ${doc.contract.provider} ${doc.contract.productName}`} · {doc.uploadedAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}
@@ -51,7 +53,7 @@ export default async function DocumentsPage() {
               {doc.fileUrl ? (
                 <a
                   href={`/api/documents/${doc.id}`}
-                  className="press flex items-center gap-1.5 rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600"
+                  className="press flex shrink-0 items-center gap-1.5 rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600"
                 >
                   <DownloadSimple size={14} />
                   دانلود

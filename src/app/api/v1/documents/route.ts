@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       uploadedAt: d.uploadedAt,
       fromTarefe: d.uploadedByStaff,
       hasFile: Boolean(d.fileUrl),
+      summary: d.summary,
       contract: d.contract ? { id: d.contract.id, provider: d.contract.provider, serviceName: describeService(d.contract.category, user.locale).serviceName } : null,
     })),
   });

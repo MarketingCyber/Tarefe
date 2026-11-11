@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import { prisma } from "@/lib/db";
 
 /**
  * Real file storage for the Document model, which until now had a
@@ -84,7 +85,57 @@ export async function deleteUploadedFile(storagePath: string): Promise<void> {
 
 export function contentTypeFor(storagePath: string): string {
   const ext = path.extname(storagePath).toLowerCase();
-  return { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" }[ext] ?? "application/octet-stream";
+  return (
+    { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".heic": "image/heic" }[ext] ??
+    "application/octet-stream"
+  );
+}
+
+/**
+ * Where a Document's file is (Document.fileUrl):
+ *  - a path in the private upload folder — uploaded on the site / app;
+ *  - `crm-letter:<id>` — an old-CRM received letter (new_receive_letter): the PDF is stored in the record itself
+ *    (new_file_content, base64) and read from the mirror;
+ *  - `crm-cdn:<url>` — a customer's own upload in the old site / app, kept on the old file server (cdn.tarefe.de).
+ *    Fetched by the server and passed through, so the customer only ever sees our login-checked link. When those
+ *    files are moved behind the login (PROJECT-STATUS.md, CDN decision), only this function changes.
+ * Every caller checks the requester may see the document before calling this.
+ */
+const CDN_FILE = /^https:\/\/cdn\.tarefe\.de\/(opportunity|ticket)\/[A-Za-z0-9-]+\.[A-Za-z0-9]{2,5}$/;
+const MAX_REMOTE_BYTES = 40 * 1024 * 1024;
+
+export const crmLetterUrl = (letterId: string) => `crm-letter:${letterId.toLowerCase()}`;
+export const crmCdnUrl = (url: string) => (CDN_FILE.test(url) ? `crm-cdn:${url}` : null);
+
+export type DocumentFile = { body: Uint8Array<ArrayBuffer> | ReadableStream<Uint8Array>; contentType: string };
+
+/** A plain copy: Buffer's ArrayBufferLike admits SharedArrayBuffer, which a Response body doesn't accept. */
+const bytes = (buffer: Buffer) => Uint8Array.from(buffer);
+
+export async function readDocumentFile(fileUrl: string, title: string): Promise<DocumentFile | null> {
+  if (fileUrl.startsWith("crm-letter:")) {
+    const id = fileUrl.slice("crm-letter:".length);
+    const row = await prisma.crmRecord.findFirst({ where: { entity: "new_receive_letter", deletedAt: null, crmId: { equals: id, mode: "insensitive" } }, select: { data: true } });
+    const content = (row?.data as Record<string, unknown> | undefined)?.new_file_content;
+    if (typeof content !== "string" || !content) return null;
+    const buffer = Buffer.from(content, "base64");
+    const pdf = buffer.subarray(0, 5).toString("latin1") === "%PDF-";
+    return { body: bytes(buffer), contentType: pdf ? "application/pdf" : contentTypeFor(title) };
+  }
+  if (fileUrl.startsWith("crm-cdn:")) {
+    const url = fileUrl.slice("crm-cdn:".length);
+    if (!CDN_FILE.test(url)) return null;
+    // Streamed through as it arrives (scans can be tens of MB); the timeout covers the answer, not the whole download.
+    const answered = new AbortController();
+    const timer = setTimeout(() => answered.abort(), 15_000);
+    const res = await fetch(url, { signal: answered.signal, redirect: "error" }).catch(() => null);
+    clearTimeout(timer);
+    if (!res?.ok || !res.body) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_REMOTE_BYTES) return null;
+    return { body: res.body, contentType: contentTypeFor(url) };
+  }
+  const buffer = await readUploadedFile(fileUrl).catch(() => null);
+  return buffer ? { body: bytes(buffer), contentType: contentTypeFor(fileUrl) } : null;
 }
 
 /**

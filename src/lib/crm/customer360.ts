@@ -65,7 +65,7 @@ async function contactFor(user: { email: string; phone: string | null; crmContac
 const ACCOUNT_INCLUDE = {
   contracts: { where: { crmId: null }, orderBy: { createdAt: "desc" as const } },
   applications: { orderBy: { createdAt: "desc" as const }, include: { advisor: { select: { name: true } } } },
-  documents: { orderBy: { uploadedAt: "desc" as const } },
+  documents: { where: { crmId: null }, orderBy: { uploadedAt: "desc" as const } },
   serviceRequests: { where: { crmId: null }, orderBy: { createdAt: "desc" as const }, include: { advisor: { select: { name: true } } } },
   conversations: { orderBy: { lastMessageAt: "desc" as const }, take: 10 },
   customerTasks: {

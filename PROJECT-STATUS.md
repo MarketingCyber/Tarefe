@@ -68,7 +68,7 @@ claims, changes) for them.
 | New CRM → Dynamics | 🟡 close task / add note — built, switch on **dry** (test mode) |
 | Website lead form → Dynamics | ✅ each lead is sent through `api.tarefe.de` into Dynamics |
 | Website/app accounts ↔ Dynamics customers | ✅ linked (`User.crmContactId`): automatically when exactly one customer has the e-mail (else phone), or by staff — live 2026-11-11 |
-| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — live 2026-11-11 (no customer accounts yet); documents in progress, points not yet |
+| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — live 2026-11-11 (no customer accounts yet); documents (received letters + the customer's own old uploads) built 2026-11-11, not deployed; points not yet |
 
 ## 3. Where everything lives
 
@@ -155,8 +155,24 @@ GDPR data export (instant) and deletion request (reviewed by staff).
   price converted to monthly from the payment interval, status (open/won → active, Angebot → pending, ended →
   cancelled). Active contracts' deadlines / end dates that have passed are hidden (Dynamics doesn't move them on
   automatic renewal — they showed as "overdue for 2 years").
-- Not yet: documents (which files customers may see needs the owner's decision), points / referral code, customer
-  actions written back to Dynamics (§12 step 4).
+- **Documents** (built 2026-11-11, not deployed) — only what the old app showed (owner's decision 2026-11-11):
+  - letters received for the customer (`new_receive_letter`, addressed to the customer or one of their contracts):
+    the PDF is stored in the Dynamics record (`new_file_content`) and read from the mirror only when opened; the
+    letter's short German summary (from its description JSON) is shown under the title;
+  - files the customer uploaded on the old site / app: notes written on their tickets / contracts / contact by the
+    integration accounts «tarefe site», «tarefe site2», «tarefe app» with a `cdn.tarefe.de/ticket|opportunity/…`
+    link — one document per link, titled by the note («File uploaded: …» or its subject); test links to
+    localhost are skipped;
+  - never operators' notes, «System Administrator» notes (e-mail templates, generated letters), commission papers.
+  - Copied into `Document` (tagged `crmId`, new `summary` column), linked to the contract when the letter / ticket
+    belongs to a shown one; refreshed with contracts and tickets (a new note on one of the customer's tickets also
+    triggers it); removed when gone from Dynamics. Staff can't delete them and the Customer 360 site list skips them.
+  - Files are served only through the login-checked routes (`/api/documents/[id]`, `/api/v1/documents/[id]`):
+    `Document.fileUrl` is `crm-letter:<id>` or `crm-cdn:<url>` (only exact `https://cdn.tarefe.de/ticket|opportunity/…`
+    links are fetched, streamed through). When the CDN files move behind the login, only `readDocumentFile` in
+    `src/lib/document-storage.ts` changes.
+  - Test (local, sample customer): 3 letters with summaries + 53 own uploads; letter PDF downloads in the portal.
+- Not yet: points / referral code, customer actions written back to Dynamics (§12 step 4).
 
 ## 7. New CRM (/ops) — built and live
 
@@ -277,7 +293,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11 | documents (owner agreed: customer uploads + letters sent to them, as the old app), then points / referral code, then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11; documents built, not deployed | deploy documents, then points / referral code, then step 4 |
 
 ## 12. Plan for the future
 
@@ -288,9 +304,9 @@ In the order agreed / recommended (2026-11-07):
    **service user** when it exists.
 2. ~~One customer identity across platforms~~ — **live 2026-11-11**: link by e-mail / phone, staff
    link / unlink.
-3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; still open: documents (owner agreed 2026-11-11: only customer uploads
-   and letters sent to the customer, as the old app), points,
-   referral code. Required before the app can launch.
+3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
+   (customer uploads + letters sent to the customer, as the old app) built 2026-11-11, waiting to deploy; still open:
+   points, referral code. Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
@@ -418,3 +434,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-09 | Full local backup (`C:\Pourya\Tarefe\Local backups\2026-11-09`); this status file + `scripts/local-backup.sh` | file only |
 | 2026-11-10 | Plan steps 2–3: account ↔ Dynamics-customer link (auto by e-mail/phone, staff link/unlink on Customer 360); the linked customer's Dynamics contracts and tickets («Send To Site» only) in the portal and app API; passed deadlines of active contracts hidden; staff site tabs skip the projected copies; fix: one account per e-mail (case-insensitive) | yes, 2026-11-11 |
 | 2026-11-11 | Deployed plan steps 2–3 (database: new optional columns only, 0 errors); owner's decision: customers see only their own uploads and letters sent to them | yes |
+| 2026-11-11 | Customer documents from the old CRM: received letters (PDF from the Dynamics record, with summary) and the customer's own old uploads (CDN links in the integration accounts' notes) in the portal and app, served only through the login-checked routes; staff can't delete them; database: `documents.crmId`, `documents.summary` (optional); app shows letter summaries | no |

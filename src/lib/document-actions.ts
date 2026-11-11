@@ -71,7 +71,10 @@ export async function deleteDocument(formData: FormData) {
   const id = formData.get("id") as string;
   const returnPath = (formData.get("returnPath") as string) || "/ops";
 
-  const doc = await prisma.document.delete({ where: { id } });
+  // Documents copied from the old CRM are Dynamics' (a refresh would bring them back) — never deleted here.
+  const doc = await prisma.document.findFirst({ where: { id, crmId: null } });
+  if (!doc) return;
+  await prisma.document.delete({ where: { id } });
   if (doc.fileUrl) await deleteUploadedFile(doc.fileUrl);
 
   revalidatePath(returnPath);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { readUploadedFile, contentTypeFor } from "@/lib/document-storage";
+import { readDocumentFile } from "@/lib/document-storage";
 import { canAccessPipeline } from "@/lib/permissions";
 
 /**
@@ -26,16 +26,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const isStaff = canAccessPipeline(session.user.role);
   if (!isOwner && !isStaff) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const buffer = await readUploadedFile(doc.fileUrl).catch(() => null);
-  if (!buffer) return NextResponse.json({ error: "File missing on disk" }, { status: 404 });
-
-  // Buffer's ArrayBufferLike type admits SharedArrayBuffer, which Blob's
-  // stricter BodyInit type doesn't accept — Uint8Array.from() copies into
-  // a fresh, definitely-plain ArrayBuffer, sidestepping the mismatch.
-  return new NextResponse(new Blob([Uint8Array.from(buffer)]), {
+  const file = await readDocumentFile(doc.fileUrl, doc.title).catch(() => null);
+  if (!file) return NextResponse.json({ error: "File missing" }, { status: 404 });
+  return new NextResponse(file.body, {
     status: 200,
     headers: {
-      "Content-Type": contentTypeFor(doc.fileUrl),
+      "Content-Type": file.contentType,
       "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.title)}"`,
       "Cache-Control": "private, no-store",
     },

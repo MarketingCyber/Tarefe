@@ -86,10 +86,13 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         ) : (
           <ul className="space-y-2">
             {contract.documents.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
-                <span className="text-body">{doc.title}</span>
+              <li key={doc.id} className="flex items-center justify-between gap-4 rounded-lg border border-border p-3 text-sm">
+                <div className="min-w-0">
+                  <span dir="auto" className="block break-words text-body">{doc.title}</span>
+                  {doc.summary && <span dir="auto" className="mt-1 line-clamp-2 block text-xs leading-relaxed text-secondary">{doc.summary}</span>}
+                </div>
                 {doc.fileUrl ? (
-                  <a href={`/api/documents/${doc.id}`} className="text-xs font-semibold text-purple-600 hover:text-purple-900">
+                  <a href={`/api/documents/${doc.id}`} className="shrink-0 text-xs font-semibold text-purple-600 hover:text-purple-900">
                     دانلود
                   </a>
                 ) : (

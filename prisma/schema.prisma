@@ -303,6 +303,13 @@ model Document {
 
   uploadedAt DateTime @default(now())
 
+  /// Copied from the old CRM (a received letter or the customer's own upload there) — read-only, refreshed from the
+  /// mirror (lib/crm/customer-link.ts). Null for documents uploaded on the site / app.
+  crmId   String?
+  /// Short summary shown under the title (received letters carry one in Dynamics).
+  summary String?
+
+  @@index([crmId])
   @@map("documents")
 }
 
