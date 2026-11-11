@@ -68,7 +68,7 @@ claims, changes) for them.
 | New CRM → Dynamics | 🟡 close task / add note — built, switch on **dry** (test mode) |
 | Website lead form → Dynamics | ✅ each lead is sent through `api.tarefe.de` into Dynamics |
 | Website/app accounts ↔ Dynamics customers | ✅ linked (`User.crmContactId`): automatically when exactly one customer has the e-mail (else phone), or by staff — live 2026-11-11 |
-| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — live 2026-11-11 (no customer accounts yet); documents (received letters + the customer's own old uploads) built 2026-11-11, not deployed; points not yet |
+| Dynamics → customer portal + new app | ✅ contracts and tickets of the linked customer (only «Send To Site» records, as the old app) — live 2026-11-11 (no customer accounts yet); documents (received letters + the customer's own old uploads) live 2026-11-11; points not yet |
 
 ## 3. Where everything lives
 
@@ -155,7 +155,7 @@ GDPR data export (instant) and deletion request (reviewed by staff).
   price converted to monthly from the payment interval, status (open/won → active, Angebot → pending, ended →
   cancelled). Active contracts' deadlines / end dates that have passed are hidden (Dynamics doesn't move them on
   automatic renewal — they showed as "overdue for 2 years").
-- **Documents** (built 2026-11-11, not deployed) — only what the old app showed (owner's decision 2026-11-11):
+- **Documents** (live 2026-11-11) — only what the old app showed (owner's decision 2026-11-11):
   - letters received for the customer (`new_receive_letter`, addressed to the customer or one of their contracts):
     the PDF is stored in the Dynamics record (`new_file_content`) and read from the mirror only when opened; the
     letter's short German summary (from its description JSON) is shown under the title;
@@ -274,6 +274,8 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
    `app-src-backup-YYYYMMDD.tgz`.
 3. Replace `app/src`, `docker compose build web && docker compose up -d web`.
 4. If the schema changed: `docker compose exec -T web npx prisma db push` (additive changes only).
+   Never while `scripts/local-backup.sh --full` is dumping the database — the change waits for the dump and blocks
+   that table meanwhile.
 5. Check `https://tarefe.de/fa` = 200 and `https://tarefe.de/api/v1/me` = **404** (app must stay off).
 6. `git push`.
 - **SSH note**: when direct connections from the laptop are blocked, SSH works through the local proxy:
@@ -293,7 +295,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11; documents built, not deployed | deploy documents, then points / referral code, then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too | points / referral code (decided: old customers keep their numeric code, new ones get random codes), then step 4 |
 
 ## 12. Plan for the future
 
@@ -305,7 +307,7 @@ In the order agreed / recommended (2026-11-07):
 2. ~~One customer identity across platforms~~ — **live 2026-11-11**: link by e-mail / phone, staff
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
-   (customer uploads + letters sent to the customer, as the old app) built 2026-11-11, waiting to deploy; still open:
+   (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
    points, referral code. Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
@@ -355,6 +357,8 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - Server: only change `/opt/tarefe.de` unless the owner approves something else (approved before: OpenResty routing,
   sgtm, the old backup script fix).
 - Sign-in for customers by e-mail code (no SMS); referral codes random, never from names.
+- Referral codes (2026-11-11): existing customers keep their numeric code from the old system (e.g. `000026`), so
+  links and codes they already shared keep working; new customers get random codes under the new rule.
 - In chat, the customer's messages on the right, the advisor's on the left.
 - Design work uses the agreed design skills (taste, frontend-design, Emil Kowalski, GSAP, UI/UX Pro Max); brand
   purple `#5d0089`.
@@ -434,4 +438,6 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-09 | Full local backup (`C:\Pourya\Tarefe\Local backups\2026-11-09`); this status file + `scripts/local-backup.sh` | file only |
 | 2026-11-10 | Plan steps 2–3: account ↔ Dynamics-customer link (auto by e-mail/phone, staff link/unlink on Customer 360); the linked customer's Dynamics contracts and tickets («Send To Site» only) in the portal and app API; passed deadlines of active contracts hidden; staff site tabs skip the projected copies; fix: one account per e-mail (case-insensitive) | yes, 2026-11-11 |
 | 2026-11-11 | Deployed plan steps 2–3 (database: new optional columns only, 0 errors); owner's decision: customers see only their own uploads and letters sent to them | yes |
-| 2026-11-11 | Customer documents from the old CRM: received letters (PDF from the Dynamics record, with summary) and the customer's own old uploads (CDN links in the integration accounts' notes) in the portal and app, served only through the login-checked routes; staff can't delete them; database: `documents.crmId`, `documents.summary` (optional); app shows letter summaries | no |
+| 2026-11-11 | Customer documents from the old CRM: received letters (PDF from the Dynamics record, with summary) and the customer's own old uploads (CDN links in the integration accounts' notes) in the portal and app, served only through the login-checked routes; staff can't delete them; database: `documents.crmId`, `documents.summary` (optional); app shows letter summaries | yes, 2026-11-11 |
+| 2026-11-11 | Deploy note: the schema change waited ~13 min behind the running full backup's database dump (documents pages failed meanwhile); backup stopped on the owner's OK, change applied, site checked (no errors), backup restarted. Rule: never deploy a schema change while `local-backup.sh --full` is running | yes |
+| 2026-11-11 | Owner's decision: existing customers keep their numeric referral codes, new customers get random codes | — |
