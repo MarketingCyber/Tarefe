@@ -4,16 +4,21 @@ import { prisma } from "@/lib/db";
 import { linkedContactId } from "@/lib/crm/customer-link";
 
 /**
- * Referral codes and points, one system across the old CRM, the website and the app (owner's decision 2026-11-11):
+ * Referral codes, one system across the old CRM, the website and the app.
  *
- *  - Existing customers keep the code they already have in the old CRM (contact.new_id, e.g. "000026") — the links
- *    they shared (tarefe.de/referral/000026) keep working. Customers without one get a random code (owner's rule:
- *    never built from the name), e.g. TRF-7QK4-M9XD, from characters that can't be confused when typed.
- *  - Share links keep the old form: https://tarefe.de/referral/<code>. Opening one remembers the code
- *    (REFERRAL_COOKIE) for a website sign-up or request; the app sends it with the sign-in.
- *  - Who referred whom is stored on the new account (User.referredByCode) and the lead (Lead.referralCode), and
- *    written into the lead description sent to the old CRM, where operators credit it. Points stay the old CRM's:
- *    its workflows create them (new_points) and add them up (contact.new_total_point_rollup); shown read-only.
+ * Owner's rules (2026-10-23, docs/app-redesign/02-old-app-inventory.md): the referrer gets a 10 € voucher when
+ *  1. the referrer has an active contract with Tarefe, and
+ *  2. the referred person signs a contract and doesn't cancel it within 14 days (the withdrawal period).
+ * No points: the old CRM's points / star levels are left behind in the new system (owner, 2026-11-14) — staff still
+ * see them on Customer 360 with the rest of the old data.
+ *
+ * Codes (owner, 2026-11-11): existing customers keep the code they already have in the old CRM (contact.new_id,
+ * e.g. "000026") — the links they shared (tarefe.de/referral/000026) keep working. Customers without one get a
+ * random code (never built from the name), e.g. TRF-7QK4-M9XD, from characters that can't be confused when typed.
+ * Share links keep the old form https://tarefe.de/referral/<code>. Opening one remembers the code (REFERRAL_COOKIE)
+ * for a website sign-up or request; the app sends it with the sign-in. Who referred whom is stored on the new
+ * account (User.referredByCode) and the lead (Lead.referralCode), and written into the lead description sent to the
+ * old CRM, where operators handle the voucher until the rules are checked automatically.
  */
 
 export { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS, REFERRAL_CODE, cleanReferralCode, referralLink } from "@/lib/referral-code";
@@ -22,7 +27,6 @@ const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const block = () => Array.from({ length: 4 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 const newCode = () => `TRF-${block()}-${block()}`;
 
-const F = "@OData.Community.Display.V1.FormattedValue";
 type Data = Record<string, unknown>;
 
 async function contactData(contactId: string): Promise<Data | null> {
@@ -87,43 +91,4 @@ export async function customerReferralCode(userId: string): Promise<string | nul
     }
   }
   return code;
-}
-
-/**
- * earned: counts in the total (active in Dynamics); redeemed: turned into a gift card («کد هدیه», closed);
- * pending: closed for now, e.g. a friend introduced whose contract isn't confirmed yet. Dynamics' total (rollup)
- * adds up the active ones only.
- */
-export type PointStatus = "earned" | "redeemed" | "pending";
-export type PointItem = { id: string; label: string; points: number; at: string; status: PointStatus; note: string | null };
-export type CustomerPoints = { total: number; items: PointItem[] } | null;
-
-/**
- * The linked customer's points from the old CRM: the total Dynamics keeps (rollup) and the entries it showed on the
- * old site («Send To Site»), newest first. Null for an account not linked to a customer (no points system yet).
- */
-export async function customerPoints(userId: string): Promise<CustomerPoints> {
-  const contactId = await linkedContactId(userId);
-  if (!contactId) return null;
-  const contact = await contactData(contactId);
-  const rows = await prisma.crmRecord.findMany({
-    where: { entity: "new_points", deletedAt: null, refs: { has: contactId } },
-    select: { crmId: true, data: true },
-  });
-  const items = rows
-    .map((r) => r.data as Data)
-    .filter((d) => String(d._new_customer_value ?? "").toLowerCase() === contactId && d.new_send_to_site === true)
-    .map((d, i) => ({
-      id: String(d.new_pointsid ?? rows[i].crmId).toLowerCase(),
-      label: String(d[`new_type${F}`] ?? d.new_topic ?? "امتیاز").trim(),
-      points: Number(d.new_point ?? 0) || 0,
-      at: String(d.createdon ?? ""),
-      status: (Number(d.statecode) === 0 ? "earned" : d[`new_type${F}`] === "کد هدیه" ? "redeemed" : "pending") as PointStatus,
-      note: typeof d.new_gift_code_desc === "string" && d.new_gift_code_desc.trim() ? d.new_gift_code_desc.trim() : null,
-    }))
-    .filter((p) => p.points !== 0)
-    .sort((a, b) => b.at.localeCompare(a.at));
-  const rollup = Number(contact?.new_total_point_rollup);
-  const total = Number.isFinite(rollup) ? rollup : items.filter((p) => p.status === "earned").reduce((s, p) => s + p.points, 0);
-  return { total, items };
 }

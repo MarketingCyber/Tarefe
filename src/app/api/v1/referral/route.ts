@@ -1,11 +1,10 @@
 import { ok, requireUser } from "@/lib/app-api";
-import { customerPoints, customerReferralCode, referralLink } from "@/lib/referral";
+import { customerReferralCode, referralLink } from "@/lib/referral";
 import type { Locale } from "@/lib/taxonomy";
 
 /**
- * The customer's referral code, share link, the reward rule and their points (lib/referral.ts): the old-CRM code
- * for an existing customer (e.g. 000026 — links they already shared keep working), else a random one; points are
- * the old CRM's, read-only.
+ * The customer's referral code, share link and the reward rule (lib/referral.ts): the old-CRM code for an existing
+ * customer (e.g. 000026 — links they already shared keep working), else a random one. No points (owner, 2026-11-14).
  */
 
 const RULE: Record<Locale, string> = {
@@ -26,14 +25,13 @@ export async function GET(request: Request) {
   const user = await requireUser(request);
   if (user instanceof Response) return user;
 
-  const [code, points] = await Promise.all([customerReferralCode(user.id), customerPoints(user.id)]);
+  const code = await customerReferralCode(user.id);
   return ok({
     code,
     link: code ? referralLink(code) : null,
     reward: { amount: 10, currency: "EUR" },
     rule: RULE[user.locale],
     shareText: code ? SHARE[user.locale](code) : null,
-    points,
     invited: [],
   });
 }

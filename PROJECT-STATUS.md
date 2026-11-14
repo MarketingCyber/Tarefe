@@ -184,13 +184,15 @@ GDPR data export (instant) and deletion request (reviewed by staff).
     the old CRM carry a first description line «کد معرف: 000026 (name, customer number)» so operators credit the
     referrer; automatic crediting in Dynamics waits for step 4 (write-back). Staff see it on the lead page and on
     Customer 360 («معرفی‌شده با کد»).
-  - Points stay Dynamics': total = `contact.new_total_point_rollup` (adds up active entries only); history = the
-    customer's `new_points` with «Send To Site», each marked earned (active), redeemed (gift card, «کد هدیه»,
-    closed) or pending (closed, e.g. a friend not confirmed yet). Shown on the portal dashboard («معرفی به دوستان»:
-    code, copy code / link, points, last entries) and in the app API (`/api/v1/referral`: `link`, `points`) → app
-    profile shows the total.
-  - Test (local): sample linked customer → code 274259 and 2,600 points (= Dynamics), 15 entries; unlinked account →
-    random code, no points; old-style link → cookie + home; test lead stored with the code.
+  - **No points** (owner, 2026-11-14): the old CRM's points / star levels are left behind; customers see only the
+    code, the link and the rule. Staff still see the old points on Customer 360 (old data, read-only).
+  - Reward rule (owner, 2026-10-23): €10 voucher for the referrer when the referrer has an active contract AND the
+    referred person signs a contract and doesn't cancel it within 14 days. Checked by operators for now; checking it
+    automatically is the next piece (see §12).
+  - Portal dashboard «معرفی به دوستان»: rule, code, copy code / copy link. App: profile card (code, share, rule);
+    `/api/v1/referral` returns `code`, `link`, `rule`, `shareText`.
+  - Test (local): sample linked customer → code 274259 (= Dynamics); unlinked account → random code; old-style link →
+    cookie + home; test lead stored with the code.
 - Not yet: customer actions written back to Dynamics (§12 step 4), incl. crediting referrals automatically.
 
 ## 7. New CRM (/ops) — built and live
@@ -314,7 +316,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes + points built 2026-11-14, not deployed | deploy referral + points, then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes built 2026-11-14, not deployed | deploy referral codes, then the automatic referral check, then step 4 |
 
 ## 12. Plan for the future
 
@@ -327,7 +329,7 @@ In the order agreed / recommended (2026-11-07):
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
    (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
-   referral codes and points built 2026-11-14 (not deployed). Required before the app can launch.
+   referral codes built 2026-11-14 (not deployed; no points — owner 2026-11-14). Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
@@ -378,6 +380,9 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - Sign-in for customers by e-mail code (no SMS); referral codes random, never from names.
 - Referral codes (2026-11-11): existing customers keep their numeric code from the old system (e.g. `000026`), so
   links and codes they already shared keep working; new customers get random codes under the new rule.
+- Referral reward (2026-10-23): €10 voucher for the referrer when the referrer has an active contract and the referred
+  person signs a contract and doesn't cancel it within 14 days. **No points** in the new system (2026-11-14): the old
+  points / star levels are left behind.
 - In chat, the customer's messages on the right, the advisor's on the left.
 - Design work uses the agreed design skills (taste, frontend-design, Emil Kowalski, GSAP, UI/UX Pro Max); brand
   purple `#5d0089`.
@@ -464,3 +469,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-11 | Owner's decision: existing customers keep their numeric referral codes, new customers get random codes | — |
 | 2026-11-11 | `local-backup.sh --full` reworked for the slow laptop link: uses the server's nightly DB dump (no live dump from the laptop), resumable downloads checked by SHA-256, uploads via a local mirror (`Local backups/uploads-mirror`, only new files fetched), server setup packed on the server first | — (laptop script) |
 | 2026-11-14 | Referral codes + points: old-CRM code for linked customers (random TRF code otherwise), old share links `tarefe.de/referral/<code>` work again (were 404), code captured on leads / sign-ups / app sign-in and written into the lead sent to Dynamics, Dynamics points (total + history: earned / redeemed / pending) on the portal dashboard and in the app; database: `users.referredByCode`, `leads.referralCode` (optional) | no |
+| 2026-11-14 | Owner: no points in the new referral system, only the €10 voucher rule — points removed from the portal, the app and the app API before deploy | no |

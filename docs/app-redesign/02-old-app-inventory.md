@@ -36,7 +36,7 @@ Sources: the public store listings (2026-10-23), the old back end code on the VP
 | **Meter readings** | — | **CUT** (owner's decision; 7 readings in a year) |
 | Product comparison | 5 | KEEP in a light form — see below |
 | Referral | 6 | KEEP and simplify — 10 € voucher (rules below) |
-| Loyalty points / star levels | 5, 6 | DECIDE — exists today (points for contracts, registration, loyalty year, renewals); keep, simplify or drop |
+| Loyalty points / star levels | 5, 6 | DROP (owner, 2026-11-14) — only the 10 € referral voucher below; old points stay visible to staff in the old-CRM data |
 | Blogs / CMS pages | 5 | DECIDE — a small "tips" feed at most |
 | E-signature, AI | — | Back-office side, not in the customer app for now |
 
