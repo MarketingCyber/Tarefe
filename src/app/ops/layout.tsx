@@ -40,7 +40,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <html lang="fa" dir="rtl" className={`${inter.variable} ${iransansx.variable}`}>
+    <html lang="fa" dir="rtl" className={`ops-theme ${inter.variable} ${iransansx.variable}`}>
       <GtmScript />
       <body className="flex min-h-screen antialiased">
         <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} appEnabled={isAppEnabled()} />

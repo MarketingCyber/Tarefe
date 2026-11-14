@@ -313,3 +313,34 @@
     }
   }
 }
+
+/*
+ * Staff panel (/ops) theme, 2026-11-14 (owner): operators work in it ~9 hours a day, so it trades the brand purple
+ * and pure white for a soft pale blue with lower glare and contrast — still WCAG AA for all text (secondary text
+ * ≥4.8:1, accent 5.4:1, headings ~11:1 instead of 17:1 on pure white). Only the panel's own <html> carries the
+ * class (src/app/ops/layout.tsx); the public site and the customer portal keep the brand colours. Every panel
+ * colour comes from these tokens, so the whole panel follows.
+ */
+html.ops-theme {
+  --color-purple-600: #3a6491; /* accent: links, buttons, focus */
+  --color-purple-900: #20364d; /* headings, dark buttons */
+  --color-yellow-500: #e2b43c;
+  --color-body: #364656;
+  --color-secondary: #5a6a7b;
+  --color-tint: #eaf0f6; /* page background */
+  --color-white: #f8fafc; /* cards and sidebar: off-white, less glare */
+  --color-surface: #f8fafc;
+  --color-surface-tint: #f0f5fa;
+  --color-border: #dbe4ed;
+  --color-border-strong: #c3d1de;
+  --color-warning: #9a5800;
+  --shadow-card: 0 1px 2px rgba(32, 54, 77, 0.04), 0 6px 24px -8px rgba(32, 54, 77, 0.10);
+  --shadow-card-hover: 0 2px 4px rgba(32, 54, 77, 0.06), 0 12px 32px -8px rgba(32, 54, 77, 0.14);
+  color-scheme: light;
+}
+html.ops-theme ::selection {
+  background-color: rgba(58, 100, 145, 0.18);
+}
+html.ops-theme ::-webkit-scrollbar-thumb {
+  background: #c3d1de;
+}

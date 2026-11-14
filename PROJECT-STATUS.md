@@ -209,7 +209,9 @@ GDPR data export (instant) and deletion request (reviewed by staff).
 
 ## 7. New CRM (/ops) — built and live
 
-Staff back office in Persian (right-to-left). Roles: ADMIN, ADVISOR, LEAD_MANAGER, CONTENT_EDITOR, ANALYST;
+Staff back office in Persian (right-to-left), in its own soft pale-blue theme (2026-11-14, owner: operators work in it
+~9 hours a day — lower glare and contrast than the brand purple on white, still WCAG AA; `html.ops-theme` in
+`src/app/globals.css`, public site and portal unchanged). Roles: ADMIN, ADVISOR, LEAD_MANAGER, CONTENT_EDITOR, ANALYST;
 pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team`, MFA in `/ops/security`.
 
 **Workspaces across both CRMs** (Dynamics mirror + website data together):
@@ -485,3 +487,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Owner: no points in the new referral system, only the €10 voucher rule — points removed from the portal, the app and the app API before deploy | yes, 2026-11-14 |
 | 2026-11-14 | Deployed referral codes (database: `users.referredByCode`, `leads.referralCode`); first deploy's link redirect pointed at the internal address `0.0.0.0:3000` — fixed with a relative redirect and redeployed; old links `tarefe.de/referral/<code>` checked live (home page, code remembered) | yes |
 | 2026-11-14 | Referral voucher rules checked automatically (lib/referral-check.ts, with the CRM sync every 15 min) + staff page /ops/referrals («معرفی‌ها»: status per referral, «voucher sent» button, logged); database: new table `referrals` | yes, 2026-11-14 (sync rounds OK, no referrals yet) |
+| 2026-11-14 | Staff panel (/ops) in a soft pale-blue theme for all-day use (owner): off-white cards on a blue-grey page, steel-blue accent, softer headings; all text WCAG AA; only the panel changes | no |
