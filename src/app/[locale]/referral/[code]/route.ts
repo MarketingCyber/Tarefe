@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS, cleanReferralCode } from "@/lib/referral-code";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/taxonomy";
 
@@ -7,17 +7,13 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/taxonomy";
  * keep working (the proxy adds the language: /fa/referral/<code>). Remembers the code for a sign-up or a request on
  * the site (lib/referral.ts) and opens the home page, tagged as referral traffic for the analytics.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ locale: string; code: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ locale: string; code: string }> }) {
   const { locale: rawLocale, code: rawCode } = await params;
   const locale: Locale = LOCALES.includes(rawLocale as Locale) ? (rawLocale as Locale) : DEFAULT_LOCALE;
-  // Built from nextUrl (the public host behind the web server), like the proxy's own redirects.
-  const target = request.nextUrl.clone();
-  target.pathname = `/${locale}`;
-  target.search = "";
-  target.searchParams.set("utm_source", "referral");
-  target.searchParams.set("utm_medium", "referral");
-  target.searchParams.set("utm_campaign", "customer-referral");
-  const response = NextResponse.redirect(target, 302);
+  // A relative Location: behind the web server the app only knows its internal address (an absolute URL built
+  // from the request pointed visitors at https://0.0.0.0:3000 — seen live 2026-11-14).
+  const query = new URLSearchParams({ utm_source: "referral", utm_medium: "referral", utm_campaign: "customer-referral" });
+  const response = new NextResponse(null, { status: 302, headers: { Location: `/${locale}?${query}` } });
 
   const code = cleanReferralCode(decodeURIComponent(rawCode));
   if (code) {
