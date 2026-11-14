@@ -235,7 +235,7 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
 - **Automations in test mode** (`/ops/old-crm/automations`): §8.
 - **Write-back** (**on** since 2026-11-14, owner's go-ahead; `CRM_WRITES=on` in the server .env, the previous file kept as
   `.env.before-crmwrites-on-20261114`): «انجام شد» close a task / call / appointment, «ثبت یادداشت» add a note — §8.
-- **«ویرایش در CRM قدیم» edit panel** (built 2026-11-14, not deployed) on old-CRM leads, customers, contracts and
+- **«ویرایش در CRM قدیم» edit panel** (live 2026-11-14) on old-CRM leads, customers, contracts and
   tickets (`CrmEditPanel` / `CrmEditForms`, `lib/dynamics/write.ts`): lead stage («مرحله», new_status) and follow-up
   reason («وضعیت», statuscode — open values only), close a lead with one of Dynamics' 5 closing reasons + optional
   explanation (`new_disqualified_desc`), assign to an active old-CRM user (system / integration accounts left out),
@@ -498,4 +498,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Referral voucher rules checked automatically (lib/referral-check.ts, with the CRM sync every 15 min) + staff page /ops/referrals («معرفی‌ها»: status per referral, «voucher sent» button, logged); database: new table `referrals` | yes, 2026-11-14 (sync rounds OK, no referrals yet) |
 | 2026-11-14 | Staff panel (/ops) in a soft pale-blue theme for all-day use (owner): off-white cards on a blue-grey page, steel-blue accent, softer headings; all text WCAG AA; only the panel changes | yes, 2026-11-14 |
 | 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
-| 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | no |
+| 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
