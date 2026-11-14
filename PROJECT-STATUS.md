@@ -172,7 +172,7 @@ GDPR data export (instant) and deletion request (reviewed by staff).
     links are fetched, streamed through). When the CDN files move behind the login, only `readDocumentFile` in
     `src/lib/document-storage.ts` changes.
   - Test (local, sample customer): 3 letters with summaries + 53 own uploads; letter PDF downloads in the portal.
-- **Referral codes and points** (built 2026-11-14, not deployed) — `src/lib/referral.ts`:
+- **Referral codes** (live 2026-11-14) — `src/lib/referral.ts`:
   - Code: a linked customer's old-CRM code (contact `new_id`, e.g. `274259`, `000026`) — the code they already know;
     without one a random `TRF-XXXX-XXXX` (never from the name). A random code is replaced by the old one when the
     account gets linked. Share link keeps the old form `https://tarefe.de/referral/<code>`.
@@ -294,7 +294,8 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 2. Check the archive exists on the server **before** deleting anything; back up `app/src` to
    `app-src-backup-YYYYMMDD.tgz`.
 3. Replace `app/src`, `docker compose build web && docker compose up -d web`.
-4. If the schema changed: `docker compose exec -T web npx prisma db push` (additive changes only).
+4. If the schema changed: `docker compose exec -T web npx prisma db push` (additive changes only) — **after** step 3
+   (`up -d`): run in the old container it sees the old schema and does nothing.
    Never while `scripts/local-backup.sh --full` is dumping the database — the change waits for the dump and blocks
    that table meanwhile.
 5. Check `https://tarefe.de/fa` = 200 and `https://tarefe.de/api/v1/me` = **404** (app must stay off).
@@ -316,7 +317,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes built 2026-11-14, not deployed | deploy referral codes, then the automatic referral check, then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes live 2026-11-14 | automatic referral check (voucher rules), then step 4 |
 
 ## 12. Plan for the future
 
@@ -329,7 +330,7 @@ In the order agreed / recommended (2026-11-07):
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
    (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
-   referral codes built 2026-11-14 (not deployed; no points — owner 2026-11-14). Required before the app can launch.
+   referral codes **live 2026-11-14** (no points — owner 2026-11-14); next: the automatic voucher-rule check. Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
@@ -393,8 +394,8 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - **The owner's personal login is on the server** for the sync; a password change stops the mirror. Fix: service user.
 - **Dynamics stores secrets in plain text** (API keys, tokens, old site passwords) — not copied by us; the keys that
   were briefly copied on 2026-10-30 should be **rotated** (ChatGPT, Gemini, WhatsApp token, site API password).
-- **Old referral links were broken** (404 since the new site went live) until the referral route is deployed;
-  referrals made through them in that time arrived without a code.
+- **Old referral links were broken** (404) from the new site's launch until 2026-11-14; referrals made through them in
+  that time arrived without a code.
 - **`cdn.tarefe.de`**: 34 GB of customer documents readable by anyone with a link (random names, no login).
 - **The app repo has no remote** — only the laptop and the local backup hold it.
 - Laptop: direct connections are sometimes blocked (use the proxy for SSH); Docker Desktop stops after restarts
@@ -468,5 +469,6 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-11 | Deploy note: the schema change waited ~13 min behind the running full backup's database dump (documents pages failed meanwhile); backup stopped on the owner's OK, change applied, site checked (no errors), backup restarted. Rule: never deploy a schema change while `local-backup.sh --full` is running | yes |
 | 2026-11-11 | Owner's decision: existing customers keep their numeric referral codes, new customers get random codes | — |
 | 2026-11-11 | `local-backup.sh --full` reworked for the slow laptop link: uses the server's nightly DB dump (no live dump from the laptop), resumable downloads checked by SHA-256, uploads via a local mirror (`Local backups/uploads-mirror`, only new files fetched), server setup packed on the server first | — (laptop script) |
-| 2026-11-14 | Referral codes + points: old-CRM code for linked customers (random TRF code otherwise), old share links `tarefe.de/referral/<code>` work again (were 404), code captured on leads / sign-ups / app sign-in and written into the lead sent to Dynamics, Dynamics points (total + history: earned / redeemed / pending) on the portal dashboard and in the app; database: `users.referredByCode`, `leads.referralCode` (optional) | no |
-| 2026-11-14 | Owner: no points in the new referral system, only the €10 voucher rule — points removed from the portal, the app and the app API before deploy | no |
+| 2026-11-14 | Referral codes (+ points, removed before deploy): old-CRM code for linked customers (random TRF code otherwise), old share links `tarefe.de/referral/<code>` work again (were 404), code captured on leads / sign-ups / app sign-in and written into the lead sent to Dynamics, Dynamics points (total + history: earned / redeemed / pending) on the portal dashboard and in the app; database: `users.referredByCode`, `leads.referralCode` (optional) | no |
+| 2026-11-14 | Owner: no points in the new referral system, only the €10 voucher rule — points removed from the portal, the app and the app API before deploy | yes, 2026-11-14 |
+| 2026-11-14 | Deployed referral codes (database: `users.referredByCode`, `leads.referralCode`); first deploy's link redirect pointed at the internal address `0.0.0.0:3000` — fixed with a relative redirect and redeployed; old links `tarefe.de/referral/<code>` checked live (home page, code remembered) | yes |
