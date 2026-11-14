@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound, redirect } from "next/navigation";
@@ -140,6 +141,8 @@ export default async function ContractPage({ params, searchParams }: { params: P
             ))}
         </dl>
       </div>
+
+      <CrmEditPanel entity="opportunity" id={contract.crmId} data={d} state={Number(d.statecode)} returnPath={self} />
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <div className="space-y-6 2xl:col-span-2">

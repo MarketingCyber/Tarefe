@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
@@ -121,6 +122,8 @@ export async function CrmTicket({ id, history }: { id: string; history?: string 
             ))}
         </dl>
       </div>
+
+      <CrmEditPanel entity="incident" id={record.crmId} data={d} state={Number(d.statecode)} returnPath={self} />
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <div className="space-y-6 2xl:col-span-2">

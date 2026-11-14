@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { CustomerLinkForm, CustomerLinkStatus } from "@/components/crm/customer/CustomerLinkForms";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm, CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
@@ -196,6 +197,8 @@ export default async function CustomerDetailPage({
           </div>
         )}
       </div>
+
+      {contact && <CrmEditPanel entity="contact" id={contact.crmId} data={c} state={null} returnPath={self} />}
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <div className="space-y-6 2xl:col-span-2">

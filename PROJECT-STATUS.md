@@ -233,7 +233,17 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
 - **CRM قدیم Old CRM** (`/ops/old-crm`): every mirrored Dynamics table, record pages laid out like the Dynamics
   forms (same tabs, sections, labels), sync status, nightly reconciliation result, attachment copy progress.
 - **Automations in test mode** (`/ops/old-crm/automations`): §8.
-- **Write-back** (test mode): «انجام شد» close a task / call / appointment, «ثبت یادداشت» add a note — §8.
+- **Write-back** (**on** since 2026-11-14, owner's go-ahead; `CRM_WRITES=on` in the server .env, the previous file kept as
+  `.env.before-crmwrites-on-20261114`): «انجام شد» close a task / call / appointment, «ثبت یادداشت» add a note — §8.
+- **«ویرایش در CRM قدیم» edit panel** (built 2026-11-14, not deployed) on old-CRM leads, customers, contracts and
+  tickets (`CrmEditPanel` / `CrmEditForms`, `lib/dynamics/write.ts`): lead stage («مرحله», new_status) and follow-up
+  reason («وضعیت», statuscode — open values only), close a lead with one of Dynamics' 5 closing reasons + optional
+  explanation (`new_disqualified_desc`), assign to an active old-CRM user (system / integration accounts left out),
+  schedule the next call (a Dynamics phone call activity, due at the operator's local time, for any operator — shows
+  in their «کارهای من»), upload a file (PDF / photo ≤ 5 MB, a Dynamics note with the document). Each change goes to
+  Dynamics first, is read back into the mirror, and logged under the operator. Converting a lead to a contract and
+  editing contract fields come next (they trigger the old CRM's own logic). Server actions accept 16 MB now
+  (`next.config.ts`; the 1 MB default had refused document uploads above 1 MB).
 - Other: applications, app conversations and app banners (hidden unless `APP_ENABLED`), energy tariffs admin,
   guides / FAQ / testimonials CMS, analytics, team, security.
 
@@ -372,7 +382,6 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | CRM developer | **HTTPS** for the Dynamics Web API (today plain HTTP) | security |
 | CRM developer | C# source or description of custom logic (points, customer level, commission, letters, date calculations) | automations (§12 step 6) |
 | CRM developer | read access: finance records, webhooks, solutions | complete mirror, integrations map |
-| Owner | go-ahead to switch write-back **on** | §12 step 1 |
 | Owner | decision on the 34 GB CDN files | §12 step 8 |
 | Owner | Expo account, Zoho mail account, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications |
 
@@ -488,3 +497,5 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Deployed referral codes (database: `users.referredByCode`, `leads.referralCode`); first deploy's link redirect pointed at the internal address `0.0.0.0:3000` — fixed with a relative redirect and redeployed; old links `tarefe.de/referral/<code>` checked live (home page, code remembered) | yes |
 | 2026-11-14 | Referral voucher rules checked automatically (lib/referral-check.ts, with the CRM sync every 15 min) + staff page /ops/referrals («معرفی‌ها»: status per referral, «voucher sent» button, logged); database: new table `referrals` | yes, 2026-11-14 (sync rounds OK, no referrals yet) |
 | 2026-11-14 | Staff panel (/ops) in a soft pale-blue theme for all-day use (owner): off-white cards on a blue-grey page, steel-blue accent, softer headings; all text WCAG AA; only the panel changes | yes, 2026-11-14 |
+| 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
+| 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | no |

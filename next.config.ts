@@ -89,6 +89,11 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // File uploads through server actions (staff document upload up to 15 MB, old-CRM file upload up to 5 MB): the
+  // default 1 MB limit refused them before they reached the size checks in the actions.
+  experimental: {
+    serverActions: { bodySizeLimit: "16mb" },
+  },
   images: {
     remotePatterns: [
       {
