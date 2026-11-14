@@ -104,6 +104,12 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
                 <dt className="text-xs text-secondary">صفحه منبع</dt>
                 <dd className="font-latin mt-0.5 text-body">{lead.sourcePage ?? "—"}</dd>
               </div>
+              {lead.referralCode && (
+                <div>
+                  <dt className="text-xs text-secondary">کد معرف (لینک معرفی مشتری)</dt>
+                  <dd className="font-latin mt-0.5 text-body">{lead.referralCode}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs text-secondary">مشاور واگذارشده</dt>
                 <dd className="mt-0.5 text-body">{lead.assignedAdvisor?.name ?? "بدون مشاور"}</dd>

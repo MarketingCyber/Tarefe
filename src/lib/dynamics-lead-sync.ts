@@ -86,6 +86,8 @@ export async function syncLeadToDynamics(lead: {
   category?: string | null;
   serviceSlug?: string | null;
   sourcePage?: string | null;
+  /** "کد معرف: 000026 (name, customer number)" when the visitor came through a customer's share link. */
+  referral?: string | null;
   locale: Locale;
   utmLastSource?: string | null;
   utmLastMedium?: string | null;
@@ -121,7 +123,8 @@ export async function syncLeadToDynamics(lead: {
     // suggestion was utm_content, but that field is meant for real ad
     // creative/content tags; description keeps the two honest instead of
     // overwriting real campaign data with a page path.
-    const description = lead.sourcePage ? `ثبت‌شده از صفحه: ${lead.sourcePage}` : undefined;
+    // The referral line goes first: operators credit the referrer from it in the old CRM (lib/referral.ts).
+    const description = [lead.referral, lead.sourcePage ? `ثبت‌شده از صفحه: ${lead.sourcePage}` : null].filter(Boolean).join("\n") || undefined;
 
     const res = await fetch(`${apiBase()}/api/v1/lead/create?${params.toString()}`, {
       method: "POST",

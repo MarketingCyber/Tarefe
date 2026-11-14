@@ -83,6 +83,9 @@ model User {
   // Mobile app (2026-10-23): random, non-guessable code a customer shares to invite friends (never built from the
   // name, owner's rule). Created on first request by /api/v1/referral.
   referralCode String? @unique
+  /// The referral code this account signed up with (lib/referral.ts) — from a tarefe.de/referral/<code> link or
+  /// typed in the app. Credited in the old CRM by operators (lead description) until write-back covers it.
+  referredByCode String?
 
   // Customer-side relations
   contracts        Contract[]
@@ -145,6 +148,7 @@ model Lead {
   category    String? // taxonomy category slug, e.g. "insurance"
   serviceSlug String? // productType/subcategory slug, e.g. "pkv"
   sourcePage  String? // path the form was submitted from, for attribution
+  referralCode String? // from a tarefe.de/referral/<code> link the visitor opened (lib/referral.ts)
   locale      Locale     @default(fa)
   status      LeadStatus @default(NEW)
   notes       String?

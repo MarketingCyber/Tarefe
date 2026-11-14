@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import { redirect } from "next/navigation";
-import { FileText, PlusCircle } from "@phosphor-icons/react/dist/ssr";
+import { FileText, Gift, PlusCircle } from "@phosphor-icons/react/dist/ssr";
+import { CopyButton } from "@/components/portal/CopyButton";
+import { customerPoints, customerReferralCode, referralLink } from "@/lib/referral";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { CONTRACT_STATUS_FA } from "@/lib/status-labels";
@@ -22,10 +24,14 @@ export default async function PortalDashboard() {
   if (!session?.user?.id) redirect("/login?callbackUrl=/app");
   const userId = session.user.id;
 
-  const [contracts, openRequests] = await Promise.all([
+  const isCustomer = session.user.role === "CUSTOMER";
+  const [contracts, openRequests, referralCode, points] = await Promise.all([
     prisma.contract.findMany({ where: { customerId: userId }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.serviceRequest.count({ where: { customerId: userId, status: { not: "COMPLETED" } } }),
+    isCustomer ? customerReferralCode(userId) : null,
+    isCustomer ? customerPoints(userId) : null,
   ]);
+  const fa = (n: number) => n.toLocaleString("fa-IR");
 
   return (
     <div dir="rtl" className="container-page py-8">
@@ -83,6 +89,60 @@ export default async function PortalDashboard() {
           </div>
         )}
       </div>
+
+      {referralCode && (
+        <section aria-labelledby="referral-title" className="mt-8 rounded-2xl border border-border bg-white p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 id="referral-title" className="flex items-center gap-2 text-lg font-bold text-purple-900">
+                <Gift size={20} />
+                معرفی به دوستان
+              </h2>
+              <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-secondary">
+                کارت هدیه ۱۰ یورویی وقتی برایت فرستاده می‌شود که یک قرارداد فعال با تعرفه داشته باشی، دوستت قراردادش را امضا کند و تا ۱۴ روز فسخ نکند.
+              </p>
+            </div>
+            {points && (
+              <div className="shrink-0 text-left">
+                <p className="text-xs text-secondary">امتیاز تو</p>
+                <p className="mt-0.5 text-2xl font-bold text-purple-900">{fa(points.total)}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="rounded-xl bg-tint px-4 py-2.5">
+              <p className="text-[11px] text-secondary">کد معرف</p>
+              <p className="font-latin text-lg font-bold tracking-wide text-purple-900">{referralCode}</p>
+            </div>
+            <CopyButton value={referralCode} label="کپی کد" />
+            <CopyButton value={referralLink(referralCode)} label="کپی لینک معرفی" />
+          </div>
+
+          {points && points.items.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-bold text-purple-900">آخرین امتیازها</h3>
+              <ul className="mt-2 divide-y divide-border">
+                {points.items.slice(0, 6).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                    <span className="min-w-0 text-body">
+                      {p.label}
+                      {p.status === "redeemed" && <span className="mr-2 text-xs text-secondary">کارت هدیه دریافت شد{p.note ? ` · ${p.note}` : ""}</span>}
+                      {p.status === "pending" && <span className="mr-2 text-xs text-secondary">در انتظار تأیید</span>}
+                      {p.at && <span className="mr-2 text-xs text-secondary">{new Date(p.at).toLocaleDateString("fa-IR", { calendar: "gregory" })}</span>}
+                    </span>
+                    {/* Only earned points count in the total; redeemed / pending ones are shown without a sign. */}
+                    <span dir="ltr" className={`shrink-0 font-semibold ${p.status === "earned" ? "text-purple-900" : "text-secondary"}`}>
+                      {p.status === "earned" ? "+" : ""}
+                      {fa(p.points)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

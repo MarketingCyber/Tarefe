@@ -9,6 +9,8 @@ import { syncLeadToDynamics } from "@/lib/dynamics-lead-sync";
 import { isBotUserAgent, isTorExit, verifyFormToken } from "@/lib/lead-guard";
 import { isGermanPhone, toAsciiDigits } from "@/lib/phone";
 import { sendMetaLead } from "@/lib/meta-capi";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, cleanReferralCode, referralNote } from "@/lib/referral";
 
 /**
  * Declarative validation (Phase 12) — this route previously hand-checked
@@ -182,6 +184,8 @@ export async function POST(request: Request) {
 
   const resolvedLocale: Locale = LOCALES.includes(locale as Locale) ? (locale as Locale) : "fa";
   const name = `${firstName} ${lastName}`.trim();
+  // From a customer's share link (tarefe.de/referral/<code>) opened in this browser — see lib/referral.ts.
+  const referralCode = cleanReferralCode((await cookies()).get(REFERRAL_COOKIE)?.value);
 
   const lead = await prisma.lead.create({
     data: {
@@ -191,6 +195,7 @@ export async function POST(request: Request) {
       category: category ?? null,
       serviceSlug: serviceSlug ?? null,
       sourcePage: sourcePage ?? null,
+      referralCode,
       locale: resolvedLocale,
       utmFirstSource: utmFirstSource ?? null,
       utmFirstMedium: utmFirstMedium ?? null,
@@ -279,6 +284,7 @@ export async function POST(request: Request) {
     category: lead.category,
     serviceSlug: lead.serviceSlug,
     sourcePage: lead.sourcePage,
+    referral: await referralNote(referralCode).catch(() => (referralCode ? `کد معرف: ${referralCode}` : null)),
     locale: resolvedLocale,
     utmLastSource: lead.utmLastSource,
     utmLastMedium: lead.utmLastMedium,

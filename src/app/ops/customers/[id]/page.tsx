@@ -157,7 +157,8 @@ export default async function CustomerDetailPage({
           {(
             [
               ["شماره مشتری", shown(c, "new_customernumber")],
-              ["کد معرف", shown(c, "new_id")],
+              ["کد معرف", shown(c, "new_id") ?? account?.referralCode ?? null],
+              ["معرفی‌شده با کد", account?.referredByCode ?? null],
               ["امتیاز", totalPoints !== null ? totalPoints.toLocaleString("fa-IR") : null],
               ["تاریخ تولد", shownDate(c, "birthdate")],
               ["زبان مادری", shown(c, "new_motherllanguage")],

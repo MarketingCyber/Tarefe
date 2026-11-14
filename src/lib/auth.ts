@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { decryptSecret, verifyTotpCode } from "./mfa";
 import { rateLimit, getClientIp } from "./rate-limit";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, cleanReferralCode } from "./referral-code";
 
 /**
  * Single source of truth for whether Google sign-in is actually usable —
@@ -174,7 +176,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const created = await prisma.user.create({
-        data: { email: normalizeEmail(email), name: profile?.name ?? email, passwordHash: null, role: "CUSTOMER" },
+        data: {
+          email: normalizeEmail(email),
+          name: profile?.name ?? email,
+          passwordHash: null,
+          role: "CUSTOMER",
+          // A customer's share link opened before signing up with Google (lib/referral.ts).
+          referredByCode: cleanReferralCode((await cookies()).get(REFERRAL_COOKIE)?.value),
+        },
       });
       user.id = created.id;
       user.role = created.role;

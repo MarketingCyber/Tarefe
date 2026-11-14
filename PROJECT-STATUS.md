@@ -4,7 +4,7 @@
 what comes next.** Updated with every change (see [Keeping this file current](#keeping-this-file-current)); the
 [changelog](#changelog) at the end records each update.
 
-Last updated: **2026-11-11**
+Last updated: **2026-11-14**
 
 ---
 
@@ -172,7 +172,26 @@ GDPR data export (instant) and deletion request (reviewed by staff).
     links are fetched, streamed through). When the CDN files move behind the login, only `readDocumentFile` in
     `src/lib/document-storage.ts` changes.
   - Test (local, sample customer): 3 letters with summaries + 53 own uploads; letter PDF downloads in the portal.
-- Not yet: points / referral code, customer actions written back to Dynamics (§12 step 4).
+- **Referral codes and points** (built 2026-11-14, not deployed) — `src/lib/referral.ts`:
+  - Code: a linked customer's old-CRM code (contact `new_id`, e.g. `274259`, `000026`) — the code they already know;
+    without one a random `TRF-XXXX-XXXX` (never from the name). A random code is replaced by the old one when the
+    account gets linked. Share link keeps the old form `https://tarefe.de/referral/<code>`.
+  - **Old share links work again**: `tarefe.de/referral/<code>` was a 404 on the new site (found 2026-11-14 — every
+    link customers had shared was broken); now `src/app/[locale]/referral/[code]/route.ts` remembers the code (cookie
+    `tarefe_ref`, 30 days, http-only) and opens the home page tagged `utm_source=referral`.
+  - The code is stored with a lead from the site (`Lead.referralCode`) and on a new account (website sign-up, Google
+    sign-up: from the cookie; app sign-in: optional «کد معرف داری؟» field → `User.referredByCode`). Leads sent to
+    the old CRM carry a first description line «کد معرف: 000026 (name, customer number)» so operators credit the
+    referrer; automatic crediting in Dynamics waits for step 4 (write-back). Staff see it on the lead page and on
+    Customer 360 («معرفی‌شده با کد»).
+  - Points stay Dynamics': total = `contact.new_total_point_rollup` (adds up active entries only); history = the
+    customer's `new_points` with «Send To Site», each marked earned (active), redeemed (gift card, «کد هدیه»,
+    closed) or pending (closed, e.g. a friend not confirmed yet). Shown on the portal dashboard («معرفی به دوستان»:
+    code, copy code / link, points, last entries) and in the app API (`/api/v1/referral`: `link`, `points`) → app
+    profile shows the total.
+  - Test (local): sample linked customer → code 274259 and 2,600 points (= Dynamics), 15 entries; unlinked account →
+    random code, no points; old-style link → cookie + home; test lead stored with the code.
+- Not yet: customer actions written back to Dynamics (§12 step 4), incl. crediting referrals automatically.
 
 ## 7. New CRM (/ops) — built and live
 
@@ -295,7 +314,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too | points / referral code (decided: old customers keep their numeric code, new ones get random codes), then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes + points built 2026-11-14, not deployed | deploy referral + points, then step 4 |
 
 ## 12. Plan for the future
 
@@ -308,7 +327,7 @@ In the order agreed / recommended (2026-11-07):
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
    (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
-   points, referral code. Required before the app can launch.
+   referral codes and points built 2026-11-14 (not deployed). Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
@@ -369,6 +388,8 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - **The owner's personal login is on the server** for the sync; a password change stops the mirror. Fix: service user.
 - **Dynamics stores secrets in plain text** (API keys, tokens, old site passwords) — not copied by us; the keys that
   were briefly copied on 2026-10-30 should be **rotated** (ChatGPT, Gemini, WhatsApp token, site API password).
+- **Old referral links were broken** (404 since the new site went live) until the referral route is deployed;
+  referrals made through them in that time arrived without a code.
 - **`cdn.tarefe.de`**: 34 GB of customer documents readable by anyone with a link (random names, no login).
 - **The app repo has no remote** — only the laptop and the local backup hold it.
 - Laptop: direct connections are sometimes blocked (use the proxy for SSH); Docker Desktop stops after restarts
@@ -442,3 +463,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-11 | Deploy note: the schema change waited ~13 min behind the running full backup's database dump (documents pages failed meanwhile); backup stopped on the owner's OK, change applied, site checked (no errors), backup restarted. Rule: never deploy a schema change while `local-backup.sh --full` is running | yes |
 | 2026-11-11 | Owner's decision: existing customers keep their numeric referral codes, new customers get random codes | — |
 | 2026-11-11 | `local-backup.sh --full` reworked for the slow laptop link: uses the server's nightly DB dump (no live dump from the laptop), resumable downloads checked by SHA-256, uploads via a local mirror (`Local backups/uploads-mirror`, only new files fetched), server setup packed on the server first | — (laptop script) |
+| 2026-11-14 | Referral codes + points: old-CRM code for linked customers (random TRF code otherwise), old share links `tarefe.de/referral/<code>` work again (were 404), code captured on leads / sign-ups / app sign-in and written into the lead sent to Dynamics, Dynamics points (total + history: earned / redeemed / pending) on the portal dashboard and in the app; database: `users.referredByCode`, `leads.referralCode` (optional) | no |

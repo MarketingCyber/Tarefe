@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { LOCALES, type Locale } from "@/lib/taxonomy";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, cleanReferralCode } from "@/lib/referral-code";
 
 /**
  * Manual email/password signup (2026-08-31) — built as the immediate,
@@ -66,7 +68,14 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role: "CUSTOMER", locale: resolvedLocale },
+    data: {
+      name,
+      email,
+      passwordHash,
+      role: "CUSTOMER",
+      locale: resolvedLocale,
+      referredByCode: cleanReferralCode((await cookies()).get(REFERRAL_COOKIE)?.value),
+    },
   });
 
   return NextResponse.json({ id: user.id }, { status: 201 });

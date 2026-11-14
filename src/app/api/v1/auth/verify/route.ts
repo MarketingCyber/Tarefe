@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { findUserByEmail } from "@/lib/email-address";
+import { cleanReferralCode } from "@/lib/referral-code";
 import { ok, fail, readJson, isLocale } from "@/lib/app-api";
 import { MAX_CODE_ATTEMPTS, hashLoginCode, issueSession, normalizeEmail, sameHash } from "@/lib/app-auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
   if (!rateLimit(`app-verify:${ip}`, 10).allowed) return fail(429, "too_many_requests", "Too many attempts, try again in a minute");
 
-  const body = await readJson<{ email?: unknown; code?: unknown; deviceName?: unknown; platform?: unknown; locale?: unknown }>(request);
+  const body = await readJson<{ email?: unknown; code?: unknown; deviceName?: unknown; platform?: unknown; locale?: unknown; referralCode?: unknown }>(request);
   const email = typeof body?.email === "string" ? normalizeEmail(body.email) : "";
   const code = typeof body?.code === "string" ? toLatinDigits(body.code.trim()) : "";
   if (!email || !/^\d{6}$/.test(code)) return fail(400, "invalid_code", "The code has 6 digits");
@@ -40,7 +41,9 @@ export async function POST(request: Request) {
   let user = await findUserByEmail(email);
   const isNew = !user;
   if (!user) {
-    user = await prisma.user.create({ data: { email, name: "", role: "CUSTOMER", locale: isLocale(body?.locale) ? body.locale : "fa" } });
+    user = await prisma.user.create({
+      data: { email, name: "", role: "CUSTOMER", locale: isLocale(body?.locale) ? body.locale : "fa", referredByCode: cleanReferralCode(body?.referralCode) },
+    });
   } else if (user.role !== "CUSTOMER" || !user.active) {
     return fail(403, "not_allowed", "This account can't use the app");
   }
