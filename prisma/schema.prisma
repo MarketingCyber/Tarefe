@@ -1091,3 +1091,39 @@ model AutomationRun {
   @@unique([automation, day])
   @@map("automation_runs")
 }
+
+/// One referral (lib/referral-check.ts): someone who came with a customer's code — a new account (User.referredByCode)
+/// or a website lead (Lead.referralCode) — and where it stands against the owner's voucher rules (10 € for the
+/// referrer when the referrer has an active contract and the friend signs a contract and doesn't cancel it within
+/// 14 days). Re-checked from the old-CRM mirror; staff record the voucher as sent.
+model Referral {
+  id   String @id @default(cuid())
+  code String // the referral code used
+
+  userId String? // the referred account, or …
+  leadId String? // … the referred website lead
+
+  referrerUserId    String?
+  referrerContactId String? // Dynamics contact of the referrer (lowercase GUID)
+  referredContactId String? // Dynamics contact of the friend, once they are a customer
+
+  contractCrmId String?   // the friend's contract the rule is checked on
+  signedAt      DateTime? // when that contract was first seen signed (the 14 days start here)
+
+  /// waiting_customer | waiting_contract | waiting_period | friend_cancelled | referrer_no_contract | due | sent | invalid
+  status     String    @default("waiting_customer")
+  statusNote String?
+  dueSince   DateTime? // when it first became due
+  checkedAt  DateTime?
+
+  voucherSentAt   DateTime?
+  voucherSentById String?
+
+  createdAt DateTime @default(now()) // when the referral happened (the account / lead's creation)
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([status])
+  @@map("referrals")
+}

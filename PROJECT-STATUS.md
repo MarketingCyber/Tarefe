@@ -187,8 +187,20 @@ GDPR data export (instant) and deletion request (reviewed by staff).
   - **No points** (owner, 2026-11-14): the old CRM's points / star levels are left behind; customers see only the
     code, the link and the rule. Staff still see the old points on Customer 360 (old data, read-only).
   - Reward rule (owner, 2026-10-23): €10 voucher for the referrer when the referrer has an active contract AND the
-    referred person signs a contract and doesn't cancel it within 14 days. Checked by operators for now; checking it
-    automatically is the next piece (see §12).
+    referred person signs a contract and doesn't cancel it within 14 days.
+  - **Automatic rule check** (built 2026-11-14, not deployed) — `src/lib/referral-check.ts`, staff page
+    **/ops/referrals** («معرفی‌ها»): every account / lead that came with a code becomes a `Referral`; re-checked
+    from the mirror (with the per-minute sync, at most every 15 min, and when the page opens). Statuses: waiting for
+    the friend in the CRM (lead matched by exactly one contact's e-mail, else phone) → waiting for the friend's
+    contract (stage Aktuell / AktuellT, made after the referral) → waiting out the 14 days → **voucher due** (when
+    the referrer has an active contract) / referrer without active contract / friend cancelled within 14 days /
+    invalid (unknown code, self-referral, friend already referred). Dynamics has no "signed on" date: the 14 days
+    start when the check first sees the contract signed (first check: the contract's creation date); a cancellation
+    after the 14 days doesn't count, a contract closed as replaced isn't a cancellation. Staff press «کارت هدیه
+    فرستاده شد» (logged, can be undone); a sent voucher is never re-checked.
+  - Test (local, 7 made-up referrals on real sample data): qualifies → due; inside 14 days → waiting with the end
+    date; unknown friend; unknown code; self-referral; referrer without active contract; same friend twice → only
+    the first counts. Second run kept the dates; «sent» button recorded and logged.
   - Portal dashboard «معرفی به دوستان»: rule, code, copy code / copy link. App: profile card (code, share, rule);
     `/api/v1/referral` returns `code`, `link`, `rule`, `shareText`.
   - Test (local): sample linked customer → code 274259 (= Dynamics); unlinked account → random code; old-style link →
@@ -317,7 +329,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 | Automations test mode | Kündigungsfrist + Vertragsende comparing daily | find Vertragsende's real rule; confirm "Won" contracts are skipped |
 | Mobile app | built, not published | customer identity + real data (§12 steps 2–4), accounts (§13) |
 | Old CDN files (34 GB, public by link) | decision pending | copy behind staff login, later close the public CDN |
-| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes live 2026-11-14 | automatic referral check (voucher rules), then step 4 |
+| Customer link + real data in portal / app (plan steps 2–3) | **live** 2026-11-11, documents too; referral codes live 2026-11-14; voucher-rule check built, not deployed | deploy the check, then step 4 |
 
 ## 12. Plan for the future
 
@@ -330,7 +342,7 @@ In the order agreed / recommended (2026-11-07):
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
    (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
-   referral codes **live 2026-11-14** (no points — owner 2026-11-14); next: the automatic voucher-rule check. Required before the app can launch.
+   referral codes **live 2026-11-14** (no points — owner 2026-11-14); voucher-rule check + staff page built 2026-11-14 (not deployed). Required before the app can launch.
 4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
    the file on the contract, profile changes update the customer.
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
@@ -472,3 +484,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Referral codes (+ points, removed before deploy): old-CRM code for linked customers (random TRF code otherwise), old share links `tarefe.de/referral/<code>` work again (were 404), code captured on leads / sign-ups / app sign-in and written into the lead sent to Dynamics, Dynamics points (total + history: earned / redeemed / pending) on the portal dashboard and in the app; database: `users.referredByCode`, `leads.referralCode` (optional) | no |
 | 2026-11-14 | Owner: no points in the new referral system, only the €10 voucher rule — points removed from the portal, the app and the app API before deploy | yes, 2026-11-14 |
 | 2026-11-14 | Deployed referral codes (database: `users.referredByCode`, `leads.referralCode`); first deploy's link redirect pointed at the internal address `0.0.0.0:3000` — fixed with a relative redirect and redeployed; old links `tarefe.de/referral/<code>` checked live (home page, code remembered) | yes |
+| 2026-11-14 | Referral voucher rules checked automatically (lib/referral-check.ts, with the CRM sync every 15 min) + staff page /ops/referrals («معرفی‌ها»: status per referral, «voucher sent» button, logged); database: new table `referrals` | no |

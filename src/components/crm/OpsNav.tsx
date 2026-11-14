@@ -8,6 +8,7 @@ import type { UserRole } from "@prisma/client";
 import { track, EVENT } from "@/lib/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
+  Gift,
   SignOut,
   House,
   List,
@@ -79,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/ops/contracts", label: "قراردادها", icon: FileText },
       { href: "/ops/conversations", label: "گفتگوهای اپ", icon: ChatsCircle, app: true },
       { href: "/ops/tickets", label: "تیکت‌ها", icon: Headset },
+      { href: "/ops/referrals", label: "معرفی‌ها", icon: Gift },
       { href: "/ops/old-crm", label: "CRM قدیم", icon: Database },
     ],
   },

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { crmConfigured } from "@/lib/dynamics/client";
 import { syncAttachments } from "@/lib/dynamics/files";
 import { backfillShadows, runShadows } from "@/lib/automations/shadow";
+import { checkReferrals } from "@/lib/referral-check";
 import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncAll, syncFieldLabels, syncForms, CRM_TABLES } from "@/lib/dynamics/sync";
 
 /**
@@ -17,6 +18,7 @@ import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, recon
  * ?columns=1 fills the filter columns (dueAt / state / ownerId) of records copied before they existed;
  * ?purge=1 removes secret fields (passwords, API keys, tokens) from records copied before they were filtered out;
  * ?labels=1 to refresh the field labels (crm_fields) and form layouts (crm_forms).
+ * Full rounds also re-check the referral voucher rules (lib/referral-check.ts) at most every 15 minutes.
  */
 export const maxDuration = 120;
 
@@ -48,5 +50,7 @@ export async function POST(request: Request) {
   const results = await syncAll(Number(params.get("budget")) || 50_000, only);
   // After a full round the mirror is current: plan / check the old-automation test runs that are due.
   const shadows = only ? [] : await runShadows().catch((e) => [`shadows failed: ${e instanceof Error ? e.message : e}`]);
-  return NextResponse.json({ results, shadows });
+  // Referral voucher rules (lib/referral-check.ts), at most every 15 minutes.
+  const referrals = only ? null : await checkReferrals(15 * 60_000).catch((e) => `referrals failed: ${e instanceof Error ? e.message : e}`);
+  return NextResponse.json({ results, shadows, referrals });
 }
