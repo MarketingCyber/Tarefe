@@ -251,10 +251,10 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   one of the customer's documents, sent by Tarefe); the customer sees it in the portal (and the app chat) and gets
   an e-mail with a link (`emailCustomer`, also on status changes) **once outgoing e-mail is configured** (Zoho
   mailbox — waiting on the owner; until then only the portal bell). Old-CRM tickets a customer writes on in the
-  portal now show in the staff ticket list, «کارهای من» and the overview count. Built 2026-11-15, not deployed.
+  portal now show in the staff ticket list, «کارهای من» and the overview count. **Live 2026-11-15.**
 - **«گزارش مشکل» QC button** on every CRM page (bottom-left): an operator writes what's wrong; the page and the
   sender are saved; **/ops/qc «گزارش‌های مشکل»** lists them (open / all), staff answer and mark fixed / not a bug, the
-  reporter is notified. Table `qc_reports`. Built 2026-11-15, not deployed.
+  reporter is notified. Table `qc_reports`. **Live 2026-11-15.**
 - Other: applications, app conversations and app banners (hidden unless `APP_ENABLED`), energy tariffs admin,
   guides / FAQ / testimonials CMS, analytics, team, security.
 
@@ -510,4 +510,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Staff panel (/ops) in a soft pale-blue theme for all-day use (owner): off-white cards on a blue-grey page, steel-blue accent, softer headings; all text WCAG AA; only the panel changes | yes, 2026-11-14 |
 | 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
 | 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
-| 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | no |
+| 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | yes, 2026-11-15 |
