@@ -257,7 +257,7 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   or lead code; «تکراریِ همین سرنخ است» / «همین سرنخ تکراری است» closes the duplicate in Dynamics (reason
   «جواب نداد-تکراری بود», explanation naming the main lead; already closed ones stay as they are), notes it on the
   main lead, and both pages show the link («سرنخ اصلی» / «تکراریِ این سرنخ»). No Dynamics merge (irreversible, runs
-  its automations). Built 2026-11-15, not deployed.
+  its automations). **Live 2026-11-15.**
 - **«گزارش مشکل» QC button** on every CRM page (bottom-left): an operator writes what's wrong; the page and the
   sender are saved; **/ops/qc «گزارش‌های مشکل»** lists them (open / all), staff answer and mark fixed / not a bug, the
   reporter is notified. Table `qc_reports`. **Live 2026-11-15.**
@@ -334,7 +334,8 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 1. `git archive HEAD src package.json package-lock.json next.config.ts prisma/schema.prisma` → upload to `/tmp`.
 2. Check the archive exists on the server **before** deleting anything; back up `app/src` to
    `app-src-backup-YYYYMMDD.tgz`.
-3. Replace `app/src`, `docker compose build web && docker compose up -d web`.
+3. Replace `app/src`, `docker compose build web && docker compose up -d web`. The laptop's SSH link drops during long builds:
+   run steps 2–4 on the server with `nohup sh -c "…" &` writing to a log, and poll the log.
 4. If the schema changed: `docker compose exec -T web npx prisma db push` (additive changes only) — **after** step 3
    (`up -d`): run in the old container it sees the old schema and does nothing.
    Never while `scripts/local-backup.sh --full` is dumping the database — the change waits for the dump and blocks
@@ -517,4 +518,5 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
 | 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
 | 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | yes, 2026-11-15 |
-| 2026-11-15 | Linking leads: possible duplicates (same phone / e-mail) on each lead page, search by name / mobile / e-mail / lead code, link closes the duplicate in Dynamics with a note on the main lead; database: new table `lead_links` | no |
+| 2026-11-15 | Linking leads: possible duplicates (same phone / e-mail) on each lead page, search by name / mobile / e-mail / lead code, link closes the duplicate in Dynamics with a note on the main lead; database: new table `lead_links` | yes, 2026-11-15 |
+| 2026-11-15 | Owner: no new lead-management features for now (call result, speed-to-lead queue, auto-assign, call list, templates, scoring, reports, bulk actions were proposed and put on hold) | — |
