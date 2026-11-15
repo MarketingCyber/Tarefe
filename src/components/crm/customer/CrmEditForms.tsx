@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { assignCrmRecord, closeCrmLead, scheduleCrmCall, updateCrmLead, uploadCrmFile, type WriteResult } from "@/lib/crm/crm-write-actions";
+import { assignCrmRecord, closeCrmLead, linkCrmLeads, scheduleCrmCall, updateCrmLead, uploadCrmFile, type WriteResult } from "@/lib/crm/crm-write-actions";
 
 /**
  * Editing old-CRM records from /ops (lib/dynamics/write.ts): every change is written to Dynamics first and read
@@ -216,5 +216,28 @@ export function UploadFileForm(common: Common) {
       </button>
       {tooBig ? <span className="text-xs text-danger">فایل بزرگ‌تر از ۵ مگابایت است.</span> : <Result state={state} dry={common.dry} />}
     </form>
+  );
+}
+
+/** The two ways to link a found lead: it is a duplicate of this one, or this one is a duplicate of it. */
+export function LeadLinkButtons({ currentId, otherId, returnPath, dry }: { currentId: string; otherId: string; returnPath: string; dry?: boolean }) {
+  const [state, action, pending] = useActionState<WriteResult, FormData>(linkCrmLeads, null);
+  if (state?.ok) return <Result state={state} dry={dry} />;
+  const button = (duplicate: string, main: string, text: string, title: string) => (
+    <form action={action}>
+      <input type="hidden" name="duplicate" value={duplicate} />
+      <input type="hidden" name="main" value={main} />
+      <input type="hidden" name="returnPath" value={returnPath} />
+      <button type="submit" disabled={pending} title={title} className="press rounded-lg border border-border-strong px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600 disabled:opacity-50">
+        {text}
+      </button>
+    </form>
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {button(otherId, currentId, "تکراریِ همین سرنخ است", "آن سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی همین سرنخ ادامه پیدا می‌کند")}
+      {button(currentId, otherId, "همین سرنخ تکراری است", "همین سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی آن سرنخ ادامه پیدا می‌کند")}
+      <Result state={state} dry={dry} />
+    </div>
   );
 }

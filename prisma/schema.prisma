@@ -1145,3 +1145,17 @@ model QcReport {
   @@index([status, createdAt])
   @@map("qc_reports")
 }
+
+/// Two old-CRM leads of the same person (lib/crm/lead-links.ts): the duplicate is closed in Dynamics as a duplicate
+/// pointing at the main lead; both lead pages show the link. Ids are Dynamics lead GUIDs (lowercase).
+model LeadLink {
+  id          String   @id @default(cuid())
+  leadId      String // the duplicate
+  mainLeadId  String // the lead work continues on
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([leadId])
+  @@index([mainLeadId])
+  @@map("lead_links")
+}

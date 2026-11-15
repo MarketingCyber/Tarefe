@@ -252,6 +252,12 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   an e-mail with a link (`emailCustomer`, also on status changes) **once outgoing e-mail is configured** (Zoho
   mailbox — waiting on the owner; until then only the portal bell). Old-CRM tickets a customer writes on in the
   portal now show in the staff ticket list, «کارهای من» and the overview count. **Live 2026-11-15.**
+- **Linking leads «سرنخ‌های مرتبط»** on an old-CRM lead page (`lib/crm/lead-links.ts`, table `lead_links`): other
+  leads with the same phone / e-mail are shown as possible duplicates; any lead can be found by name, mobile, e-mail
+  or lead code; «تکراریِ همین سرنخ است» / «همین سرنخ تکراری است» closes the duplicate in Dynamics (reason
+  «جواب نداد-تکراری بود», explanation naming the main lead; already closed ones stay as they are), notes it on the
+  main lead, and both pages show the link («سرنخ اصلی» / «تکراریِ این سرنخ»). No Dynamics merge (irreversible, runs
+  its automations). Built 2026-11-15, not deployed.
 - **«گزارش مشکل» QC button** on every CRM page (bottom-left): an operator writes what's wrong; the page and the
   sender are saved; **/ops/qc «گزارش‌های مشکل»** lists them (open / all), staff answer and mark fixed / not a bug, the
   reporter is notified. Table `qc_reports`. **Live 2026-11-15.**
@@ -511,3 +517,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
 | 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
 | 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | yes, 2026-11-15 |
+| 2026-11-15 | Linking leads: possible duplicates (same phone / e-mail) on each lead page, search by name / mobile / e-mail / lead code, link closes the duplicate in Dynamics with a note on the main lead; database: new table `lead_links` | no |

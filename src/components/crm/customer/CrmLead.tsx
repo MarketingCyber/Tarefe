@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
+import { LeadLinks } from "@/components/crm/customer/LeadLinks";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
@@ -22,7 +23,7 @@ import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shown
 const DYNAMICS_RECORD = (id: string) => `http://tarefe.online/Tarefe/main.aspx?etn=lead&pagetype=entityrecord&id=${id}`;
 export const LEAD_STATE_TONE: BadgeTone[] = ["purple", "success", "neutral"]; // 0 open, 1 qualified, 2 disqualified
 
-export async function CrmLead({ id, history }: { id: string; history?: string }) {
+export async function CrmLead({ id, history, linkQuery }: { id: string; history?: string; linkQuery?: string }) {
   const loaded = await loadWithRelated("lead", id);
   if (!loaded) notFound();
   const { record, related } = loaded;
@@ -144,6 +145,7 @@ export async function CrmLead({ id, history }: { id: string; history?: string })
       </div>
 
       <CrmEditPanel entity="lead" id={record.crmId} data={d} state={state} returnPath={self} />
+      <LeadLinks id={record.crmId} data={d} query={linkQuery?.slice(0, 100)} returnPath={self} />
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <section className="rounded-2xl border border-border bg-white p-6 2xl:col-span-2">

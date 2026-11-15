@@ -107,3 +107,11 @@ export async function uploadCrmFile(_prev: WriteResult, formData: FormData): Pro
     return uploadFile(String(formData.get("entity")), String(formData.get("id")), file, String(formData.get("note") ?? ""), actor);
   });
 }
+
+/** «اتصال به سرنخ دیگر»: `duplicate` is closed as a duplicate of `main` (lib/crm/lead-links.ts). */
+export async function linkCrmLeads(_prev: WriteResult, formData: FormData): Promise<WriteResult> {
+  return run(formData, "دو سرنخ به هم وصل شدند.", async (actor) => {
+    const { linkLeads } = await import("@/lib/crm/lead-links");
+    await linkLeads(String(formData.get("duplicate")), String(formData.get("main")), actor);
+  });
+}

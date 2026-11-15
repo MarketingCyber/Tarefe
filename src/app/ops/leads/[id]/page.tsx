@@ -56,13 +56,16 @@ async function addNote(formData: FormData) {
   revalidatePath(`/ops/leads/${leadId}`);
 }
 
-export default async function LeadDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string }> }) {
+export default async function LeadDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string; linkq?: string }> }) {
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
   const { id } = await params;
   // Old-CRM leads have Dynamics GUIDs; website leads (cuid ids) keep this page.
-  if (isGuid(id)) return <CrmLead id={id} history={(await searchParams).history} />;
+  if (isGuid(id)) {
+    const { history, linkq } = await searchParams;
+    return <CrmLead id={id} history={history} linkQuery={linkq} />;
+  }
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
