@@ -270,7 +270,9 @@ function Select({ name, value, label, options }: { name: string; value: string |
 
 async function SiteTickets() {
   const tickets = await prisma.serviceRequest.findMany({
-    where: { crmId: null }, // projected Dynamics tickets are in the old-CRM view
+    // Projected Dynamics tickets are in the old-CRM view — unless the customer wrote on one in the portal / app:
+    // then it is a conversation here, answered here.
+    where: { OR: [{ crmId: null }, { messages: { some: { sender: { role: "CUSTOMER" } } } }] },
     orderBy: { createdAt: "desc" },
     include: {
       customer: { select: { id: true, name: true, email: true } },

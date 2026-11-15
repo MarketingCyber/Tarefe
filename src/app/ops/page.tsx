@@ -24,7 +24,7 @@ export default async function OpsOverview() {
     prisma.lead.count({ where: { status: "NEW" } }),
     prisma.lead.count(),
     prisma.contract.count({ where: { status: "ACTIVE", crmId: null } }),
-    prisma.serviceRequest.count({ where: { status: { not: "COMPLETED" }, crmId: null } }),
+    prisma.serviceRequest.count({ where: { status: { not: "COMPLETED" }, ...{ OR: [{ crmId: null }, { messages: { some: { sender: { role: "CUSTOMER" } } } }] } } }),
     // Overdue + due within a week — the same window /ops/contracts' own
     // "Overdue"/"Due today"/"Due this week" buckets cover, surfaced here
     // as one org-wide count so it doesn't need its own visit to notice.

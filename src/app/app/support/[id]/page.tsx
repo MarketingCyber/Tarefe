@@ -2,10 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { refreshCustomerForRequest } from "@/lib/crm/customer-link";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Paperclip } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { notifyUser } from "@/lib/notifications";
+import { notifyStaff } from "@/lib/notifications";
 
 const STATUS_LABEL: Record<string, string> = {
   RECEIVED: "دریافت‌شده",
@@ -31,9 +31,7 @@ async function replyToTicket(formData: FormData) {
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticketId, action: "reply_sent", note: "پاسخ توسط مشتری ارسال شد", actorId: session.user.id },
   });
-  if (ticket.advisorId) {
-    await notifyUser(ticket.advisorId, "ticket_reply", "پاسخ جدید مشتری", `مشتری در درخواست «${ticket.subject}» پاسخ داد.`);
-  }
+  await notifyStaff(ticket.advisorId, "ticket_reply", "پاسخ جدید مشتری", `مشتری در درخواست «${ticket.subject}» پاسخ داد.`);
   revalidatePath(`/app/support/${ticketId}`);
 }
 
@@ -50,7 +48,7 @@ export default async function SupportTicketPage({ params }: { params: Promise<{ 
   const ticket = await prisma.serviceRequest.findUnique({
     where: { id },
     include: {
-      messages: { orderBy: { createdAt: "asc" }, include: { sender: { select: { name: true, role: true } } } },
+      messages: { orderBy: { createdAt: "asc" }, include: { sender: { select: { name: true, role: true } }, document: { select: { id: true, title: true } } } },
       contract: { select: { provider: true, productName: true } },
     },
   });
@@ -86,15 +84,24 @@ export default async function SupportTicketPage({ params }: { params: Promise<{ 
           {ticket.messages.map((m) => (
             <div key={m.id} className={`max-w-[80%] rounded-xl p-3 ${m.sender.role === "CUSTOMER" ? "me-auto bg-purple-600/10" : "bg-tint"}`}>
               <p className="text-xs font-semibold text-purple-900">{m.sender.role === "CUSTOMER" ? "شما" : m.sender.name}</p>
-              <p className="mt-1 text-sm text-body">{m.content}</p>
+              <p className="mt-1 whitespace-pre-line text-sm text-body [overflow-wrap:anywhere]">{m.content}</p>
+              {m.document && (
+                <a href={`/api/documents/${m.document.id}`} dir="auto" className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-white px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600">
+                  <Paperclip size={12} />
+                  {m.document.title}
+                </a>
+              )}
               <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</p>
             </div>
           ))}
         </div>
         <form action={replyToTicket} className="mt-5 flex gap-2">
           <input type="hidden" name="ticketId" value={ticket.id} />
-          <input
+          <textarea
             name="content"
+            rows={2}
+            maxLength={5000}
+            aria-label="پیام شما"
             placeholder="پیام خود را بنویس…"
             className="flex-1 rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
           />

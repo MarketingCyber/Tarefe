@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ReportProblemButton } from "@/components/crm/ReportProblemButton";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -47,6 +49,10 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         <div className="min-w-0 flex-1 bg-tint">
           <PageTransition>{children}</PageTransition>
         </div>
+        {/* QC during the parallel run: every CRM page can send a problem report to /ops/qc. */}
+        <Suspense fallback={null}>
+          <ReportProblemButton />
+        </Suspense>
       </body>
     </html>
   );

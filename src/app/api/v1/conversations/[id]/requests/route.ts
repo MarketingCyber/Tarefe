@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ok, fail, readJson, requireUser, describeService, REQUEST_TOPICS, ticketNumber } from "@/lib/app-api";
 import { addMessage, conversationTitle, findOwnConversation, serializeRequest } from "@/lib/app-conversations";
-import { notifyUser } from "@/lib/notifications";
+import { notifyStaff } from "@/lib/notifications";
 import { rateLimit } from "@/lib/rate-limit";
 import type { Locale } from "@/lib/taxonomy";
 
@@ -43,8 +43,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
   await addMessage(conv, { senderId: user.id, kind: "SYSTEM", content: OPENED[user.locale](ticketNumber(created.id), topic.label[user.locale]), serviceRequestId: created.id });
 
-  if (conv.advisorId) {
-    await notifyUser(conv.advisorId, "app_request", `درخواست تازه ${ticketNumber(created.id)}`, `${topic.label.fa} · ${conversationTitle(conv, "fa")}`);
-  }
+  await notifyStaff(conv.advisorId, "app_request", `درخواست تازه ${ticketNumber(created.id)}`, `${topic.label.fa} · ${conversationTitle(conv, "fa")}`);
   return ok({ request: serializeRequest(created, user.locale) }, 201);
 }

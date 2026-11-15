@@ -8,6 +8,7 @@ import type { UserRole } from "@prisma/client";
 import { track, EVENT } from "@/lib/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
+  Bug,
   Gift,
   SignOut,
   House,
@@ -66,6 +67,7 @@ type NavGroup = { id: string; label: string; items: NavItem[] };
 const PINNED_ITEMS: NavItem[] = [
   { href: "/ops", label: "نمای کلی", icon: SquaresFour },
   { href: "/ops/my-work", label: "کارهای من", icon: Target },
+  { href: "/ops/qc", label: "گزارش‌های مشکل", icon: Bug },
 ];
 
 const NAV_GROUPS: NavGroup[] = [

@@ -244,6 +244,17 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   Dynamics first, is read back into the mirror, and logged under the operator. Converting a lead to a contract and
   editing contract fields come next (they trigger the old CRM's own logic). Server actions accept 16 MB now
   (`next.config.ts`; the 1 MB default had refused document uploads above 1 MB).
+- **Customer requests are handled in the new CRM** (owner, 2026-11-15: the old CRM is retired after the switch, so
+  portal / app requests are NOT sent to Dynamics): new portal requests and customer replies alert the assigned
+  operator, or every CRM staff member while nobody is assigned (`notifyStaff`, also for app messages / requests);
+  staff reply on `/ops/tickets/[id]` with several lines and an optional attachment (PDF / photo ≤ 15 MB, saved as
+  one of the customer's documents, sent by Tarefe); the customer sees it in the portal (and the app chat) and gets
+  an e-mail with a link (`emailCustomer`, also on status changes) **once outgoing e-mail is configured** (Zoho
+  mailbox — waiting on the owner; until then only the portal bell). Old-CRM tickets a customer writes on in the
+  portal now show in the staff ticket list, «کارهای من» and the overview count. Built 2026-11-15, not deployed.
+- **«گزارش مشکل» QC button** on every CRM page (bottom-left): an operator writes what's wrong; the page and the
+  sender are saved; **/ops/qc «گزارش‌های مشکل»** lists them (open / all), staff answer and mark fixed / not a bug, the
+  reporter is notified. Table `qc_reports`. Built 2026-11-15, not deployed.
 - Other: applications, app conversations and app banners (hidden unless `APP_ENABLED`), energy tariffs admin,
   guides / FAQ / testimonials CMS, analytics, team, security.
 
@@ -383,7 +394,7 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | CRM developer | C# source or description of custom logic (points, customer level, commission, letters, date calculations) | automations (§12 step 6) |
 | CRM developer | read access: finance records, webhooks, solutions | complete mirror, integrations map |
 | Owner | decision on the 34 GB CDN files | §12 step 8 |
-| Owner | Expo account, Zoho mail account, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications |
+| Owner | Expo account, Zoho mail account, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications, **e-mails to customers about staff replies** |
 
 ## 14. Owner's rules and decisions
 
@@ -499,3 +510,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Staff panel (/ops) in a soft pale-blue theme for all-day use (owner): off-white cards on a blue-grey page, steel-blue accent, softer headings; all text WCAG AA; only the panel changes | yes, 2026-11-14 |
 | 2026-11-14 | Write-back to Dynamics switched **on** (owner) — notes and closing tasks / calls / appointments now really write to the old CRM | yes (server setting) |
 | 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
+| 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | no |

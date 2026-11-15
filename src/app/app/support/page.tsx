@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { PlusCircle } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { notifyStaff } from "@/lib/notifications";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { trackServer } from "@/lib/analytics-server";
 import { EVENT } from "@/lib/analytics";
@@ -48,6 +49,7 @@ async function createTicket(formData: FormData) {
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticket.id, action: "created", note: "درخواست توسط مشتری ثبت شد", actorId: session.user.id },
   });
+  await notifyStaff(null, "ticket_new", "درخواست تازه از پنل مشتری", subject.slice(0, 140));
   await trackServer(EVENT.TICKET_CREATED, { userId: session.user.id, metadata: { ticketId: ticket.id, subjectType } });
   revalidatePath("/app/support");
 }

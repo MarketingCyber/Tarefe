@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { notifyStaff } from "@/lib/notifications";
 
 const PASSWORD_ERROR_LABEL: Record<string, string> = {
   wrong_current: "رمز عبور فعلی درست نیست.",
@@ -88,6 +89,7 @@ async function requestAccountDeletion(formData: FormData) {
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticket.id, action: "created", note: "درخواست حذف حساب توسط مشتری ثبت شد", actorId: session.user.id },
   });
+  await notifyStaff(null, "ticket_new", "درخواست حذف حساب", "یک مشتری درخواست حذف حساب داده است.");
   redirect("/app/profile?deletionRequested=1");
 }
 

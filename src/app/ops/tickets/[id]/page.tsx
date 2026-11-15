@@ -4,14 +4,15 @@ import { revalidatePath } from "next/cache";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { notifyUser } from "@/lib/notifications";
+import { emailCustomer, notifyUser } from "@/lib/notifications";
+import { saveUploadedFile, UploadValidationError } from "@/lib/document-storage";
 import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { TaskList } from "@/components/crm/TaskList";
 import { QuickAddTask } from "@/components/crm/QuickAddTask";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
 import { computeTicketSla } from "@/lib/sla";
-import { Clock } from "@phosphor-icons/react/dist/ssr";
+import { Clock, Paperclip } from "@phosphor-icons/react/dist/ssr";
 import { TICKET_STATUS_FA, PRIORITY_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 import { isGuid } from "@/lib/dynamics/identity";
@@ -40,6 +41,7 @@ async function updateStatus(formData: FormData) {
     }
   }
   await notifyUser(ticket.customerId, "ticket_update", "به‌روزرسانی درخواست شما", `وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`);
+  await emailCustomer(ticket.customerId, "وضعیت درخواست شما در تعرفه تغییر کرد", [`وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`, "برای دیدن جزئیات وارد حساب خود شوید:"], `/app/support/${ticketId}`);
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
 
@@ -60,35 +62,54 @@ async function replyToTicket(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id || !canAccessPipeline(session.user.role)) return;
   const ticketId = formData.get("ticketId") as string;
-  const content = (formData.get("content") as string)?.trim();
-  if (!content) return;
+  const typed = ((formData.get("content") as string) ?? "").trim().slice(0, 5000);
+  const file = formData.get("file");
+  const hasFile = file instanceof File && file.size > 0;
+  if (!typed && !hasFile) return;
   const ticket = await prisma.serviceRequest.findUniqueOrThrow({ where: { id: ticketId } });
+  // An attached file becomes one of the customer's documents (marked as sent by Tarefe) and is linked to the message.
+  let documentId: string | undefined;
+  if (hasFile) {
+    try {
+      const stored = await saveUploadedFile(file);
+      const doc = await prisma.document.create({
+        data: { title: file.name.slice(0, 120) || "فایل", type: "OTHER", fileUrl: stored.storagePath, ownerId: ticket.customerId, contractId: ticket.contractId, uploadedByStaff: true },
+      });
+      documentId = doc.id;
+    } catch (error) {
+      if (!(error instanceof UploadValidationError)) throw error;
+      redirect(`/ops/tickets/${ticketId}?replyError=${encodeURIComponent(error.message.includes("limit") ? "size" : "type")}`);
+    }
+  }
+  const content = typed || (hasFile ? file.name.slice(0, 120) : "");
   // A request opened in the app also lives in its contract conversation: the reply goes there too, or the
   // customer would never see it in the app.
   const conv = ticket.conversationId ? await prisma.conversation.findUnique({ where: { id: ticket.conversationId } }) : null;
-  if (conv) await addMessage(conv, { senderId: session.user.id, content, serviceRequestId: ticketId });
-  else await prisma.message.create({ data: { serviceRequestId: ticketId, senderId: session.user.id, content } });
+  if (conv) await addMessage(conv, { senderId: session.user.id, content, serviceRequestId: ticketId, documentId });
+  else await prisma.message.create({ data: { serviceRequestId: ticketId, senderId: session.user.id, content, documentId } });
   await prisma.activityLog.create({
     data: { entityType: "service_request", entityId: ticketId, action: "reply_sent", note: `Reply from ${session.user.name}`, actorId: session.user.id },
   });
   await notifyUser(ticket.customerId, "ticket_reply", "پاسخ جدید به درخواست شما", `مشاور تعرفه به درخواست «${ticket.subject}» پاسخ داد.`);
+  await emailCustomer(ticket.customerId, "پاسخ تازه از تعرفه به درخواست شما", [`مشاور تعرفه به درخواست «${ticket.subject}» پاسخ داد.`, "برای خواندن پاسخ وارد حساب خود شوید:"], `/app/support/${ticketId}`);
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
 
-export default async function OpsTicketDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string }> }) {
+export default async function OpsTicketDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string; replyError?: string }> }) {
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
   const { id } = await params;
   // Old-CRM tickets have Dynamics GUIDs; tarefe.de tickets (cuid ids) keep this page.
-  if (isGuid(id)) return <CrmTicket id={id} history={(await searchParams).history} />;
+  const { history, replyError } = await searchParams;
+  if (isGuid(id)) return <CrmTicket id={id} history={history} />;
   const ticket = await prisma.serviceRequest.findUnique({
     where: { id },
     include: {
       customer: { select: { id: true, name: true, email: true, phone: true } },
       advisor: { select: { name: true } },
       contract: { select: { provider: true, productName: true } },
-      messages: { orderBy: { createdAt: "asc" }, include: { sender: { select: { name: true, role: true } } } },
+      messages: { orderBy: { createdAt: "asc" }, include: { sender: { select: { name: true, role: true } }, document: { select: { id: true, title: true } } } },
       tasks: { orderBy: [{ status: "asc" }, { dueAt: { sort: "asc", nulls: "last" } }], include: { assignee: { select: { name: true } } } },
     },
   });
@@ -166,21 +187,47 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
               {ticket.messages.map((m) => (
                 <div key={m.id} className={`max-w-[80%] rounded-xl p-3 ${m.sender.role === "CUSTOMER" ? "bg-tint" : "ms-auto bg-purple-600/10"}`}>
                   <p className="text-xs font-semibold text-purple-900">{m.sender.name}</p>
-                  <p className="mt-1 text-sm text-body">{m.content}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm text-body [overflow-wrap:anywhere]">{m.content}</p>
+                  {m.document && (
+                    <a href={`/api/documents/${m.document.id}`} dir="auto" className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-white px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600">
+                      <Paperclip size={12} />
+                      {m.document.title}
+                    </a>
+                  )}
                   <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</p>
                 </div>
               ))}
             </div>
-            <form action={replyToTicket} className="mt-5 flex gap-2">
+            <form action={replyToTicket} className="mt-5 space-y-2">
               <input type="hidden" name="ticketId" value={ticket.id} />
-              <input
+              <label htmlFor="reply" className="text-xs font-medium text-secondary">
+                پاسخ به مشتری — در پنل مشتری (و اپ) نمایش داده می‌شود{process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "console" ? " و ایمیل اطلاع‌رسانی می‌رود" : ""}
+              </label>
+              <textarea
+                id="reply"
                 name="content"
+                rows={3}
+                maxLength={5000}
                 placeholder="پاسخ خود را بنویسید…"
-                className="flex-1 rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
+                className="w-full rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
               />
-              <button type="submit" className="press rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900">
-                ارسال
-              </button>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <input
+                  name="file"
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  aria-label="پیوست (PDF یا عکس، تا ۱۵ مگابایت)"
+                  className="text-xs text-body file:me-3 file:rounded-lg file:border-0 file:bg-tint file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-purple-900"
+                />
+                <button type="submit" className="press rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900">
+                  ارسال پاسخ
+                </button>
+              </div>
+              {replyError && (
+                <p role="alert" className="text-xs text-danger">
+                  {replyError === "size" ? "پیوست بزرگ‌تر از ۱۵ مگابایت است." : "پیوست فقط PDF یا عکس (JPG، PNG، WEBP) می‌تواند باشد."}
+                </p>
+              )}
             </form>
           </div>
         </div>

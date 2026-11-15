@@ -33,7 +33,7 @@ export default async function MyWorkPage() {
       take: 20,
     }),
     prisma.serviceRequest.findMany({
-      where: { advisorId, status: { not: "COMPLETED" }, crmId: null },
+      where: { advisorId, status: { not: "COMPLETED" }, ...{ OR: [{ crmId: null }, { messages: { some: { sender: { role: "CUSTOMER" } } } }] } },
       orderBy: { updatedAt: "desc" },
       include: { customer: { select: { name: true } } },
       take: 20,

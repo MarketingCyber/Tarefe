@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ok, fail, readJson, requireUser } from "@/lib/app-api";
 import { addMessage, conversationTitle, findOwnConversation, serializeMessage } from "@/lib/app-conversations";
-import { notifyUser } from "@/lib/notifications";
+import { notifyStaff } from "@/lib/notifications";
 import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_LENGTH = 4000;
@@ -31,9 +31,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const message = await addMessage(conv, { senderId: user.id, content: text || attachmentTitle || "", documentId });
 
-  // Tell the assigned advisor inside /ops. (The ops conversation view is the staff side of this chat.)
-  if (conv.advisorId) {
-    await notifyUser(conv.advisorId, "app_message", `پیام تازه: ${conversationTitle(conv, "fa")}`, (text || attachmentTitle || "").slice(0, 140));
-  }
+  // Tell the assigned advisor inside /ops (or all CRM staff while nobody is assigned). The ops conversation view is
+  // the staff side of this chat.
+  await notifyStaff(conv.advisorId, "app_message", `پیام تازه: ${conversationTitle(conv, "fa")}`, (text || attachmentTitle || "").slice(0, 140));
   return ok({ message: serializeMessage(message, user.id) }, 201);
 }
