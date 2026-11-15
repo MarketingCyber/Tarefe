@@ -258,6 +258,34 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   «جواب نداد-تکراری بود», explanation naming the main lead; already closed ones stay as they are), notes it on the
   main lead, and both pages show the link («سرنخ اصلی» / «تکراریِ این سرنخ»). No Dynamics merge (irreversible, runs
   its automations). **Live 2026-11-15.**
+- **Lead management** (owner, 2026-11-15; built + deployed 2026-11-15) — `lib/crm/lead-work.ts`, `lib/crm/lead-score.ts`:
+  - **«نتیجه تماس» call result** (edit panel on leads / customers / contracts / tickets, and the call list): one
+    click — جواب نداد / بعداً تماس بگیریم / علاقه‌مند است / علاقه‌ای ندارد / شماره اشتباه (+ optional note, next-call
+    time). Logs a completed Dynamics phone call (a planned call from the list is completed itself), moves the lead's
+    stage / follow-up (no answer → «هنوز جواب نداده»; call back → «تماس در آینده»; interested → «در دست بررسی» /
+    «درحال پیگیری»; not interested → «عدم نیاز»; wrong number → closed), and plans the next call (no answer → tomorrow;
+    call back → the chosen time) for the operator (their old-CRM user) or the record's owner.
+  - **«صف سرنخ‌ها» lead queue** `/ops/leads/queue`: open leads — new without a call (longest waiting first, red after
+    2 hours), not answered yet, in follow-up (best score first); all / only mine. **Speed-to-lead alert**: a new
+    lead (last 7 days) waiting > 2 h without a call notifies its owner's staff account (else all CRM staff), once,
+    from the CRM sync every 15 min.
+  - **«لیست تماس امروز» call list** `/ops/calls`: an operator's planned calls due today / overdue, then their new
+    leads without a call; phone numbers clickable; call result on each.
+  - **Lead score** (queue, call list, lead page): estimated chance of becoming a contract from the last 12 months
+    of the old CRM — conversion of the lead's source and contract type (smoothed), adjusted for complete contact
+    details, age and unanswered calls; shown as % with its reasons (hover) and «داغ / خوب / سرد».
+  - **«گزارش لیدها» lead reports** `/ops/leads/reports` (30 / 90 / 365 days): per owner — leads, contracts,
+    conversion, closed, open, share with a logged call, median time to first logged call, median days to the
+    contract; per contract type — leads, conversion. (Funnel per source + closing reasons stay on `/ops/leads`.)
+    Contact-speed figures only cover calls logged on the lead (the call-result button logs every call from now on).
+  - **«تبدیل به قرارداد» convert** (open lead's edit panel): Dynamics' own Qualify (QualifyLead) after a
+    confirmation naming the customer — the lead's customer, else the one customer with its phone / e-mail, else
+    Dynamics creates a new one; Dynamics' lead → contract mapping and automations run as when operators do it there;
+    links to the new contract page.
+  - **Bulk actions** in the queue: select up to 50 leads → assign / set stage + follow-up / close with a reason
+    (confirmation for closing); each written to Dynamics, failures listed.
+  - Tested locally in test mode on staged sample leads (queue order and red > 2 h, scores with reasons, bulk assign
+    2/2, call result on a planned call + next call, convert recognising the existing customer, reports).
 - **«گزارش مشکل» QC button** on every CRM page (bottom-left): an operator writes what's wrong; the page and the
   sender are saved; **/ops/qc «گزارش‌های مشکل»** lists them (open / all), staff answer and mark fixed / not a bug, the
   reporter is notified. Table `qc_reports`. **Live 2026-11-15.**
@@ -365,16 +393,18 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 
 In the order agreed / recommended (2026-11-07):
 
-1. **Write-back fully on**, then more operator actions: create a task (with Dynamics' "Sonstig-" naming), ticket
-   status and follow-up date, contract key fields, new lead / customer. Swap the owner's login for the CRM
+1. **Write-back fully on** (**on** since 2026-11-14; edit panel, call result, lead → contract, bulk live 2026-11-15),
+   then more operator actions: create a task (with Dynamics' "Sonstig-" naming), ticket status and follow-up date,
+   contract key fields, new lead / customer. Swap the owner's login for the CRM
    **service user** when it exists.
 2. ~~One customer identity across platforms~~ — **live 2026-11-11**: link by e-mail / phone, staff
    link / unlink.
 3. **Customer portal + app show the real data** — contracts, deadlines and tickets **live 2026-11-11**; documents
    (customer uploads + letters sent to the customer, as the old app) **live 2026-11-11**; still open:
    referral codes **live 2026-11-14** (no points — owner 2026-11-14); voucher-rule check + staff page live 2026-11-14. Required before the app can launch.
-4. **Customer actions go into Dynamics**: a new request becomes a Dynamics ticket, an upload becomes a note with
-   the file on the contract, profile changes update the customer.
+4. ~~Customer actions go into Dynamics~~ — **changed 2026-11-15 (owner)**: customer requests are handled in the new
+   CRM (staff reply live 2026-11-15), not sent to Dynamics, because Dynamics is retired after the switch. Still open:
+   portal / app profile changes and uploads only update the new CRM — fine once the new CRM is the master (step 7).
 5. **Notifications from CRM events** (ticket status, deadlines, new documents) by push, e-mail and in-app — needs
    Expo + Zoho accounts.
 6. **Automations take over**: finish the test-mode comparisons (next: birthday reminders, welcome tickets
@@ -519,4 +549,5 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-14 | Edit panel «ویرایش در CRM قدیم»: lead stage / follow-up / close with reason, assign, next call, file upload on leads, customers, contracts, tickets; server actions up to 16 MB; tested in test mode (all actions, file type / size checks, time-zone conversion) | yes, 2026-11-14 |
 | 2026-11-15 | Owner: customer requests are handled in the new CRM, not sent to the old one. Staff reply launched: staff alerted on new requests / replies (assigned operator or all CRM staff), multi-line replies with attachment, customer e-mail with link (when e-mail is configured), old-CRM tickets with customer messages in the staff lists; «گزارش مشکل» QC button + /ops/qc; database: new table `qc_reports` | yes, 2026-11-15 |
 | 2026-11-15 | Linking leads: possible duplicates (same phone / e-mail) on each lead page, search by name / mobile / e-mail / lead code, link closes the duplicate in Dynamics with a note on the main lead; database: new table `lead_links` | yes, 2026-11-15 |
-| 2026-11-15 | Owner: no new lead-management features for now (call result, speed-to-lead queue, auto-assign, call list, templates, scoring, reports, bulk actions were proposed and put on hold) | — |
+| 2026-11-15 | Owner first put the proposed lead features on hold, then the same day asked for 1, 2, 4, 6, 7, 8, 9 (auto-assign and message templates not chosen) | — |
+| 2026-11-15 | Lead management (owner's pick 1, 2, 4, 6, 7, 8, 9): call result, lead queue + speed-to-lead alerts, call list, lead score, lead reports, convert lead to contract (Dynamics Qualify), bulk actions; no database changes | yes, 2026-11-15 |

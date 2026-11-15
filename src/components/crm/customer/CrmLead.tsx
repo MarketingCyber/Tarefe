@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { LeadLinks } from "@/components/crm/customer/LeadLinks";
+import { conversionRates, scoreLead, TIER_FA } from "@/lib/crm/lead-score";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
@@ -33,6 +34,8 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
   const contractId = typeof d._qualifyingopportunityid_value === "string" ? d._qualifyingopportunityid_value : null;
   const contactId = (typeof d._parentcontactid_value === "string" ? d._parentcontactid_value : null) ?? (typeof d._customerid_value === "string" ? d._customerid_value : null);
   const state = Number(d.statecode);
+  // Open leads: estimated chance of becoming a contract (lib/crm/lead-score.ts).
+  const score = state === 0 ? scoreLead(d, await conversionRates()) : null;
 
   // The same person's website form submissions: same e-mail, or same phone in any notation.
   const keys = new Set(personKeys(d));
@@ -86,6 +89,11 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold text-purple-900">{shown(d, "fullname") ?? "بدون نام"}</h1>
               <Badge tone={LEAD_STATE_TONE[state] ?? "neutral"}>{shown(d, "new_status") ?? "—"}</Badge>
+              {score && (
+                <span title={score.reasons.join(" — ")} className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${score.tier === "hot" ? "bg-danger-bg text-danger" : score.tier === "warm" ? "bg-warning-bg text-warning" : "bg-tint text-secondary"}`}>
+                  امتیاز {score.score.toLocaleString("fa-IR")}٪ · {TIER_FA[score.tier]}
+                </span>
+              )}
             </div>
             <p className="mt-1 text-sm text-secondary">{shown(d, "subject") ?? "بدون موضوع"}</p>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">

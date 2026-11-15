@@ -115,3 +115,85 @@ export async function linkCrmLeads(_prev: WriteResult, formData: FormData): Prom
     await linkLeads(String(formData.get("duplicate")), String(formData.get("main")), actor);
   });
 }
+
+const parseLocal = (formData: FormData, name: string) => {
+  const local = String(formData.get(name) ?? "");
+  if (!local) return null;
+  const offset = Number(formData.get("tzOffset") ?? 0); // minutes, as Date.getTimezoneOffset()
+  return new Date(Date.parse(`${local}:00Z`) + offset * 60_000);
+};
+
+/** «نتیجه تماس»: log the call and move the lead on (lib/dynamics/write.ts logCallResult). */
+export async function callResultAction(_prev: WriteResult, formData: FormData): Promise<WriteResult> {
+  const actor = await staffActor();
+  if (!actor) return { ok: false, message: "دسترسی ندارید." };
+  const { prisma } = await import("@/lib/db");
+  const { logCallResult } = await import("@/lib/dynamics/write");
+  const me = await prisma.user.findUnique({ where: { id: actor.id }, select: { crmUserId: true } });
+  try {
+    const done = await logCallResult(
+      {
+        entity: String(formData.get("entity")),
+        id: String(formData.get("id")),
+        result: String(formData.get("result")) as never,
+        callId: (formData.get("callId") as string) || null,
+        nextAt: parseLocal(formData, "nextAt"),
+        note: String(formData.get("note") ?? ""),
+      },
+      { ...actor, crmUserId: me?.crmUserId },
+    );
+    refresh(formData);
+    return { ok: true, message: done.nextScheduled ? "ثبت شد؛ تماس بعدی هم ثبت شد." : "ثبت شد." };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** «تبدیل به قرارداد»: Dynamics' own Qualify; returns the new contract's page. */
+export type QualifyResult = { ok: boolean; message: string; href?: string } | null;
+
+export async function qualifyLeadAction(_prev: QualifyResult, formData: FormData): Promise<QualifyResult> {
+  const actor = await staffActor();
+  if (!actor) return { ok: false, message: "دسترسی ندارید." };
+  const { qualifyLead } = await import("@/lib/dynamics/write");
+  try {
+    const done = await qualifyLead(String(formData.get("id")), actor);
+    refresh(formData);
+    return {
+      ok: true,
+      message: done.customer === "existing" ? "قرارداد برای همین مشتری ساخته شد." : "قرارداد و مشتری جدید ساخته شدند.",
+      href: done.contractId ? `/ops/contracts/${done.contractId}` : undefined,
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export type BulkResult = { ok: boolean; message: string; failed?: string[] } | null;
+
+/** Bulk on selected leads: assign, set stage / follow-up, or close with a reason — one by one, at most 50. */
+export async function bulkLeadsAction(_prev: BulkResult, formData: FormData): Promise<BulkResult> {
+  const actor = await staffActor();
+  if (!actor) return { ok: false, message: "دسترسی ندارید." };
+  const ids = formData.getAll("ids").map(String).slice(0, 50);
+  const kind = String(formData.get("kind") ?? "");
+  if (!ids.length) return { ok: false, message: "سرنخی انتخاب نشده." };
+  const w = await import("@/lib/dynamics/write");
+  const failed: string[] = [];
+  for (const id of ids) {
+    try {
+      if (kind === "assign") await w.assignRecord("lead", id, String(formData.get("userId")), actor);
+      else if (kind === "status") {
+        const stage = formData.get("stage") ? Number(formData.get("stage")) : undefined;
+        const reason = formData.get("reason") ? Number(formData.get("reason")) : undefined;
+        await w.updateLead(id, { stage, reason }, actor);
+      } else if (kind === "close") await w.closeLead(id, Number(formData.get("closeReason")), String(formData.get("explanation") ?? ""), actor);
+      else return { ok: false, message: "کار گروهی را انتخاب کنید." };
+    } catch (error) {
+      failed.push(`${id.slice(0, 8)}: ${failure(error)?.message ?? "خطا"}`);
+    }
+  }
+  refresh(formData);
+  const done = ids.length - failed.length;
+  return { ok: failed.length === 0, message: `${done.toLocaleString("fa-IR")} از ${ids.length.toLocaleString("fa-IR")} سرنخ انجام شد.`, failed };
+}

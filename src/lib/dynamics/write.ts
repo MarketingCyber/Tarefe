@@ -236,3 +236,130 @@ export async function uploadFile(entity: string, id: string, file: File, note: s
   }
   await log(actor.id, entity, id, mode === "on" ? "file_uploaded" : "file_uploaded_dry_run", `File ${filename} (${Math.round(file.size / 1024)} KB) by ${actor.name}`);
 }
+
+// ---- Call results and converting leads (2026-11-15) ---------------------------------------------------------------
+
+export type CallResult = "no_answer" | "call_back" | "interested" | "not_interested" | "wrong_number";
+export const CALL_RESULTS: [CallResult, string][] = [
+  ["no_answer", "جواب نداد"],
+  ["call_back", "بعداً تماس بگیریم"],
+  ["interested", "علاقه‌مند است"],
+  ["not_interested", "علاقه‌ای ندارد"],
+  ["wrong_number", "شماره اشتباه"],
+];
+
+/**
+ * One click after a call («نتیجه تماس»): the call is logged in Dynamics as a completed phone call (a planned call from
+ * the call list is completed itself), and for a lead its stage / follow-up / state follow the result:
+ *   no answer → «هنوز جواب نداده» / «تلاش برای تماس», next call tomorrow;
+ *   call back → «تماس برقرار شده» / «تماس در آینده», next call at the chosen time;
+ *   interested → «در دست بررسی» / «درحال پیگیری»;   not interested → follow-up «عدم نیاز»;
+ *   wrong number → the lead is closed with «شماره اشتباه است».
+ * The next call goes to the operator (their old-CRM user, «کارهای من»), else to the record's owner.
+ */
+export async function logCallResult(
+  input: { entity: string; id: string; result: CallResult; callId?: string | null; nextAt?: Date | null; note?: string },
+  actor: { id: string; name: string; crmUserId?: string | null },
+) {
+  const mode = writeMode();
+  if (mode === "off") throw new WriteRefused("نوشتن در CRM قدیم خاموش است.");
+  const { entity, id, result } = input;
+  if (!ENTITY_SET[entity] || !GUID.test(id)) throw new WriteRefused("رکورد نامعتبر است.");
+  const label = CALL_RESULTS.find(([r]) => r === result)?.[1];
+  if (!label) throw new WriteRefused("نتیجه تماس را انتخاب کنید.");
+  if (result === "call_back" && (!input.nextAt || Number.isNaN(input.nextAt.getTime()))) throw new WriteRefused("زمان تماس بعدی را انتخاب کنید.");
+  const note = (input.note ?? "").trim().slice(0, 2000);
+
+  const record = await prisma.crmRecord.findFirst({ where: { entity, crmId: { equals: id, mode: "insensitive" }, deletedAt: null }, select: { state: true, ownerId: true } });
+  if (!record) throw new WriteRefused("رکورد در CRM قدیم پیدا نشد.");
+  const users = await assignableUsers();
+  const caller = users.find((u) => u.id === actor.crmUserId?.toLowerCase()) ?? null;
+  const description = [`نتیجه: ${label}`, note, `ثبت از tarefe.de · ${actor.name}`].filter(Boolean).join("\n");
+
+  if (mode === "on") {
+    let callId = input.callId && GUID.test(input.callId) ? input.callId : null;
+    if (callId) {
+      await crmWrite("PATCH", `phonecalls(${callId})`, { description, actualend: new Date().toISOString() });
+    } else {
+      const created = await crmWrite("POST", "phonecalls", {
+        subject: `تماس — ${label}`,
+        description,
+        directioncode: true,
+        actualend: new Date().toISOString(),
+        [`regardingobjectid_${entity}_phonecall@odata.bind`]: `/${ENTITY_SET[entity]}(${id})`,
+        ...(caller ? { "ownerid@odata.bind": `/systemusers(${caller.id})` } : {}),
+      });
+      callId = String(created.activityid ?? "");
+    }
+    if (GUID.test(callId)) {
+      await crmWrite("PATCH", `phonecalls(${callId})`, { statecode: 1, statuscode: 2 }); // completed («Made»)
+      await saveMirrorRecords("phonecall", [await crmGet<Record<string, unknown>>(mirrorReadPath("phonecall", callId))]);
+    }
+  }
+  await log(actor.id, entity, id, mode === "on" ? "call_logged" : "call_logged_dry_run", `Call: ${label}${note ? ` — ${note.slice(0, 200)}` : ""} (${actor.name})`);
+
+  if (entity === "lead" && record.state === 0) {
+    if (result === "no_answer") await updateLead(id, { stage: 100000005, reason: 100000000 }, actor);
+    if (result === "call_back") await updateLead(id, { stage: 100000001, reason: 100000002 }, actor);
+    if (result === "interested") await updateLead(id, { stage: 100000002, reason: 100000001 }, actor);
+    if (result === "not_interested") await updateLead(id, { reason: 100000003 }, actor);
+    if (result === "wrong_number") await closeLead(id, 4, note, actor);
+  }
+
+  const nextAt = result === "call_back" ? input.nextAt! : result === "no_answer" ? new Date(Date.now() + 86_400_000) : null;
+  const nextOwner = caller?.id ?? (users.some((u) => u.id === record.ownerId) ? record.ownerId : null);
+  if (nextAt && nextOwner) await scheduleCall(entity, id, { dueAt: nextAt, ownerId: nextOwner, subject: result === "no_answer" ? "تماس دوباره (جواب نداد)" : "تماس بعدی" }, actor);
+  return { nextScheduled: !!(nextAt && nextOwner) };
+}
+
+/**
+ * Converts an open lead into a contract with Dynamics' own «Qualify» (QualifyLead): Dynamics creates the contract
+ * (opportunity) with its lead mapping and runs its automations, as when operators do it there. The contract is for
+ * the lead's customer when it has one, else the one customer with its phone / e-mail, else Dynamics creates a new
+ * customer from the lead. Returns the new contract's id.
+ */
+export async function qualifyLead(id: string, actor: { id: string; name: string }): Promise<{ contractId: string | null; customer: "existing" | "new" }> {
+  const mode = writeMode();
+  if (mode === "off") throw new WriteRefused("نوشتن در CRM قدیم خاموش است.");
+  await openLead(id);
+  const lead = await prisma.crmRecord.findFirst({ where: { entity: "lead", crmId: { equals: id, mode: "insensitive" } }, select: { data: true } });
+  const d = (lead?.data ?? {}) as Record<string, unknown>;
+  let contactId = [d._parentcontactid_value, d._customerid_value].find((v): v is string => typeof v === "string" && GUID.test(v)) ?? null;
+  if (!contactId) {
+    const { personKeys } = await import("@/lib/dynamics/identity");
+    for (const key of personKeys(d)) {
+      const matches = await prisma.crmRecord.findMany({ where: { entity: "contact", deletedAt: null, refs: { has: key } }, select: { crmId: true }, take: 2 });
+      if (matches.length === 1) {
+        contactId = matches[0].crmId.toLowerCase();
+        break;
+      }
+    }
+  }
+  const currency =
+    (typeof d._transactioncurrencyid_value === "string" && d._transactioncurrencyid_value) ||
+    ((await prisma.crmRecord.findFirst({ where: { entity: "opportunity", deletedAt: null }, select: { data: true }, orderBy: { crmModifiedAt: "desc" } }))?.data as Record<string, unknown> | undefined)
+      ?._transactioncurrencyid_value;
+
+  let contractId: string | null = null;
+  if (mode === "on") {
+    const created = await crmWrite<{ value?: Record<string, unknown>[] }>("POST", `leads(${id})/Microsoft.Dynamics.CRM.QualifyLead`, {
+      CreateAccount: false,
+      CreateContact: !contactId,
+      CreateOpportunity: true,
+      Status: 3, // «Qualified»
+      ...(contactId ? { OpportunityCustomerId: { "@odata.type": "Microsoft.Dynamics.CRM.contact", contactid: contactId } } : {}),
+      ...(typeof currency === "string" && GUID.test(currency)
+        ? { OpportunityCurrencyId: { "@odata.type": "Microsoft.Dynamics.CRM.transactioncurrency", transactioncurrencyid: currency } }
+        : {}),
+    });
+    for (const ref of created.value ?? []) {
+      const type = String(ref["@odata.type"] ?? "");
+      if (type.endsWith("opportunity") && typeof ref.opportunityid === "string") contractId = ref.opportunityid.toLowerCase();
+      if (type.endsWith("contact") && typeof ref.contactid === "string") await saveMirrorRecords("contact", [await crmGet<Record<string, unknown>>(mirrorReadPath("contact", ref.contactid))]);
+    }
+    await saveMirrorRecords("lead", [await crmGet<Record<string, unknown>>(mirrorReadPath("lead", id))]);
+    if (contractId) await saveMirrorRecords("opportunity", [await crmGet<Record<string, unknown>>(mirrorReadPath("opportunity", contractId))]);
+  }
+  await log(actor.id, "lead", id, mode === "on" ? "lead_qualified" : "lead_qualified_dry_run", `Converted to a contract by ${actor.name}${contactId ? " (existing customer)" : " (new customer)"}`);
+  return { contractId, customer: contactId ? "existing" : "new" };
+}

@@ -4,6 +4,7 @@ import { crmConfigured } from "@/lib/dynamics/client";
 import { syncAttachments } from "@/lib/dynamics/files";
 import { backfillShadows, runShadows } from "@/lib/automations/shadow";
 import { checkReferrals } from "@/lib/referral-check";
+import { alertWaitingLeads } from "@/lib/crm/lead-work";
 import { backfillProjection, backfillRefs, checkMirror, purgeSecretFields, reconcileDeletions, syncAll, syncFieldLabels, syncForms, CRM_TABLES } from "@/lib/dynamics/sync";
 
 /**
@@ -52,5 +53,7 @@ export async function POST(request: Request) {
   const shadows = only ? [] : await runShadows().catch((e) => [`shadows failed: ${e instanceof Error ? e.message : e}`]);
   // Referral voucher rules (lib/referral-check.ts), at most every 15 minutes.
   const referrals = only ? null : await checkReferrals(15 * 60_000).catch((e) => `referrals failed: ${e instanceof Error ? e.message : e}`);
-  return NextResponse.json({ results, shadows, referrals });
+  // Speed to lead: alert about new leads waiting too long for a first call (lib/crm/lead-work.ts), every 15 minutes.
+  const waitingLeads = only ? null : await alertWaitingLeads().catch((e) => `lead alerts failed: ${e instanceof Error ? e.message : e}`);
+  return NextResponse.json({ results, shadows, referrals, waitingLeads });
 }

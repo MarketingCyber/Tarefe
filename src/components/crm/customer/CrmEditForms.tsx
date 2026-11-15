@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { assignCrmRecord, closeCrmLead, linkCrmLeads, scheduleCrmCall, updateCrmLead, uploadCrmFile, type WriteResult } from "@/lib/crm/crm-write-actions";
+import { assignCrmRecord, callResultAction, closeCrmLead, linkCrmLeads, qualifyLeadAction, scheduleCrmCall, updateCrmLead, uploadCrmFile, type QualifyResult, type WriteResult } from "@/lib/crm/crm-write-actions";
 
 /**
  * Editing old-CRM records from /ops (lib/dynamics/write.ts): every change is written to Dynamics first and read
@@ -239,5 +239,108 @@ export function LeadLinkButtons({ currentId, otherId, returnPath, dry }: { curre
       {button(currentId, otherId, "همین سرنخ تکراری است", "همین سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی آن سرنخ ادامه پیدا می‌کند")}
       <Result state={state} dry={dry} />
     </div>
+  );
+}
+
+type CallOption = [string, string];
+
+/**
+ * «نتیجه تماس»: one click after a call. For «بعداً تماس بگیریم» the time of the next call is required; a note is
+ * optional. `callId`: completing a planned call (call list) instead of logging a new one.
+ */
+export function CallResultForm({ results, callId, compact, ...common }: Common & { results: CallOption[]; callId?: string; compact?: boolean }) {
+  const [state, action, pending] = useActionState<WriteResult, FormData>(callResultAction, null);
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (state?.ok) form.current?.reset();
+  }, [state]);
+  if (compact && state?.ok) return <Result state={state} dry={common.dry} />;
+  return (
+    <form
+      ref={form}
+      action={action}
+      onSubmit={(e) => {
+        const tz = e.currentTarget.elements.namedItem("tzOffset");
+        if (tz instanceof HTMLInputElement) tz.value = String(new Date().getTimezoneOffset());
+      }}
+      className="space-y-2"
+    >
+      <Hidden {...common} />
+      {callId && <input type="hidden" name="callId" value={callId} />}
+      <input type="hidden" name="tzOffset" defaultValue="0" />
+      <div className="flex flex-wrap gap-2">
+        <input name="note" maxLength={2000} placeholder="یادداشت تماس (اختیاری)" aria-label="یادداشت تماس" className={`${field} min-w-0 basis-56 flex-[2]`} />
+        <label className="flex min-w-0 basis-56 flex-1 items-center gap-2">
+          <span className="shrink-0 text-xs text-secondary">تماس بعدی</span>
+          <input name="nextAt" type="datetime-local" aria-label="زمان تماس بعدی" className={`${field} font-latin min-w-0 flex-1`} />
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {results.map(([value, text]) => (
+          <button
+            key={value}
+            type="submit"
+            name="result"
+            value={value}
+            disabled={pending}
+            className={`press rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+              value === "wrong_number" ? "border border-danger/40 text-danger hover:bg-danger-bg" : value === "interested" ? "bg-purple-600 text-white hover:bg-purple-900" : "border border-border-strong text-purple-900 hover:border-purple-600"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+        {pending && <span className="text-xs text-secondary">در حال ثبت…</span>}
+        <Result state={state} dry={common.dry} />
+      </div>
+    </form>
+  );
+}
+
+/** «تبدیل به قرارداد»: Dynamics' own Qualify after a confirmation; links to the new contract. */
+export function QualifyLeadForm({ customerName, ...common }: Common & { customerName: string | null }) {
+  const [state, action, pending] = useActionState<QualifyResult, FormData>(qualifyLeadAction, null);
+  const [open, setOpen] = useState(false);
+  if (state?.ok)
+    return (
+      <p role="status" className="text-sm text-success">
+        {common.dry ? `${state.message} (آزمایشی — ارسال نشد)` : state.message}{" "}
+        {state.href && (
+          <a href={state.href} className="font-semibold underline">
+            رفتن به قرارداد
+          </a>
+        )}
+      </p>
+    );
+  if (!open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="press rounded-lg border border-success/40 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success-bg">
+        تبدیل به قرارداد…
+      </button>
+    );
+  return (
+    <form action={action} className="space-y-2 rounded-xl border border-success/30 bg-success-bg/50 p-3">
+      <Hidden {...common} />
+      <p className="text-sm text-body">
+        CRM قدیم با روش خودش («Qualify») قرارداد می‌سازد و اتوماسیون‌هایش را اجرا می‌کند —{" "}
+        {customerName ? (
+          <>
+            برای مشتری موجود <strong>{customerName}</strong>.
+          </>
+        ) : (
+          "مشتری‌ای با این شماره یا ایمیل پیدا نشد، پس مشتری جدید هم ساخته می‌شود."
+        )}{" "}
+        بقیه‌ی جزئیات قرارداد را بعد در صفحه‌ی قرارداد تکمیل کنید.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="submit" disabled={pending} className="press rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+          {pending ? "در حال تبدیل…" : "تبدیل به قرارداد"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-secondary hover:text-body">
+          انصراف
+        </button>
+        {state && !state.ok && <span className="text-xs text-danger">{state.message}</span>}
+      </div>
+    </form>
   );
 }

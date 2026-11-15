@@ -9,6 +9,8 @@ import { track, EVENT } from "@/lib/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Bug,
+  PhoneCall,
+  Queue,
   Gift,
   SignOut,
   House,
@@ -77,6 +79,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/ops/tasks", label: "تسک‌ها", icon: ListChecks },
       { href: "/ops/leads", label: "لیدها", icon: Funnel },
+      { href: "/ops/leads/queue", label: "صف سرنخ‌ها", icon: Queue },
+      { href: "/ops/calls", label: "لیست تماس امروز", icon: PhoneCall },
       { href: "/ops/customers", label: "مشتریان", icon: UsersThree },
       { href: "/ops/applications", label: "درخواست‌ها", icon: ClipboardText },
       { href: "/ops/contracts", label: "قراردادها", icon: FileText },

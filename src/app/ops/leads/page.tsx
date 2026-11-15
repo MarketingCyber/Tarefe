@@ -82,6 +82,16 @@ export default async function OpsLeadsPage({
         <FilterChip href="/ops/leads?source=site" active={source === "site"}>
           فرم‌های سایت
         </FilterChip>
+        <span className="mx-1 h-5 w-px self-center bg-border-strong" aria-hidden />
+        <Link href="/ops/leads/queue" className="press rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">
+          صف سرنخ‌ها و کار گروهی
+        </Link>
+        <Link href="/ops/calls" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
+          لیست تماس امروز
+        </Link>
+        <Link href="/ops/leads/reports" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
+          گزارش لیدها
+        </Link>
       </div>
       {source === "crm" ? <CrmLeads sp={sp} /> : <SiteLeads />}
     </div>
@@ -231,7 +241,12 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-bold text-purple-900">لیدهای باز ({open.length.toLocaleString("fa-IR")})</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-bold text-purple-900">لیدهای باز ({open.length.toLocaleString("fa-IR")})</h2>
+          <Link href="/ops/leads/queue" className="text-xs font-semibold text-purple-600 hover:underline">
+            به ترتیب کار، با امتیاز و کار گروهی ←
+          </Link>
+        </div>
         {open.length === 0 ? <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">لید بازی نیست.</p> : <LeadTable rows={open} />}
       </section>
 
