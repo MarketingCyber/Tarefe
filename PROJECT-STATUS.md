@@ -4,7 +4,7 @@
 what comes next.** Updated with every change (see [Keeping this file current](#keeping-this-file-current)); the
 [changelog](#changelog) at the end records each update.
 
-Last updated: **2026-11-14**
+Last updated: **2026-11-16**
 
 ---
 
@@ -374,8 +374,14 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   `-o "ProxyCommand=connect -S 127.0.0.1:10808 %h %p"`.
 
 **Backups**
-- Server: nightly database dump (14 days) + encrypted off-site copy (restic, STRATO).
-- Old system's restic backup (WordPress, old CRM, MySQL) — fixed 2026-10-29.
+- Server: nightly database dump (14 days) + encrypted off-site copy (restic, STRATO `tarefebackup`): database dumps,
+  uploads, `data`, `sgtm`, `.env`, and since 2026-11-16 the whole server setup under `/data/stack` (compose file,
+  Dockerfile, ROUTING.md, tariff import script, the off-site script, the OpenResty routing `conf.d`).
+- **Restore test 2026-11-16 passed** (off-site snapshot → scratch database, counts = live; a file byte-identical).
+- Old system's restic backup (STRATO `tarefe`, daily 03:00): WordPress, `/opt/tarefesite/node-app` **including the
+  34 GB `cdn.tarefe.de` files** (`public/`, checked 2026-11-16), php panel, MySQL; monthly config snapshot.
+- **`RECOVERY.md`** (repo root): what must be in the owner's password manager, where every piece lives, step by
+  step for a lost laptop / lost server / both.
 - **Local**: `C:\Pourya\Tarefe\Local backups\` — full snapshot 2026-11-09 (code bundles, database dump test-restored,
   uploads byte-identical, server config, secrets, notes); refreshed with `scripts/local-backup.sh` (§18).
 
@@ -468,7 +474,8 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - **Old referral links were broken** (404) from the new site's launch until 2026-11-14; referrals made through them in
   that time arrived without a code.
 - **`cdn.tarefe.de`**: 34 GB of customer documents readable by anyone with a link (random names, no login).
-- **The app repo has no remote** — only the laptop and the local backup hold it.
+- **The app repo has no remote** — only the laptop and the local backup hold it. Private GitHub repo `MarketingCyber/Tarefe-app` to be created (owner signs in to GitHub, 2026-11-16), then pushed.
+- **Recovery depends on the owner's password manager** (`RECOVERY.md` §1): server key, both backup passwords / keys, GitHub, Cloudflare — today some exist only on the laptop / server.
 - Laptop: direct connections are sometimes blocked (use the proxy for SSH); Docker Desktop stops after restarts
   (local database needs it).
 - Old leads 2026-10-22..25 not in Dynamics (by decision).
@@ -551,3 +558,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-15 | Linking leads: possible duplicates (same phone / e-mail) on each lead page, search by name / mobile / e-mail / lead code, link closes the duplicate in Dynamics with a note on the main lead; database: new table `lead_links` | yes, 2026-11-15 |
 | 2026-11-15 | Owner first put the proposed lead features on hold, then the same day asked for 1, 2, 4, 6, 7, 8, 9 (auto-assign and message templates not chosen) | — |
 | 2026-11-15 | Lead management (owner's pick 1, 2, 4, 6, 7, 8, 9): call result, lead queue + speed-to-lead alerts, call list, lead score, lead reports, convert lead to contract (Dynamics Qualify), bulk actions; no database changes | yes, 2026-11-15 |
+| 2026-11-16 | Recovery: server setup files + OpenResty routing added to the off-site copy; restore test from STRATO passed; old backup confirmed to include the cdn.tarefe.de files; `RECOVERY.md`; app code to GitHub (waiting for the owner's GitHub sign-in) | yes (server backup setting) |
