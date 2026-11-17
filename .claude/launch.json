@@ -4,32 +4,49 @@
     {
       "name": "tarefe-dev",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev"],
+      "runtimeArgs": [
+        "node_modules/next/dist/bin/next",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "tarefe-prod",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "start", "-p", "3002"],
+      "runtimeArgs": [
+        "node_modules/next/dist/bin/next",
+        "start",
+        "-p",
+        "3002"
+      ],
       "port": 3002
     },
     {
       "name": "tarefe-app-web",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["C:\\Claude\\Tarefe-app\\node_modules\\expo\\bin\\cli", "start", "C:\\Claude\\Tarefe-app", "--web", "--port", "8081"],
+      "runtimeArgs": [
+        "C:\\Claude\\Tarefe-app\\node_modules\\expo\\bin\\cli",
+        "start",
+        "C:\\Claude\\Tarefe-app",
+        "--web",
+        "--port",
+        "8081"
+      ],
       "port": 8081
     },
     {
       "name": "app-prototype",
       "runtimeExecutable": "C:\\Users\\HoldCo\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
-      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "docs/app-redesign/prototype"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "docs/app-redesign/prototype"
+      ],
       "port": 8765
-    },
-    {
-      "name": "mail-preview",
-      "runtimeExecutable": "C:\\Users\\HoldCo\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
-      "runtimeArgs": ["-m", "http.server", "8766", "--bind", "127.0.0.1", "--directory", "C:\\Users\\HoldCo\\AppData\\Local\\Temp\\claude\\0396e68ec2ea78f9\\30ef24f9-4e46-41c3-80af-58d70873d269\\scratchpad\\mail"],
-      "port": 8766
     }
   ]
 }
