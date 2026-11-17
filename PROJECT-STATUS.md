@@ -353,7 +353,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   `C:\Pourya\Tarefe\expo-token.txt`; Firebase files for `com.app.tarefe` in the app repo; the Android release is
   signed with the new upload key from the laptop (`credentials.json`, generated from the key folder, git-ignored —
   `credentialsSource: local`). First Android store build (AAB) started 2026-11-18. The Firebase service-account key
-  (for Android push via Expo) is in `C:\Pourya\Tarefeirebase\` — still to be added to the Expo project's credentials.
+  (for Android push via Expo) is in `C:\Pourya\Tarefe\firebase\` — still to be added to the Expo project's credentials.
 - Home-screen web build served at `tarefe.de/m` (laptop-built, not deployed).
 - Shows the customer's **real contracts and tickets from Dynamics** once the account is linked (§6; live on the server
   2026-11-11, app itself still off) — checked locally through the real app API: 22 active contracts with Persian service
