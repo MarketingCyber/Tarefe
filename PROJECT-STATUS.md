@@ -344,7 +344,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   2026-11-03); the old app's Firebase apps are `com.app.tarefe` (Android + iOS).
 - **Store identity decided 2026-11-17 (owner): the new app replaces the old one** — `com.app.tarefe` on both stores,
   version 2.0.0, Android versionCode 25 (old app: 1.8.6 / 24, Play App Signing on). The old upload key is not
-  available → **upload-key reset**: new key created 2026-11-17 in `C:\Pourya\Tarefeandroid-upload-key\` (keystore
+  available → **upload-key reset**: new key created 2026-11-17 in `C:\Pourya\Tarefe\android-upload-key\` (keystore
   PKCS12, alias `upload`, passwords in the file next to it, certificate `upload_certificate.pem` valid to 2056); the
   owner requests the reset in Play Console (App integrity → App signing → Request upload key reset) with that
   certificate; Google approves in ~2 days.
