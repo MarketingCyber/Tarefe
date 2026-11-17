@@ -348,7 +348,12 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   available → **upload-key reset**: new key created 2026-11-17 in `C:\Pourya\Tarefe\android-upload-key\` (keystore
   PKCS12, alias `upload`, passwords in the file next to it, certificate `upload_certificate.pem` valid to 2056); the
   owner requests the reset in Play Console (App integrity → App signing → Request upload key reset) with that
-  certificate; Google approves in ~2 days.
+  certificate; Google approves in ~2 days. **Reset requested by the owner 2026-11-18.**
+- **Expo / EAS set up 2026-11-18**: project `@pouryamarketings-team/tarefe-app` (ID `0bac5cfb-…`), robot token in
+  `C:\Pourya\Tarefe\expo-token.txt`; Firebase files for `com.app.tarefe` in the app repo; the Android release is
+  signed with the new upload key from the laptop (`credentials.json`, generated from the key folder, git-ignored —
+  `credentialsSource: local`). First Android store build (AAB) started 2026-11-18. The Firebase service-account key
+  (for Android push via Expo) is in `C:\Pourya\Tarefeirebase\` — still to be added to the Expo project's credentials.
 - Home-screen web build served at `tarefe.de/m` (laptop-built, not deployed).
 - Shows the customer's **real contracts and tickets from Dynamics** once the account is linked (§6; live on the server
   2026-11-11, app itself still off) — checked locally through the real app API: 22 active contracts with Persian service
@@ -447,7 +452,7 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | CRM developer | C# source or description of custom logic (points, customer level, commission, letters, date calculations) | automations (§12 step 6) |
 | CRM developer | read access: finance records, webhooks, solutions | complete mirror, integrations map |
 | Owner | decision on the 34 GB CDN files | §12 step 8 |
-| Owner | Expo account, SPF merge in Cloudflare, Play Console upload-key reset, Apple App Store Connect access, Firebase config files for `com.app.tarefe` | app launch, notifications, e-mail deliverability |
+| Owner | SPF merge in Cloudflare, Apple App Store Connect API key, FCM key upload in Expo, Google's approval of the upload-key reset | app launch, notifications, e-mail deliverability |
 
 ## 14. Owner's rules and decisions
 
@@ -588,3 +593,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-17 | Designed e-mail layout (sign-in code, request e-mails; fa / de / ru, mobile first); app store identity: replace the old app (`com.app.tarefe`, 2.0.0 / versionCode 25, app repo); new Android upload key for the Play upload-key reset | yes (e-mail layout) |
 | 2026-11-18 | E-mail template: Tarefe logo; sign-in code selects in one tap (copy hint in fa / de / ru); logo files in `docs/brand/`; deploys now include `public/email` | yes, 2026-11-18 |
 | 2026-11-18 | E-mail template: one-tap select and copy hint under the code removed (owner); logo kept | yes, 2026-11-18 |
+| 2026-11-18 | App launch prep: Expo project + Firebase files (com.app.tarefe), Android release signing with the new upload key, first Android store build; owner requested the Play upload-key reset | app repo only |
