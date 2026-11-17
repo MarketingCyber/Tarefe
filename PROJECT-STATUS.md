@@ -4,7 +4,7 @@
 what comes next.** Updated with every change (see [Keeping this file current](#keeping-this-file-current)); the
 [changelog](#changelog) at the end records each update.
 
-Last updated: **2026-11-16**
+Last updated: **2026-11-17**
 
 ---
 
@@ -249,8 +249,8 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   operator, or every CRM staff member while nobody is assigned (`notifyStaff`, also for app messages / requests);
   staff reply on `/ops/tickets/[id]` with several lines and an optional attachment (PDF / photo ≤ 15 MB, saved as
   one of the customer's documents, sent by Tarefe); the customer sees it in the portal (and the app chat) and gets
-  an e-mail with a link (`emailCustomer`, also on status changes) **once outgoing e-mail is configured** (Zoho
-  mailbox — waiting on the owner; until then only the portal bell). Old-CRM tickets a customer writes on in the
+  an e-mail with a link (`emailCustomer`, also on status changes) — outgoing e-mail (Zoho SMTP) is **on since
+  2026-11-17**. Old-CRM tickets a customer writes on in the
   portal now show in the staff ticket list, «کارهای من» and the overview count. **Live 2026-11-15.**
 - **Linking leads «سرنخ‌های مرتبط»** on an old-CRM lead page (`lib/crm/lead-links.ts`, table `lead_links`): other
   leads with the same phone / e-mail are shown as possible duplicates; any lead can be found by name, mobile, e-mail
@@ -335,7 +335,9 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   sign-in with e-mail + 6-digit code.
 - Back end in the website repo: `/api/v1/*` (sign-in codes, JWT + refresh tokens, contracts, conversations,
   documents, devices, banners, referral, me) — **switched off in production** (`APP_ENABLED` not set → 404).
-- E-mail for sign-in codes: Zoho SMTP prepared, **no Zoho account yet**; closed-test list `APP_BETA_EMAILS`.
+- E-mail for sign-in codes: **Zoho SMTP live on the server since 2026-11-17** (`EMAIL_PROVIDER=smtp`, smtp.zoho.eu:465,
+  sender on tarefe.de; test e-mail delivered); closed-test list `APP_BETA_EMAILS`. SPF still has two records (owner
+  merges them in Cloudflare: `v=spf1 include:zohomail.eu include:eu.zcsend.net ~all`).
 - Push: Firebase project `tarefe-app-cf696` (FCM v1, Installations, Registration APIs enabled — checked
   2026-11-03); the old app's Firebase apps are `com.app.tarefe` (Android + iOS), the new app is set to
   `de.tarefe.app` — **decision pending** (§13).
@@ -424,7 +426,7 @@ In the order agreed / recommended (2026-11-07):
 real tariff data), canonical / hreflang on all page types, mobile-specific patterns (filter drawer, bottom
 sheets) everywhere, Communication services decision.
 
-**App launch checklist**: app ID decision, Expo account + EAS builds, Firebase config files, Zoho sign-in e-mail,
+**App launch checklist**: app ID decision, Expo account + EAS builds, Firebase config files, ~~Zoho sign-in e-mail~~ (done 2026-11-17),
 Apple / Google store access, steps 2–5 above, closed test with customers (`docs/app-redesign/07-customer-test.md`),
 then switch `APP_ENABLED` on in production (owner's OK) and publish.
 
@@ -437,7 +439,7 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | CRM developer | C# source or description of custom logic (points, customer level, commission, letters, date calculations) | automations (§12 step 6) |
 | CRM developer | read access: finance records, webhooks, solutions | complete mirror, integrations map |
 | Owner | decision on the 34 GB CDN files | §12 step 8 |
-| Owner | Expo account, Zoho mail account, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications, **e-mails to customers about staff replies** |
+| Owner | Expo account, SPF merge in Cloudflare, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications, e-mail deliverability |
 
 ## 14. Owner's rules and decisions
 
@@ -478,6 +480,12 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - **Recovery depends on the owner's password manager** (`RECOVERY.md` §1): server key, both backup passwords / keys, GitHub, Cloudflare — today some exist only on the laptop / server.
 - Laptop: direct connections are sometimes blocked (use the proxy for SSH); Docker Desktop stops after restarts
   (local database needs it).
+- **Fixed 2026-11-17: tarefe.de's HTTPS certificate expired** (17:46 UTC, ~2 h of browser errors): the server's
+  `certbot-renew.timer` was enabled but never started. Renewed (valid to 2027-02-15), timer started (twice daily), and
+  a deploy hook `/etc/letsencrypt/renewal-hooks/deploy/reload-openresty.sh` reloads OpenResty after each renewal.
+  The old `api` / `cdn` / `panel` certificates (standalone, expired Aug–Sep 2026) are not renewed.
+- **The server-side GTM container (`tarefe-sgtm`) fails its own health check** (`/healthz` 503, since ~2026-11-05);
+  it still forwards hits. Not yet investigated.
 - Old leads 2026-10-22..25 not in Dynamics (by decision).
 - **Fixed 2026-11-10 (live 2026-11-11): one person could get two accounts** — website sign-up stored the e-mail as
   typed, app sign-in looked it up lowercase and created a second account. E-mails are now stored lowercase and looked
@@ -559,3 +567,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-15 | Owner first put the proposed lead features on hold, then the same day asked for 1, 2, 4, 6, 7, 8, 9 (auto-assign and message templates not chosen) | — |
 | 2026-11-15 | Lead management (owner's pick 1, 2, 4, 6, 7, 8, 9): call result, lead queue + speed-to-lead alerts, call list, lead score, lead reports, convert lead to contract (Dynamics Qualify), bulk actions; no database changes | yes, 2026-11-15 |
 | 2026-11-16 | Recovery: server setup files + OpenResty routing added to the off-site copy; restore test from STRATO passed; old backup confirmed to include the cdn.tarefe.de files; `RECOVERY.md`; app code to GitHub (waiting for the owner's GitHub sign-in) | yes (server backup setting) |
+| 2026-11-17 | Outgoing e-mail on: Zoho SMTP settings in the server `.env` (previous kept as `.env.before-email-20261117`), web restarted, test e-mail delivered; app still off. Expired tarefe.de HTTPS certificate renewed, renewal timer started, OpenResty reload hook added | yes (server settings) |
