@@ -59,7 +59,19 @@ const FOOTER: Record<Locale, { tagline: string; why: string }> = {
   },
 };
 
-const WORDMARK: Record<Locale, string> = { fa: "تعرفه", de: "Tarefe", ru: "Tarefe" };
+/**
+ * The logo (purple, from the owner 2026-11-17; sources in docs/brand/) as PNG — Outlook can't show WebP. Served by the
+ * site itself; 480px wide, shown at 160px so it stays sharp on phone screens. When a mail app blocks images, the alt
+ * text "Tarefe" shows in brand purple instead.
+ */
+const LOGO = { url: "https://tarefe.de/email/tarefe-logo.png", width: 160, height: 50 };
+
+/** Under the code: a long press selects the whole code in one go (user-select: all), then "Copy". */
+const COPY_HINT: Record<Locale, string> = {
+  fa: "برای کپی، کد را لمس کن و نگه دار.",
+  de: "Zum Kopieren den Code gedrückt halten.",
+  ru: "Чтобы скопировать, нажмите на код и удерживайте.",
+};
 
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -76,7 +88,8 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 
   const code = c.code
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 20px;"><tr><td align="center" dir="ltr" style="background:${C.tint};border:1px solid ${C.line};border-radius:14px;padding:20px 12px;">
-<div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:10px;color:${C.ink};padding-left:10px;">${esc(c.code)}</div>
+<div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:10px;color:${C.ink};padding-left:10px;-webkit-user-select:all;-moz-user-select:all;user-select:all;cursor:text;">${esc(c.code)}</div>
+<div style="margin-top:10px;font-family:${font};font-size:13px;line-height:1.5;color:${C.muted};" dir="${dir}">${esc(COPY_HINT[c.locale])}</div>
 </td></tr></table>`
     : "";
 
@@ -104,8 +117,8 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};">
 <tr><td align="center" style="padding:24px 12px 32px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="${dir}" style="max-width:520px;font-family:${font};text-align:${align};">
-    <tr><td style="padding:0 8px 14px;">
-      <span style="font-size:22px;font-weight:800;color:${C.purple};letter-spacing:${rtl ? "0" : "-0.3px"};">${WORDMARK[c.locale]}</span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${C.yellow};margin:0 4px;vertical-align:middle;"></span>
+    <tr><td align="${align}" style="padding:0 8px 16px;">
+      <img src="${LOGO.url}" width="${LOGO.width}" height="${LOGO.height}" alt="Tarefe" style="display:inline-block;width:${LOGO.width}px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;font-family:${FONT.de};font-size:22px;font-weight:800;color:${C.purple};">
     </td></tr>
     <tr><td class="card" style="background:${C.card};border:1px solid ${C.line};border-radius:18px;padding:28px 20px 22px;">
       <h1 class="h1" style="margin:0 0 16px;font-size:21px;line-height:1.45;font-weight:800;color:${C.ink};">${esc(c.heading)}</h1>
