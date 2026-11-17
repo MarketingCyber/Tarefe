@@ -336,11 +336,18 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 - Back end in the website repo: `/api/v1/*` (sign-in codes, JWT + refresh tokens, contracts, conversations,
   documents, devices, banners, referral, me) — **switched off in production** (`APP_ENABLED` not set → 404).
 - E-mail for sign-in codes: **Zoho SMTP live on the server since 2026-11-17** (`EMAIL_PROVIDER=smtp`, smtp.zoho.eu:465,
-  sender on tarefe.de; test e-mail delivered); closed-test list `APP_BETA_EMAILS`. SPF still has two records (owner
+  sender on tarefe.de; test e-mail delivered); closed-test list `APP_BETA_EMAILS`. **Designed e-mail layout live
+  2026-11-17** (`src/lib/email-template.ts`: mobile first, fa right-to-left / de / ru, no images, HTML + plain text) for
+  the sign-in code and customer request e-mails. SPF still has two records (owner
   merges them in Cloudflare: `v=spf1 include:zohomail.eu include:eu.zcsend.net ~all`).
 - Push: Firebase project `tarefe-app-cf696` (FCM v1, Installations, Registration APIs enabled — checked
-  2026-11-03); the old app's Firebase apps are `com.app.tarefe` (Android + iOS), the new app is set to
-  `de.tarefe.app` — **decision pending** (§13).
+  2026-11-03); the old app's Firebase apps are `com.app.tarefe` (Android + iOS).
+- **Store identity decided 2026-11-17 (owner): the new app replaces the old one** — `com.app.tarefe` on both stores,
+  version 2.0.0, Android versionCode 25 (old app: 1.8.6 / 24, Play App Signing on). The old upload key is not
+  available → **upload-key reset**: new key created 2026-11-17 in `C:\Pourya\Tarefendroid-upload-key\` (keystore
+  PKCS12, alias `upload`, passwords in the file next to it, certificate `upload_certificate.pem` valid to 2056); the
+  owner requests the reset in Play Console (App integrity → App signing → Request upload key reset) with that
+  certificate; Google approves in ~2 days.
 - Home-screen web build served at `tarefe.de/m` (laptop-built, not deployed).
 - Shows the customer's **real contracts and tickets from Dynamics** once the account is linked (§6; live on the server
   2026-11-11, app itself still off) — checked locally through the real app API: 22 active contracts with Persian service
@@ -426,7 +433,7 @@ In the order agreed / recommended (2026-11-07):
 real tariff data), canonical / hreflang on all page types, mobile-specific patterns (filter drawer, bottom
 sheets) everywhere, Communication services decision.
 
-**App launch checklist**: app ID decision, Expo account + EAS builds, Firebase config files, ~~Zoho sign-in e-mail~~ (done 2026-11-17),
+**App launch checklist**: ~~app ID decision~~ (com.app.tarefe, 2026-11-17), upload-key reset (owner, Play Console), Expo account + EAS builds, Firebase config files, ~~Zoho sign-in e-mail~~ (done 2026-11-17),
 Apple / Google store access, steps 2–5 above, closed test with customers (`docs/app-redesign/07-customer-test.md`),
 then switch `APP_ENABLED` on in production (owner's OK) and publish.
 
@@ -439,7 +446,7 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | CRM developer | C# source or description of custom logic (points, customer level, commission, letters, date calculations) | automations (§12 step 6) |
 | CRM developer | read access: finance records, webhooks, solutions | complete mirror, integrations map |
 | Owner | decision on the 34 GB CDN files | §12 step 8 |
-| Owner | Expo account, SPF merge in Cloudflare, app ID (`com.app.tarefe` vs `de.tarefe.app`), Apple + Google store access, Firebase config files | app launch, notifications, e-mail deliverability |
+| Owner | Expo account, SPF merge in Cloudflare, Play Console upload-key reset, Apple App Store Connect access, Firebase config files for `com.app.tarefe` | app launch, notifications, e-mail deliverability |
 
 ## 14. Owner's rules and decisions
 
@@ -577,3 +584,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-17 | Second test e-mail (Gmail) sent; server-side GTM container restarted after it stayed unhealthy since a Google outage — healthy again | yes (restart only) |
 | 2026-11-17 | Automatic restart of the server-side GTM container when unhealthy (`sgtm-watch`; previous compose kept as `docker-compose.yml.before-watch-20261117`) | yes |
 | 2026-11-17 | HTTPS certificates for api / cdn / panel.tarefe.de renewed and moved to automatic renewal (Cloudflare DNS); api-test renewal switched off (unused) | yes |
+| 2026-11-17 | Designed e-mail layout (sign-in code, request e-mails; fa / de / ru, mobile first); app store identity: replace the old app (`com.app.tarefe`, 2.0.0 / versionCode 25, app repo); new Android upload key for the Play upload-key reset | yes (e-mail layout) |
