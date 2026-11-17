@@ -338,7 +338,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
 - E-mail for sign-in codes: **Zoho SMTP live on the server since 2026-11-17** (`EMAIL_PROVIDER=smtp`, smtp.zoho.eu:465,
   sender on tarefe.de; test e-mail delivered); closed-test list `APP_BETA_EMAILS`. **Designed e-mail layout live
   2026-11-17** (`src/lib/email-template.ts`: mobile first, fa right-to-left / de / ru, HTML + plain text; since 2026-11-18 the Tarefe logo
-  `tarefe.de/email/tarefe-logo.png` (owner's logo files in `docs/brand/`) and a code that selects in one tap with a copy hint) for
+  `tarefe.de/email/tarefe-logo.png` (owner's logo files in `docs/brand/`); the one-tap select + copy hint was removed again the same day — owner: copying on tap doesn't work in mail apps) for
   the sign-in code and customer request e-mails. SPF still has two records (owner
   merges them in Cloudflare: `v=spf1 include:zohomail.eu include:eu.zcsend.net ~all`).
 - Push: Firebase project `tarefe-app-cf696` (FCM v1, Installations, Registration APIs enabled — checked
@@ -587,3 +587,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-17 | HTTPS certificates for api / cdn / panel.tarefe.de renewed and moved to automatic renewal (Cloudflare DNS); api-test renewal switched off (unused) | yes |
 | 2026-11-17 | Designed e-mail layout (sign-in code, request e-mails; fa / de / ru, mobile first); app store identity: replace the old app (`com.app.tarefe`, 2.0.0 / versionCode 25, app repo); new Android upload key for the Play upload-key reset | yes (e-mail layout) |
 | 2026-11-18 | E-mail template: Tarefe logo; sign-in code selects in one tap (copy hint in fa / de / ru); logo files in `docs/brand/`; deploys now include `public/email` | yes, 2026-11-18 |
+| 2026-11-18 | E-mail template: one-tap select and copy hint under the code removed (owner); logo kept | yes, 2026-11-18 |
