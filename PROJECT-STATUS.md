@@ -483,9 +483,10 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 - **Fixed 2026-11-17: tarefe.de's HTTPS certificate expired** (17:46 UTC, ~2 h of browser errors): the server's
   `certbot-renew.timer` was enabled but never started. Renewed (valid to 2027-02-15), timer started (twice daily), and
   a deploy hook `/etc/letsencrypt/renewal-hooks/deploy/reload-openresty.sh` reloads OpenResty after each renewal.
-  Dry-run renewal of tarefe.de + sgtm passed (2026-11-17). The old `api` / `cdn` / `panel` certificates (standalone,
-  expired Aug–Sep 2026) are not renewed; those subdomains go through Cloudflare's proxy, so visitors see Cloudflare's
-  certificate and they still work (they would break if Cloudflare SSL were set to "Full (strict)").
+  The old `api` / `cdn` / `panel` certificates (expired Aug–Sep 2026, `standalone` method that can't work while
+  OpenResty holds port 80) were moved to the Cloudflare DNS method and renewed (valid to 2027-02-15); previous renewal
+  settings kept in `/root/renewal-conf-before-20261117/`. `api-test.tarefe.de` (not used by OpenResty) is no longer
+  renewed (`renewal/api-test.tarefe.de.conf.disabled-20261117`). Dry run of all five certificates passed 2026-11-17.
 - **Fixed 2026-11-17: the server-side GTM container (`tarefe-sgtm`) reported unhealthy** (`/healthz` 503 since
   ~2026-11-05) after Google's tag server answered 503 to 6 config fetches (2, 9, 12 Nov); hits still went through.
   Restarted → healthy. Since 2026-11-17 a watcher (`tarefe-sgtm-watch`, service `sgtm-watch` in
@@ -575,3 +576,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-17 | Outgoing e-mail on: Zoho SMTP settings in the server `.env` (previous kept as `.env.before-email-20261117`), web restarted, test e-mail delivered; app still off. Expired tarefe.de HTTPS certificate renewed, renewal timer started, OpenResty reload hook added | yes (server settings) |
 | 2026-11-17 | Second test e-mail (Gmail) sent; server-side GTM container restarted after it stayed unhealthy since a Google outage — healthy again | yes (restart only) |
 | 2026-11-17 | Automatic restart of the server-side GTM container when unhealthy (`sgtm-watch`; previous compose kept as `docker-compose.yml.before-watch-20261117`) | yes |
+| 2026-11-17 | HTTPS certificates for api / cdn / panel.tarefe.de renewed and moved to automatic renewal (Cloudflare DNS); api-test renewal switched off (unused) | yes |
