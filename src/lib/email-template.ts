@@ -66,13 +66,6 @@ const FOOTER: Record<Locale, { tagline: string; why: string }> = {
  */
 const LOGO = { url: "https://tarefe.de/email/tarefe-logo.png", width: 160, height: 50 };
 
-/** Under the code: a long press selects the whole code in one go (user-select: all), then "Copy". */
-const COPY_HINT: Record<Locale, string> = {
-  fa: "برای کپی، کد را لمس کن و نگه دار.",
-  de: "Zum Kopieren den Code gedrückt halten.",
-  ru: "Чтобы скопировать, нажмите на код и удерживайте.",
-};
-
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -88,8 +81,7 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 
   const code = c.code
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 20px;"><tr><td align="center" dir="ltr" style="background:${C.tint};border:1px solid ${C.line};border-radius:14px;padding:20px 12px;">
-<div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:10px;color:${C.ink};padding-left:10px;-webkit-user-select:all;-moz-user-select:all;user-select:all;cursor:text;">${esc(c.code)}</div>
-<div style="margin-top:10px;font-family:${font};font-size:13px;line-height:1.5;color:${C.muted};" dir="${dir}">${esc(COPY_HINT[c.locale])}</div>
+<div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:10px;color:${C.ink};padding-left:10px;">${esc(c.code)}</div>
 </td></tr></table>`
     : "";
 
