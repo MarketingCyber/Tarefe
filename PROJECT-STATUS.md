@@ -486,8 +486,9 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
   The old `api` / `cdn` / `panel` certificates (standalone, expired Aug–Sep 2026) are not renewed.
 - **Fixed 2026-11-17: the server-side GTM container (`tarefe-sgtm`) reported unhealthy** (`/healthz` 503 since
   ~2026-11-05) after Google's tag server answered 503 to 6 config fetches (2, 9, 12 Nov); hits still went through.
-  Restarted → healthy. Docker does not restart unhealthy containers by itself, so it can recur after a Google outage
-  (check `docker inspect tarefe-sgtm` health; fix = restart). Its image is "out of date, latest major version".
+  Restarted → healthy. Since 2026-11-17 a watcher (`tarefe-sgtm-watch`, service `sgtm-watch` in
+  `/opt/tarefe.de/sgtm/docker-compose.yml`, official `docker:27-cli` image) checks every minute and restarts only
+  `tarefe-sgtm` when it is unhealthy, at most once per 15 min (restarts logged: `docker logs tarefe-sgtm-watch`). Its image is "out of date, latest major version".
 - Old leads 2026-10-22..25 not in Dynamics (by decision).
 - **Fixed 2026-11-10 (live 2026-11-11): one person could get two accounts** — website sign-up stored the e-mail as
   typed, app sign-in looked it up lowercase and created a second account. E-mails are now stored lowercase and looked
@@ -571,3 +572,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-16 | Recovery: server setup files + OpenResty routing added to the off-site copy; restore test from STRATO passed; old backup confirmed to include the cdn.tarefe.de files; `RECOVERY.md`; app code to GitHub (waiting for the owner's GitHub sign-in) | yes (server backup setting) |
 | 2026-11-17 | Outgoing e-mail on: Zoho SMTP settings in the server `.env` (previous kept as `.env.before-email-20261117`), web restarted, test e-mail delivered; app still off. Expired tarefe.de HTTPS certificate renewed, renewal timer started, OpenResty reload hook added | yes (server settings) |
 | 2026-11-17 | Second test e-mail (Gmail) sent; server-side GTM container restarted after it stayed unhealthy since a Google outage — healthy again | yes (restart only) |
+| 2026-11-17 | Automatic restart of the server-side GTM container when unhealthy (`sgtm-watch`; previous compose kept as `docker-compose.yml.before-watch-20261117`) | yes |
