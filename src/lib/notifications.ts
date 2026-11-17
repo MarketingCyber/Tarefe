@@ -47,8 +47,16 @@ export async function emailCustomer(userId: string, subject: string, lines: stri
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true } });
     if (!user?.email || user.role !== "CUSTOMER") return;
     const { sendEmail } = await import("./email");
-    const text = [user.name ? `سلام ${user.name}،` : "سلام،", "", ...lines, "", `https://tarefe.de${path}`, "", "تعرفه — همه خدمات ما رایگان است."].join("\n");
-    await sendEmail({ to: user.email, subject, text });
+    const { renderEmail } = await import("./email-template");
+    const mail = renderEmail({
+      locale: "fa",
+      preheader: lines[0] ?? subject,
+      heading: subject,
+      greeting: user.name ? `سلام ${user.name}،` : "سلام،",
+      paragraphs: lines,
+      button: { label: "مشاهده در حساب من", url: `https://tarefe.de${path}` },
+    });
+    await sendEmail({ to: user.email, subject, ...mail });
   } catch (error) {
     console.error("customer e-mail failed:", error instanceof Error ? error.message : error);
   }

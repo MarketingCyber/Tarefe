@@ -41,7 +41,7 @@ async function updateStatus(formData: FormData) {
     }
   }
   await notifyUser(ticket.customerId, "ticket_update", "به‌روزرسانی درخواست شما", `وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`);
-  await emailCustomer(ticket.customerId, "وضعیت درخواست شما در تعرفه تغییر کرد", [`وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`, "برای دیدن جزئیات وارد حساب خود شوید:"], `/app/support/${ticketId}`);
+  await emailCustomer(ticket.customerId, "وضعیت درخواست شما در تعرفه تغییر کرد", [`وضعیت درخواست «${ticket.subject}» به‌روزرسانی شد.`, "برای دیدن جزئیات وارد حساب خود شوید."], `/app/support/${ticketId}`);
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
 
@@ -91,7 +91,7 @@ async function replyToTicket(formData: FormData) {
     data: { entityType: "service_request", entityId: ticketId, action: "reply_sent", note: `Reply from ${session.user.name}`, actorId: session.user.id },
   });
   await notifyUser(ticket.customerId, "ticket_reply", "پاسخ جدید به درخواست شما", `مشاور تعرفه به درخواست «${ticket.subject}» پاسخ داد.`);
-  await emailCustomer(ticket.customerId, "پاسخ تازه از تعرفه به درخواست شما", [`مشاور تعرفه به درخواست «${ticket.subject}» پاسخ داد.`, "برای خواندن پاسخ وارد حساب خود شوید:"], `/app/support/${ticketId}`);
+  await emailCustomer(ticket.customerId, "پاسخ تازه از تعرفه به درخواست شما", [`مشاور تعرفه به درخواست «${ticket.subject}» پاسخ داد.`, "برای خواندن پاسخ وارد حساب خود شوید."], `/app/support/${ticketId}`);
   revalidatePath(`/ops/tickets/${ticketId}`);
 }
 

@@ -3,6 +3,7 @@ import { findUserByEmail } from "@/lib/email-address";
 import { ok, fail, readJson, isLocale } from "@/lib/app-api";
 import { CODE_TTL_MINUTES, hashLoginCode, newLoginCode, normalizeEmail } from "@/lib/app-auth";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email";
+import { renderEmail } from "@/lib/email-template";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import type { Locale } from "@/lib/taxonomy";
 
@@ -27,11 +28,32 @@ function invited(email: string) {
 }
 const WINDOW_MS = 10 * 60 * 1000;
 
-const MAIL: Record<Locale, (code: string) => { subject: string; text: string }> = {
-  fa: (code) => ({ subject: `کد ورود تو: ${code}`, text: `کد ورود به اپ تعرفه: ${code}\n\nاین کد ${CODE_TTL_MINUTES} دقیقه معتبر است. اگر خودت درخواست نکرده‌ای، این ایمیل را نادیده بگیر.` }),
-  de: (code) => ({ subject: `Ihr Anmeldecode: ${code}`, text: `Ihr Code für die Tarefe-App: ${code}\n\nDer Code gilt ${CODE_TTL_MINUTES} Minuten. Wenn Sie ihn nicht angefordert haben, ignorieren Sie diese E-Mail.` }),
-  ru: (code) => ({ subject: `Ваш код для входа: ${code}`, text: `Код для входа в приложение Tarefe: ${code}\n\nКод действует ${CODE_TTL_MINUTES} минут. Если вы его не запрашивали, просто проигнорируйте это письмо.` }),
+const MAIL_TEXT: Record<Locale, { subject: (code: string) => string; heading: string; body: string; note: string }> = {
+  fa: {
+    subject: (code) => `کد ورود تو: ${code}`,
+    heading: "کد ورود به اپ تعرفه",
+    body: `این کد را در اپ وارد کن. تا ${CODE_TTL_MINUTES} دقیقه معتبر است.`,
+    note: "اگر خودت این کد را نخواسته‌ای، این ایمیل را نادیده بگیر. بدون این کد کسی وارد حسابت نمی‌شود.",
+  },
+  de: {
+    subject: (code) => `Ihr Anmeldecode: ${code}`,
+    heading: "Ihr Code für die Tarefe-App",
+    body: `Geben Sie diesen Code in der App ein. Er gilt ${CODE_TTL_MINUTES} Minuten.`,
+    note: "Sie haben den Code nicht angefordert? Dann ignorieren Sie diese E-Mail. Ohne den Code kann sich niemand anmelden.",
+  },
+  ru: {
+    subject: (code) => `Ваш код для входа: ${code}`,
+    heading: "Код для входа в приложение Tarefe",
+    body: `Введите этот код в приложении. Он действует ${CODE_TTL_MINUTES} минут.`,
+    note: "Если вы не запрашивали код, просто проигнорируйте это письмо. Без кода никто не войдёт в ваш аккаунт.",
+  },
 };
+
+/** The sign-in code e-mail: designed HTML (shared layout) plus the same content as plain text. */
+function codeMail(locale: Locale, code: string) {
+  const t = MAIL_TEXT[locale];
+  return { subject: t.subject(code), ...renderEmail({ locale, preheader: t.subject(code), heading: t.heading, paragraphs: [t.body], code, note: t.note }) };
+}
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -57,7 +79,7 @@ export async function POST(request: Request) {
   });
 
   try {
-    await sendEmail({ to: email, ...MAIL[locale](code) });
+    await sendEmail({ to: email, ...codeMail(locale, code) });
   } catch (error) {
     if (error instanceof EmailNotConfiguredError) return fail(503, "email_unavailable", "Email sending is not set up yet");
     throw error;

@@ -12,7 +12,8 @@ import nodemailer from "nodemailer";
  * Adding another provider means adding one branch below; callers don't change.
  */
 
-export type OutgoingEmail = { to: string; subject: string; text: string };
+/** `text` is always sent; `html` (from `renderEmail` in ./email-template) is the designed version shown by most clients. */
+export type OutgoingEmail = { to: string; subject: string; text: string; html?: string };
 
 export class EmailNotConfiguredError extends Error {}
 
@@ -39,7 +40,7 @@ export async function sendEmail(message: OutgoingEmail): Promise<void> {
 
   if (provider === "smtp") {
     const from = process.env.EMAIL_FROM ?? process.env.SMTP_USER;
-    await smtpTransport().sendMail({ from, to: message.to, subject: message.subject, text: message.text });
+    await smtpTransport().sendMail({ from, to: message.to, subject: message.subject, text: message.text, html: message.html });
     return;
   }
 
