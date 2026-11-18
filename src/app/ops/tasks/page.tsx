@@ -14,6 +14,7 @@ import { crmUserOf, crmUsers } from "@/lib/crm/crm-users";
 import { setMyCrmUser } from "@/lib/crm/crm-user-actions";
 import { ListChecks } from "@phosphor-icons/react/dist/ssr";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Tasks across both CRMs.
  *  - old CRM (default for pipeline roles): open Dynamics tasks, phone calls and appointments, by due date
@@ -38,6 +39,7 @@ export default async function TasksPage({
 }: {
   searchParams: Promise<{ source?: string; scope?: string; status?: string; owner?: string; type?: string; due?: string; page?: string }>;
 }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/tasks");
   const sp = await searchParams;
@@ -46,16 +48,16 @@ export default async function TasksPage({
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">تسک‌ها</h1>
-      <p className="mt-1 text-sm text-secondary">کارهای باز تیم — تسک‌ها، تماس‌ها و قرارهای CRM قدیم و تسک‌های سایت.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("تسک‌ها")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("کارهای باز تیم — تسک‌ها، تماس‌ها و قرارهای CRM قدیم و تسک‌های سایت.")}</p>
 
       {crmAllowed && (
         <div className="mt-5 flex flex-wrap gap-1.5">
           <FilterChip href="/ops/tasks" active={source === "crm"}>
-            CRM قدیم
+            {t("CRM قدیم")}
           </FilterChip>
           <FilterChip href="/ops/tasks?source=site" active={source === "site"}>
-            تسک‌های سایت
+            {t("تسک‌های سایت")}
           </FilterChip>
         </div>
       )}
@@ -66,6 +68,7 @@ export default async function TasksPage({
 }
 
 async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; type?: string; due?: string; page?: string } }) {
+  const { t, intl, tn } = await getOpsI18n();
   const [staff, users] = await Promise.all([prisma.user.findUnique({ where: { id: userId }, select: { email: true, crmUserId: true } }), crmUsers()]);
   const me = staff ? crmUserOf(staff, users) : null;
   // owner: "all", a Dynamics user id, or unset = me (everyone when the staff member isn't linked yet).
@@ -110,9 +113,9 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
   return (
     <>
       <form action={setMyCrmUser} className="mt-4 flex flex-wrap items-center gap-2 text-xs text-secondary">
-        <span>من در CRM قدیم:</span>
+        <span>{t("من در CRM قدیم:")}</span>
         <select name="crmUserId" defaultValue={me?.id ?? ""} className="rounded-full border border-border-strong bg-white px-3 py-1.5 font-medium text-purple-900">
-          <option value="">انتخاب نشده</option>
+          <option value="">{t("انتخاب نشده")}</option>
           {users
             .filter((u) => !u.disabled)
             .map((u) => (
@@ -122,56 +125,56 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
             ))}
         </select>
         <button type="submit" className="press rounded-full border border-border-strong px-3 py-1.5 font-medium text-purple-900 hover:border-purple-600">
-          ذخیره
+          {t("ذخیره")}
         </button>
-        {!me && <span>— انتخاب کنید تا کارهای خودتان پیش‌فرض نمایش داده شود.</span>}
+        {!me && <span>{t("— انتخاب کنید تا کارهای خودتان پیش‌فرض نمایش داده شود.")}</span>}
       </form>
 
       <form className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <select name="owner" defaultValue={sp.owner === "all" ? "all" : (owner ?? "all")} aria-label="مسئول" className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
-          <option value="all">همه کارکنان</option>
+        <select name="owner" defaultValue={sp.owner === "all" ? "all" : (owner ?? "all")} aria-label={t("مسئول")} className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
+          <option value="all">{t("همه کارکنان")}</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
-              {u.id === me?.id ? " (من)" : ""}
-              {u.disabled ? " (غیرفعال)" : ""}
+              {u.id === me?.id ? t(" (من)") : ""}
+              {u.disabled ? t(" (غیرفعال)") : ""}
             </option>
           ))}
         </select>
-        <select name="type" defaultValue={type ?? ""} aria-label="نوع" className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
-          <option value="">همه انواع</option>
-          {OPEN_ACTIVITIES.map((t) => (
-            <option key={t} value={t}>
-              {HISTORY_TYPES[t].label}
+        <select name="type" defaultValue={type ?? ""} aria-label={t("نوع")} className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
+          <option value="">{t("همه انواع")}</option>
+          {OPEN_ACTIVITIES.map((ty) => (
+            <option key={ty} value={ty}>
+              {t(HISTORY_TYPES[ty].label)}
             </option>
           ))}
         </select>
         {due && <input type="hidden" name="due" value={due} />}
         <button type="submit" className="press rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-          اعمال
+          {t("اعمال")}
         </button>
       </form>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <DueTile href={href({ due: null, page: null })} active={!due} label="همه باز" value={total} />
+        <DueTile href={href({ due: null, page: null })} active={!due} label={t("همه باز")} value={total} />
         {(Object.keys(DUE_LABEL) as Due[]).map((d) => (
-          <DueTile key={d} href={href({ due: d, page: null })} active={due === d} label={DUE_LABEL[d]} value={counts[d]} danger={d === "overdue"} />
+          <DueTile key={d} href={href({ due: d, page: null })} active={due === d} label={t(DUE_LABEL[d])} value={counts[d]} danger={d === "overdue"} />
         ))}
       </div>
 
       {rows.length === 0 ? (
         <div className="mt-6">
-          <EmptyState icon={ListChecks} title="کار بازی اینجا نیست" body="فیلتر مسئول یا موعد را عوض کنید." />
+          <EmptyState icon={ListChecks} title={t("کار بازی اینجا نیست")} body={t("فیلتر مسئول یا موعد را عوض کنید.")} />
         </div>
       ) : (
         <div className="mt-5 overflow-x-auto rounded-xl border border-border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-xs text-secondary">
-                <th className="px-4 py-3 text-start font-medium">موعد</th>
-                <th className="px-4 py-3 text-start font-medium">کار</th>
-                <th className="px-4 py-3 text-start font-medium">درباره</th>
-                <th className="px-4 py-3 text-start font-medium">مسئول</th>
+                <th className="px-4 py-3 text-start font-medium">{t("موعد")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("کار")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("درباره")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
               </tr>
             </thead>
             <tbody>
@@ -185,9 +188,9 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
                       <Badge tone={DUE_TONE[bucket]}>{r.dueAt ? shownDate(d, r.entity === "appointment" ? "scheduledstart" : "scheduledend", true) : DUE_LABEL.none}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-secondary">{HISTORY_TYPES[r.entity]?.label} · </span>
+                      <span className="text-xs text-secondary">{tn(HISTORY_TYPES[r.entity]?.label)} · </span>
                       <Link href={`/ops/old-crm/${r.entity}/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                        {shown(d, "subject") ?? HISTORY_TYPES[r.entity]?.label}
+                        {shown(d, "subject") ?? tn(HISTORY_TYPES[r.entity]?.label)}
                       </Link>
                       {writes !== "off" && (
                         <div className="mt-1.5">
@@ -217,13 +220,13 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
         <div className="mt-4 flex items-center gap-3 text-sm">
           {page > 1 && (
             <Link href={href({ page: page > 2 ? String(page - 1) : null })} className="font-medium text-purple-600 hover:underline">
-              صفحه قبل
+              {t("صفحه قبل")}
             </Link>
           )}
-          <span className="text-secondary">صفحه {page.toLocaleString("fa-IR")}</span>
+          <span className="text-secondary">{t("صفحه {n}", { n: page.toLocaleString(intl) })}</span>
           {hasNext && (
             <Link href={href({ page: String(page + 1) })} className="font-medium text-purple-600 hover:underline">
-              صفحه بعد
+              {t("صفحه بعد")}
             </Link>
           )}
         </div>
@@ -232,16 +235,18 @@ async function CrmTasks({ userId, sp }: { userId: string; sp: { owner?: string; 
   );
 }
 
-function DueTile({ href, active, label, value, danger }: { href: string; active: boolean; label: string; value: number; danger?: boolean }) {
+async function DueTile({ href, active, label, value, danger }: { href: string; active: boolean; label: string; value: number; danger?: boolean }) {
+  const { intl } = await getOpsI18n();
   return (
     <Link href={href} className={`rounded-2xl border bg-white p-4 transition-colors ${active ? "border-purple-600" : "border-border hover:border-purple-600"}`}>
       <p className="text-xs text-secondary">{label}</p>
-      <p className={`mt-1 text-2xl font-bold tabular-nums ${danger && value ? "text-danger" : "text-purple-900"}`}>{value.toLocaleString("fa-IR")}</p>
+      <p className={`mt-1 text-2xl font-bold tabular-nums ${danger && value ? "text-danger" : "text-purple-900"}`}>{value.toLocaleString(intl)}</p>
     </Link>
   );
 }
 
 async function SiteTasks({ userId, scope, status }: { userId: string; scope: string; status: string }) {
+  const { t } = await getOpsI18n();
   const tasks = await prisma.task.findMany({
     where: {
       ...(scope === "mine" ? { assigneeId: userId } : {}),
@@ -274,19 +279,19 @@ async function SiteTasks({ userId, scope, status }: { userId: string; scope: str
       </div>
 
       <div className="mt-5 flex items-center gap-2 text-xs font-medium">
-        <FilterLink label="تسک‌های من" active={scope === "mine"} href={`${base}&scope=mine&status=${status}`} />
-        <FilterLink label="همه" active={scope === "all"} href={`${base}&scope=all&status=${status}`} />
+        <FilterLink label={t("تسک‌های من")} active={scope === "mine"} href={`${base}&scope=mine&status=${status}`} />
+        <FilterLink label={t("همه")} active={scope === "all"} href={`${base}&scope=all&status=${status}`} />
         <span className="mx-1 text-border-strong">·</span>
-        <FilterLink label="باز" active={status === "open"} href={`${base}&scope=${scope}&status=open`} />
-        <FilterLink label="انجام‌شده" active={status === "done"} href={`${base}&scope=${scope}&status=done`} />
-        <FilterLink label="همه" active={status === "all"} href={`${base}&scope=${scope}&status=all`} />
+        <FilterLink label={t("باز")} active={status === "open"} href={`${base}&scope=${scope}&status=open`} />
+        <FilterLink label={t("انجام‌شده")} active={status === "done"} href={`${base}&scope=${scope}&status=done`} />
+        <FilterLink label={t("همه")} active={status === "all"} href={`${base}&scope=${scope}&status=all`} />
       </div>
 
       <div className="mt-4 space-y-2">
         {tasks.length === 0 ? (
-          <EmptyState icon={ListChecks} title="چیزی اینجا نیست" body="یکی از بالا اضافه کنید، یا فیلترها را عوض کنید تا تسک‌های محدوده یا وضعیت دیگری را ببینید." />
+          <EmptyState icon={ListChecks} title={t("چیزی اینجا نیست")} body={t("یکی از بالا اضافه کنید، یا فیلترها را عوض کنید تا تسک‌های محدوده یا وضعیت دیگری را ببینید.")} />
         ) : (
-          <TaskList tasks={tasks.map((t) => ({ ...t, link: linkFor(t) }))} returnPath="/ops/tasks" />
+          <TaskList tasks={tasks.map((task) => ({ ...task, link: linkFor(task) }))} returnPath="/ops/tasks" />
         )}
       </div>
     </>

@@ -39,7 +39,7 @@ export default async function LeadQueuePage({ searchParams }: { searchParams: Pr
   const count = (g: string) => queue.filter((l) => l.group === g).length;
   const rows: BulkRow[] = queue.map((l) => ({
     id: l.id,
-    name: t(l.name),
+    name: l.name === "بدون نام" ? t(l.name) : l.name,
     phone: l.phone,
     meta: [t(GROUP_FA[l.group]), tn(l.type), tn(l.source)].filter(Boolean).join(" · "),
     stage: l.stage,

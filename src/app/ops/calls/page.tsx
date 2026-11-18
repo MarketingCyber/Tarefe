@@ -113,7 +113,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link href={`/ops/leads/${l.id}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                      {t(l.name)}
+                      {l.name === "بدون نام" ? t(l.name) : l.name}
                     </Link>
                     <p className={`mt-0.5 text-xs ${l.waitingHours >= SPEED_LIMIT_HOURS ? "font-semibold text-danger" : "text-secondary"}`}>
                       {[tn(l.type), tn(l.source)].filter(Boolean).join(" · ")} · {t("منتظر {n} ساعت", { n: Math.floor(l.waitingHours).toLocaleString(intl) })} · {t("امتیاز {n}٪", { n: l.score.score.toLocaleString(intl) })}

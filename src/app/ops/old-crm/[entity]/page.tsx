@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { displayName, isMirroredTable, TABLE_LABELS } from "@/lib/dynamics/view";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /** One old-CRM table: newest first, with a search over every field (name, phone, email, contract number …). */
 export const dynamic = "force-dynamic";
 const PAGE = 50;
@@ -12,6 +13,7 @@ const PAGE = 50;
 type Row = { crmId: string; data: Record<string, unknown>; crmModifiedAt: Date | null };
 
 export default async function OldCrmTablePage({ params, searchParams }: { params: Promise<{ entity: string }>; searchParams: Promise<{ q?: string; page?: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
   const { entity } = await params;
@@ -38,30 +40,30 @@ export default async function OldCrmTablePage({ params, searchParams }: { params
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/old-crm" className="text-sm text-purple-600 hover:underline">CRM قدیم</Link>
+      <Link href="/ops/old-crm" className="text-sm text-purple-600 hover:underline">{t("CRM قدیم")}</Link>
       <h1 className="mt-1 text-2xl font-bold text-purple-900">{TABLE_LABELS[entity] ?? entity}</h1>
-      <p className="mt-1 text-sm text-secondary">{total.toLocaleString("fa-IR")} رکورد</p>
+      <p className="mt-1 text-sm text-secondary">{t("{n} رکورد", { n: total.toLocaleString(intl) })}</p>
 
       <form className="mt-5 flex gap-2" action={`/ops/old-crm/${entity}`}>
-        <input name="q" defaultValue={query} placeholder="جستجو در همه فیلدها: نام، ایمیل، تلفن، شماره قرارداد…" className="w-full max-w-md rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-purple-600" />
-        <button className="press rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white hover:bg-purple-900">جستجو</button>
+        <input name="q" defaultValue={query} placeholder={t("جستجو در همه فیلدها: نام، ایمیل، تلفن، شماره قرارداد…")} className="w-full max-w-md rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-purple-600" />
+        <button className="press rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white hover:bg-purple-900">{t("جستجو")}</button>
       </form>
 
       <ul className="mt-5 divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
-        {rows.length === 0 && <li className="px-4 py-6 text-sm text-secondary">رکوردی پیدا نشد.</li>}
+        {rows.length === 0 && <li className="px-4 py-6 text-sm text-secondary">{t("رکوردی پیدا نشد.")}</li>}
         {rows.map((r) => (
           <li key={r.crmId}>
             <Link href={`/ops/old-crm/${entity}/${r.crmId}`} className="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-tint">
               <span className="font-medium text-purple-900">{displayName(entity, r.data)}</span>
-              <span className="shrink-0 text-xs text-secondary">{r.crmModifiedAt ? new Intl.DateTimeFormat("fa-IR", { dateStyle: "short", timeZone: "Europe/Berlin" }).format(r.crmModifiedAt) : ""}</span>
+              <span className="shrink-0 text-xs text-secondary">{r.crmModifiedAt ? new Intl.DateTimeFormat(intl, { dateStyle: "short", timeZone: "Europe/Berlin" }).format(r.crmModifiedAt) : ""}</span>
             </Link>
           </li>
         ))}
       </ul>
 
       <div className="mt-4 flex gap-3 text-sm">
-        {page > 1 && <Link href={link(page - 1)} className="text-purple-600 hover:underline">صفحه قبل</Link>}
-        {rows.length === PAGE && <Link href={link(page + 1)} className="text-purple-600 hover:underline">صفحه بعد</Link>}
+        {page > 1 && <Link href={link(page - 1)} className="text-purple-600 hover:underline">{t("صفحه قبل")}</Link>}
+        {rows.length === PAGE && <Link href={link(page + 1)} className="text-purple-600 hover:underline">{t("صفحه بعد")}</Link>}
       </div>
     </div>
   );

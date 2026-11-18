@@ -8,6 +8,7 @@ import { AdminResetPasswordForm } from "@/components/crm/AdminResetPasswordForm"
 import { ROLE_FA } from "@/lib/status-labels";
 import { createStaffAccount, changeRole, setAccessActive, resetStaffMfa } from "@/lib/team-actions";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const TEAM_ERROR_LABEL: Record<string, string> = {
   too_short: "رمز عبور باید حداقل ۸ کاراکتر باشد.",
   mismatch: "رمز عبور و تکرار آن یکسان نیستند.",
@@ -24,6 +25,7 @@ const TEAM_ERROR_LABEL: Record<string, string> = {
  * requireStaff() pattern).
  */
 export default async function TeamPage({ searchParams }: { searchParams: Promise<{ teamError?: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/ops");
 
@@ -35,24 +37,24 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">کارکنان</h1>
-      <p className="mt-1 text-sm text-secondary">دسترسی مشاوران و ادمین‌ها را از همین‌جا مدیریت کن — دادن دسترسی، گرفتن دسترسی، تغییر نقش، ریست رمز عبور یا احراز هویت دومرحله‌ای.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("کارکنان")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("دسترسی مشاوران و ادمین‌ها را از همین‌جا مدیریت کن — دادن دسترسی، گرفتن دسترسی، تغییر نقش، ریست رمز عبور یا احراز هویت دومرحله‌ای.")}</p>
 
       {teamError && (
         <p role="alert" className="mt-4 rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">
-          {TEAM_ERROR_LABEL[teamError] ?? "مشکلی پیش آمد."}
+          {TEAM_ERROR_LABEL[teamError] ? t(TEAM_ERROR_LABEL[teamError]) : t("مشکلی پیش آمد.")}
         </p>
       )}
 
       <div className="mt-6 rounded-xl border border-border bg-white p-5">
         <h2 className="flex items-center gap-2 text-sm font-bold text-purple-900">
           <UserPlus size={17} weight="bold" />
-          افزودن عضو جدید
+          {t("افزودن عضو جدید")}
         </h2>
         <form action={createStaffAccount} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <input
             name="name"
-            placeholder="نام و نام خانوادگی"
+            placeholder={t("نام و نام خانوادگی")}
             required
             className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
           />
@@ -64,7 +66,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
           <input
             name="email"
             type="email"
-            placeholder="ایمیل"
+            placeholder={t("ایمیل")}
             required
             className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
           />
@@ -83,7 +85,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
           <input
             name="password"
             type="password"
-            placeholder="رمز عبور موقت (حداقل ۸ کاراکتر)"
+            placeholder={t("رمز عبور موقت (حداقل ۸ کاراکتر)")}
             required
             minLength={8}
             className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
@@ -91,7 +93,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
           <input
             name="confirmPassword"
             type="password"
-            placeholder="تکرار رمز عبور"
+            placeholder={t("تکرار رمز عبور")}
             required
             minLength={8}
             className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
@@ -100,11 +102,11 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
             type="submit"
             className="press w-fit rounded-full bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-purple-900 sm:col-span-2 lg:col-span-5"
           >
-            افزودن
+            {t("افزودن")}
           </button>
         </form>
         <p className="mt-3 text-xs text-secondary">
-          چون این پروژه هنوز سرویس ایمیل ندارد، دعوت‌نامه‌ای ارسال نمی‌شود — رمز عبور موقت را خودت مستقیماً به فرد جدید بده؛ او می‌تواند بعداً از پروفایل خودش تغییرش دهد.
+          {t("چون این پروژه هنوز سرویس ایمیل ندارد، دعوت‌نامه‌ای ارسال نمی‌شود — رمز عبور موقت را خودت مستقیماً به فرد جدید بده؛ او می‌تواند بعداً از پروفایل خودش تغییرش دهد.")}
         </p>
       </div>
 
@@ -112,13 +114,13 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-start text-xs text-secondary">
-              <th className="px-4 py-3 text-start font-medium">نام</th>
-              <th className="px-4 py-3 text-start font-medium">ایمیل</th>
-              <th className="px-4 py-3 text-start font-medium">نقش</th>
-              <th className="px-4 py-3 text-start font-medium">وضعیت</th>
-              <th className="px-4 py-3 text-start font-medium">۲FA</th>
-              <th className="px-4 py-3 text-start font-medium">عضویت</th>
-              <th className="px-4 py-3 text-start font-medium">عملیات</th>
+              <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("ایمیل")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("نقش")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("۲FA")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("عضویت")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("عملیات")}</th>
             </tr>
           </thead>
           <tbody>
@@ -132,15 +134,15 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                     <Badge tone={member.role === "ADMIN" ? "purple" : "neutral"}>{ROLE_FA[member.role]}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone={member.active ? "success" : "danger"}>{member.active ? "فعال" : "غیرفعال"}</Badge>
+                    <Badge tone={member.active ? "success" : "danger"}>{member.active ? t("فعال") : t("غیرفعال")}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone={member.mfaEnabled ? "success" : "neutral"}>{member.mfaEnabled ? "فعال" : "غیرفعال"}</Badge>
+                    <Badge tone={member.mfaEnabled ? "success" : "neutral"}>{member.mfaEnabled ? t("فعال") : t("غیرفعال")}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-secondary">{member.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}</td>
+                  <td className="px-4 py-3 text-xs text-secondary">{member.createdAt.toLocaleDateString(intl, { calendar: "gregory" })}</td>
                   <td className="px-4 py-3">
                     {isSelf ? (
-                      <span className="text-xs text-secondary">همین حساب توئه</span>
+                      <span className="text-xs text-secondary">{t("همین حساب توئه")}</span>
                     ) : (
                       <div className="flex flex-col items-start gap-2">
                         <form action={changeRole} className="flex items-center gap-1.5">
@@ -157,7 +159,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                             <option value="ADMIN">{ROLE_FA.ADMIN}</option>
                           </select>
                           <button type="submit" className="press text-xs font-medium text-secondary hover:text-purple-600">
-                            تغییر نقش
+                            {t("تغییر نقش")}
                           </button>
                         </form>
 
@@ -166,17 +168,17 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                             action={setAccessActive}
                             id={member.id}
                             hiddenFields={{ userId: member.id, active: "false" }}
-                            message={`دسترسی ${member.name} گرفته شود؟ او دیگر نمی‌تواند وارد شود، اما تاریخچه‌اش (لیدها، فعالیت‌ها) حذف نمی‌شود.`}
+                            message={t("دسترسی {name} گرفته شود؟ او دیگر نمی‌تواند وارد شود، اما تاریخچه‌اش (لیدها، فعالیت‌ها) حذف نمی‌شود.", { name: member.name })}
                             className="press text-xs font-medium text-danger hover:underline"
                           >
-                            گرفتن دسترسی
+                            {t("گرفتن دسترسی")}
                           </ConfirmDeleteForm>
                         ) : (
                           <form action={setAccessActive}>
                             <input type="hidden" name="userId" value={member.id} />
                             <input type="hidden" name="active" value="true" />
                             <button type="submit" className="press text-xs font-medium text-success hover:underline">
-                              بازگرداندن دسترسی
+                              {t("بازگرداندن دسترسی")}
                             </button>
                           </form>
                         )}
@@ -186,7 +188,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                             <input type="hidden" name="userId" value={member.id} />
                             <button type="submit" className="press flex items-center gap-1 text-xs font-medium text-secondary hover:text-purple-600">
                               <ShieldWarning size={13} />
-                              ریست ۲FA
+                              {t("ریست ۲FA")}
                             </button>
                           </form>
                         )}

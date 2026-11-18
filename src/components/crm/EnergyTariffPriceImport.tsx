@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadSimple, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 
+import { useOpsI18n } from "@/lib/ops-i18n/client";
 /**
  * Bulk price-grid upload for one tariff — see the import route's own
  * comment (src/app/api/ops/energy-tariffs/[id]/import/route.ts) for the
@@ -12,6 +13,7 @@ import { UploadSimple, CheckCircle, WarningCircle } from "@phosphor-icons/react"
  * rather than editing rows one at a time.
  */
 export function EnergyTariffPriceImport({ tariffId, currentRowCount }: { tariffId: string; currentRowCount: number }) {
+  const { t } = useOpsI18n();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
@@ -32,15 +34,15 @@ export function EnergyTariffPriceImport({ tariffId, currentRowCount }: { tariffI
       const data = await res.json();
       if (!res.ok) {
         setStatus("error");
-        setMessage(data.error ?? "خطای نامشخص");
+        setMessage(data.error ?? t("خطای نامشخص"));
         return;
       }
       setStatus("done");
-      setMessage(`${data.imported.toLocaleString("de-DE")} ردیف قیمت وارد شد${data.skipped ? ` (${data.skipped} ردیف نامعتبر رد شد)` : ""}.`);
+      setMessage(t("{n} ردیف قیمت وارد شد", { n: data.imported.toLocaleString("de-DE") }) + (data.skipped ? t(" ({n} ردیف نامعتبر رد شد)", { n: data.skipped }) : "") + ".");
       router.refresh();
     } catch {
       setStatus("error");
-      setMessage("آپلود ناموفق بود — اتصال یا فایل را بررسی کن.");
+      setMessage(t("آپلود ناموفق بود — اتصال یا فایل را بررسی کن."));
     } finally {
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -49,12 +51,12 @@ export function EnergyTariffPriceImport({ tariffId, currentRowCount }: { tariffI
   return (
     <div className="rounded-xl border border-border-strong bg-tint p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-purple-900">جدول قیمت کد پستی</h3>
-        <span className="font-latin text-xs text-secondary">{currentRowCount.toLocaleString("de-DE")} ردیف فعلی</span>
+        <h3 className="text-sm font-bold text-purple-900">{t("جدول قیمت کد پستی")}</h3>
+        <span className="font-latin text-xs text-secondary">{t("{n} ردیف فعلی", { n: currentRowCount.toLocaleString("de-DE") })}</span>
       </div>
       <p className="mt-1.5 text-xs leading-relaxed text-secondary">
-        فایل اکسل خروجی تامین‌کننده (xlsx) را آپلود کن — کل جدول قیمت این تعرفه جایگزین می‌شود، نه اضافه. فعلاً فقط xlsx/xls پشتیبانی می‌شود، نه CSV. ستون‌های
-        لازم: PLZ، Staffel von، Staffel bis، gültig seit، Grundpreis (€)، Arbeitspreis (ct/kwh).
+        {t("فایل اکسل خروجی تامین‌کننده (xlsx) را آپلود کن — کل جدول قیمت این تعرفه جایگزین می‌شود، نه اضافه. فعلاً فقط xlsx/xls پشتیبانی می‌شود، نه CSV. ستون‌های")}
+        {t("لازم: PLZ، Staffel von، Staffel bis، gültig seit، Grundpreis (€)، Arbeitspreis (ct/kwh).")}
       </p>
 
       <input ref={inputRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} disabled={status === "uploading"} className="hidden" id="price-grid-file" />
@@ -65,7 +67,7 @@ export function EnergyTariffPriceImport({ tariffId, currentRowCount }: { tariffI
         }`}
       >
         <UploadSimple size={16} weight="bold" />
-        {status === "uploading" ? "در حال آپلود…" : "آپلود فایل قیمت"}
+        {status === "uploading" ? t("در حال آپلود…") : t("آپلود فایل قیمت")}
       </label>
 
       {message && (

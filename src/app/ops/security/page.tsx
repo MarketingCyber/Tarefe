@@ -10,6 +10,7 @@ import { trackServer } from "@/lib/analytics-server";
 import { EVENT } from "@/lib/analytics";
 import { Button } from "@/components/shared/Button";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const ERROR_LABEL: Record<string, string> = {
   invalid_code: "کد درست نیست — اپلیکیشن Authenticator خود را چک کن و دوباره امتحان کن.",
   rate_limited: "تعداد تلاش‌ها زیاد بوده. یک دقیقه صبر کن و دوباره امتحان کن.",
@@ -93,6 +94,7 @@ async function disableMfa(formData: FormData) {
 }
 
 export default async function SecurityPage({ searchParams }: { searchParams: Promise<{ error?: string; enabled?: string; disabled?: string }> }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/security");
 
@@ -101,22 +103,22 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="container-page max-w-2xl py-8">
-      <h1 className="text-2xl font-bold text-purple-900">امنیت</h1>
-      <p className="mt-1 text-sm text-secondary">احراز هویت دومرحله‌ای برای حساب‌های کارکنان (مشاور/ادمین).</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("امنیت")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("احراز هویت دومرحله‌ای برای حساب‌های کارکنان (مشاور/ادمین).")}</p>
 
       {enabled && (
         <p role="status" className="mt-4 rounded-lg bg-success-bg px-3 py-2 text-xs font-medium text-success">
-          احراز هویت دومرحله‌ای فعال شد. برای ورود بعدی به اپلیکیشن Authenticator خود نیاز داری.
+          {t("احراز هویت دومرحله‌ای فعال شد. برای ورود بعدی به اپلیکیشن Authenticator خود نیاز داری.")}
         </p>
       )}
       {disabled && (
         <p role="status" className="mt-4 rounded-lg bg-tint px-3 py-2 text-xs font-medium text-secondary">
-          احراز هویت دومرحله‌ای برای این حساب غیرفعال شد.
+          {t("احراز هویت دومرحله‌ای برای این حساب غیرفعال شد.")}
         </p>
       )}
       {error && (
         <p role="alert" className="mt-4 rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">
-          {ERROR_LABEL[error] ?? "مشکلی پیش آمد."}
+          {ERROR_LABEL[error] ? t(ERROR_LABEL[error]) : t("مشکلی پیش آمد.")}
         </p>
       )}
 
@@ -125,15 +127,15 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
           <>
             <div className="flex items-center gap-2">
               <ShieldCheck size={20} weight="fill" className="text-success" />
-              <h2 className="text-sm font-bold text-purple-900">احراز هویت دومرحله‌ای فعال است</h2>
+              <h2 className="text-sm font-bold text-purple-900">{t("احراز هویت دومرحله‌ای فعال است")}</h2>
             </div>
             <p className="mt-2 text-xs text-secondary">
-              از این پس هر ورود، علاوه بر رمز عبور، به یک کد از اپلیکیشن Authenticator نیاز دارد. غیرفعال‌سازی هم به یک کد معتبر نیاز دارد — اگر دسترسی به
-              Authenticator را از دست بدهی، باید از یک ادمین بخواهی مستقیماً در دیتابیس آن را ریست کند.
+              {t("از این پس هر ورود، علاوه بر رمز عبور، به یک کد از اپلیکیشن Authenticator نیاز دارد. غیرفعال‌سازی هم به یک کد معتبر نیاز دارد — اگر دسترسی به")}
+              {t("Authenticator را از دست بدهی، باید از یک ادمین بخواهی مستقیماً در دیتابیس آن را ریست کند.")}
             </p>
             <form action={disableMfa} className="mt-4 grid max-w-xs gap-2">
               <label htmlFor="disable-code" className="text-xs font-semibold text-body">
-                برای غیرفعال‌سازی، یک کد معتبر وارد کن
+                {t("برای غیرفعال‌سازی، یک کد معتبر وارد کن")}
               </label>
               <input
                 id="disable-code"
@@ -146,7 +148,7 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
                 className="font-latin rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-center tracking-[0.3em] text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
               />
               <Button type="submit" variant="danger" size="md" className="w-fit">
-                غیرفعال‌سازی احراز هویت دومرحله‌ای
+                {t("غیرفعال‌سازی احراز هویت دومرحله‌ای")}
               </Button>
             </form>
           </>
@@ -156,12 +158,12 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
           <>
             <div className="flex items-center gap-2">
               <ShieldWarning size={20} className="text-secondary" />
-              <h2 className="text-sm font-bold text-purple-900">احراز هویت دومرحله‌ای فعال نیست</h2>
+              <h2 className="text-sm font-bold text-purple-900">{t("احراز هویت دومرحله‌ای فعال نیست")}</h2>
             </div>
-            <p className="mt-2 text-xs text-secondary">با هر اپلیکیشن TOTP Authenticator (Google Authenticator، 1Password، Authy و مشابه) یک مرحله دیگر به ورودت اضافه کن.</p>
+            <p className="mt-2 text-xs text-secondary">{t("با هر اپلیکیشن TOTP Authenticator (Google Authenticator، 1Password، Authy و مشابه) یک مرحله دیگر به ورودت اضافه کن.")}</p>
             <form action={startSetup} className="mt-4">
               <Button type="submit" size="lg" className="w-fit">
-                راه‌اندازی احراز هویت دومرحله‌ای
+                {t("راه‌اندازی احراز هویت دومرحله‌ای")}
               </Button>
             </form>
           </>
@@ -182,20 +184,21 @@ async function SetupInProgress({
   confirmSetup: (formData: FormData) => Promise<void>;
   cancelSetup: () => Promise<void>;
 }) {
+  const { t } = await getOpsI18n();
   const qrDataUrl = await totpQrCodeDataUrl(secret, email);
 
   return (
     <>
-      <h2 className="text-sm font-bold text-purple-900">این کد QR را اسکن کن</h2>
-      <p className="mt-2 text-xs text-secondary">با اپلیکیشن Authenticator اسکن کن، سپس کد ۶ رقمی نمایش‌داده‌شده را برای تایید راه‌اندازی وارد کن.</p>
+      <h2 className="text-sm font-bold text-purple-900">{t("این کد QR را اسکن کن")}</h2>
+      <p className="mt-2 text-xs text-secondary">{t("با اپلیکیشن Authenticator اسکن کن، سپس کد ۶ رقمی نمایش‌داده‌شده را برای تایید راه‌اندازی وارد کن.")}</p>
       {/* eslint-disable-next-line @next/next/no-img-element -- a locally generated data: URL, not a remote image next/image would need to fetch/optimize */}
-      <img src={qrDataUrl} alt="کد QR برای TOTP" width={200} height={200} className="mt-4 rounded-xl border border-border" />
+      <img src={qrDataUrl} alt={t("کد QR برای TOTP")} width={200} height={200} className="mt-4 rounded-xl border border-border" />
       <p data-testid="mfa-secret" className="font-latin mt-3 break-all rounded-lg bg-tint px-3 py-2 text-xs text-secondary">{secret}</p>
-      <p className="mt-1 text-xs text-secondary">نمی‌توانی اسکن کنی؟ این کلید را دستی در اپلیکیشنت وارد کن.</p>
+      <p className="mt-1 text-xs text-secondary">{t("نمی‌توانی اسکن کنی؟ این کلید را دستی در اپلیکیشنت وارد کن.")}</p>
 
       <form action={confirmSetup} className="mt-4 grid max-w-xs gap-2">
         <label htmlFor="confirm-code" className="text-xs font-semibold text-body">
-          کد را برای تایید وارد کن
+          {t("کد را برای تایید وارد کن")}
         </label>
         <input
           id="confirm-code"
@@ -210,13 +213,13 @@ async function SetupInProgress({
         />
         <div className="flex items-center gap-2">
           <Button type="submit" size="lg" className="w-fit">
-            تایید و فعال‌سازی
+            {t("تایید و فعال‌سازی")}
           </Button>
         </div>
       </form>
       <form action={cancelSetup} className="mt-2">
         <button type="submit" className="press text-xs font-medium text-secondary hover:text-purple-600">
-          لغو راه‌اندازی
+          {t("لغو راه‌اندازی")}
         </button>
       </form>
     </>

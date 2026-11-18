@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { resetStaffPassword } from "@/lib/team-actions";
 
+import { useOpsI18n } from "@/lib/ops-i18n/client";
 /**
  * Needs a real password input, not just hidden fields — the one action on
  * /ops/team that doesn't fit ConfirmDeleteForm's shape. Collapsed by
@@ -11,13 +12,14 @@ import { resetStaffPassword } from "@/lib/team-actions";
  * plain, no-modal style.
  */
 export function AdminResetPasswordForm({ userId }: { userId: string }) {
+  const { t } = useOpsI18n();
   const [open, setOpen] = useState(false);
   const [mismatch, setMismatch] = useState(false);
 
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="press text-xs font-medium text-secondary hover:text-purple-600">
-        تغییر رمز عبور
+        {t("تغییر رمز عبور")}
       </button>
     );
   }
@@ -44,7 +46,7 @@ export function AdminResetPasswordForm({ userId }: { userId: string }) {
         <input
           type="password"
           name="newPassword"
-          placeholder="رمز عبور جدید"
+          placeholder={t("رمز عبور جدید")}
           required
           minLength={8}
           autoFocus
@@ -54,20 +56,20 @@ export function AdminResetPasswordForm({ userId }: { userId: string }) {
         <input
           type="password"
           name="confirmPassword"
-          placeholder="تکرار رمز عبور"
+          placeholder={t("تکرار رمز عبور")}
           required
           minLength={8}
           onChange={() => setMismatch(false)}
           className="w-28 rounded-lg border border-border-strong bg-white px-2.5 py-1.5 text-xs text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
         />
         <button type="submit" className="press rounded-lg bg-purple-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">
-          ثبت
+          {t("ثبت")}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="press text-xs text-secondary hover:text-purple-600">
-          لغو
+          {t("لغو")}
         </button>
       </div>
-      {mismatch && <p className="text-[11px] font-medium text-danger">رمز عبور و تکرار آن یکسان نیستند.</p>}
+      {mismatch && <p className="text-[11px] font-medium text-danger">{t("رمز عبور و تکرار آن یکسان نیستند.")}</p>}
     </form>
   );
 }

@@ -6,6 +6,7 @@ import { canAccessContent } from "@/lib/permissions";
 import { UploadValidationError, deleteBannerImage, saveBannerImage } from "@/lib/document-storage";
 import { Button } from "@/components/shared/Button";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Staff manage the app's Home slider (owner, 2026-10-23): image or GIF, title, short text, one button and where
  * it leads. Shown to customers under their summary, in this order, max 5 at a time.
@@ -92,61 +93,62 @@ async function deleteBanner(formData: FormData) {
 const input = "w-full rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25";
 
 export default async function AppBannersPage() {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!canAccessContent(session?.user?.role)) redirect("/ops");
   const banners = await prisma.appBanner.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "desc" }] });
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">اسلایدر اپ</h1>
-      <p className="mt-1 text-sm text-secondary">اسلایدهای صفحه خانه اپ، زیر خلاصه مشتری. حداکثر ۵ اسلاید فعال برای هر زبان نمایش داده می‌شود.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("اسلایدر اپ")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("اسلایدهای صفحه خانه اپ، زیر خلاصه مشتری. حداکثر ۵ اسلاید فعال برای هر زبان نمایش داده می‌شود.")}</p>
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <form action={createBanner} className="space-y-3 rounded-2xl border border-border bg-white p-6 text-sm 2xl:col-span-1">
-          <h2 className="font-bold text-purple-900">اسلاید جدید</h2>
+          <h2 className="font-bold text-purple-900">{t("اسلاید جدید")}</h2>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">عنوان</span>
-            <input name="title" required maxLength={80} className={input} placeholder="دوستت را معرفی کن، ۱۰ یورو هدیه" />
+            <span className="font-medium text-purple-900">{t("عنوان")}</span>
+            <input name="title" required maxLength={80} className={input} placeholder={t("دوستت را معرفی کن، ۱۰ یورو هدیه")} />
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">متن کوتاه (اختیاری)</span>
+            <span className="font-medium text-purple-900">{t("متن کوتاه (اختیاری)")}</span>
             <input name="body" maxLength={160} className={input} />
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">متن دکمه (اختیاری)</span>
-            <input name="ctaLabel" maxLength={30} className={input} placeholder="جزئیات" />
+            <span className="font-medium text-purple-900">{t("متن دکمه (اختیاری)")}</span>
+            <input name="ctaLabel" maxLength={30} className={input} placeholder={t("جزئیات")} />
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">دکمه به کجا برود</span>
+            <span className="font-medium text-purple-900">{t("دکمه به کجا برود")}</span>
             <select name="target" className={input} defaultValue="offers">
-              {TARGETS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              {TARGETS.map((tg) => (
+                <option key={tg.value} value={tg.value}>
+                  {t(tg.label)}
                 </option>
               ))}
             </select>
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">نام خدمت (فقط برای «مشاوره برای یک خدمت»)</span>
-            <input name="service" maxLength={60} className={input} placeholder="بیمه دندان" />
+            <span className="font-medium text-purple-900">{t("نام خدمت (فقط برای «مشاوره برای یک خدمت»)")}</span>
+            <input name="service" maxLength={60} className={input} placeholder={t("بیمه دندان")} />
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">زبان</span>
+            <span className="font-medium text-purple-900">{t("زبان")}</span>
             <select name="locale" className={input} defaultValue="fa">
-              <option value="fa">فارسی</option>
+              <option value="fa">{t("فارسی")}</option>
               <option value="de">Deutsch</option>
               <option value="ru">Русский</option>
             </select>
           </label>
           <label className="block space-y-1">
-            <span className="font-medium text-purple-900">تصویر یا GIF (اختیاری، تا ۵ مگابایت، نسبت حدود ۲ به ۱)</span>
+            <span className="font-medium text-purple-900">{t("تصویر یا GIF (اختیاری، تا ۵ مگابایت، نسبت حدود ۲ به ۱)")}</span>
             <input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="block w-full text-sm" />
           </label>
-          <Button type="submit">افزودن اسلاید</Button>
+          <Button type="submit">{t("افزودن اسلاید")}</Button>
         </form>
 
         <div className="space-y-3 2xl:col-span-2">
-          {banners.length === 0 && <p className="rounded-2xl border border-border bg-white p-6 text-sm text-secondary">هنوز اسلایدی نیست.</p>}
+          {banners.length === 0 && <p className="rounded-2xl border border-border bg-white p-6 text-sm text-secondary">{t("هنوز اسلایدی نیست.")}</p>}
           {banners.map((b, i) => (
             <div key={b.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-white p-4 text-sm">
               {b.imagePath ? (
@@ -158,27 +160,27 @@ export default async function AppBannersPage() {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-purple-900">{b.title}</p>
                 <p className="text-secondary">
-                  {b.body ?? ""} · <span className="font-latin">{b.target}</span> · {b.locale} {b.active ? "" : "· غیرفعال"}
+                  {b.body ?? ""} · <span className="font-latin">{b.target}</span> · {b.locale} {b.active ? "" : t("· غیرفعال")}
                 </p>
               </div>
               <div className="flex gap-2">
                 <form action={moveBanner}>
                   <input type="hidden" name="id" value={b.id} />
                   <input type="hidden" name="dir" value="-1" />
-                  <button type="submit" disabled={i === 0} className="rounded-lg border border-border px-2 py-1 disabled:opacity-40" aria-label="بالاتر">↑</button>
+                  <button type="submit" disabled={i === 0} className="rounded-lg border border-border px-2 py-1 disabled:opacity-40" aria-label={t("بالاتر")}>↑</button>
                 </form>
                 <form action={moveBanner}>
                   <input type="hidden" name="id" value={b.id} />
                   <input type="hidden" name="dir" value="1" />
-                  <button type="submit" disabled={i === banners.length - 1} className="rounded-lg border border-border px-2 py-1 disabled:opacity-40" aria-label="پایین‌تر">↓</button>
+                  <button type="submit" disabled={i === banners.length - 1} className="rounded-lg border border-border px-2 py-1 disabled:opacity-40" aria-label={t("پایین‌تر")}>↓</button>
                 </form>
                 <form action={toggleBanner}>
                   <input type="hidden" name="id" value={b.id} />
-                  <button type="submit" className="rounded-lg border border-border px-3 py-1 font-medium text-purple-900">{b.active ? "غیرفعال کن" : "فعال کن"}</button>
+                  <button type="submit" className="rounded-lg border border-border px-3 py-1 font-medium text-purple-900">{b.active ? t("غیرفعال کن") : t("فعال کن")}</button>
                 </form>
                 <form action={deleteBanner}>
                   <input type="hidden" name="id" value={b.id} />
-                  <button type="submit" className="rounded-lg border border-border px-3 py-1 font-medium text-danger">حذف</button>
+                  <button type="submit" className="rounded-lg border border-border px-3 py-1 font-medium text-danger">{t("حذف")}</button>
                 </form>
               </div>
             </div>

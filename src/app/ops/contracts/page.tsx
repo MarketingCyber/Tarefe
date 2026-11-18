@@ -10,6 +10,7 @@ import { CONTRACT_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 import { crmUsers } from "@/lib/crm/crm-users";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Contracts across both CRMs. Three views:
  *  - deadlines (default): active old-CRM contracts (Dynamics state open/won) whose cancellation deadline
@@ -47,6 +48,7 @@ export default async function OpsContractsPage({
 }: {
   searchParams: Promise<{ view?: string; q?: string; owner?: string; category?: string; step?: string; state?: string; page?: string }>;
 }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -60,7 +62,7 @@ export default async function OpsContractsPage({
     crmUsers(),
     prisma.crmRecord.findMany({ where: { entity: "new_category", deletedAt: null }, select: { crmId: true, data: true } }),
   ]);
-  const ownerOptions = owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (غیرفعال)` : o.name }));
+  const ownerOptions = owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (${t("غیرفعال")})` : o.name }));
   const categoryOptions = categories.map((c) => ({ id: c.crmId.toLowerCase(), name: shown(c.data as Record<string, unknown>, "new_name") ?? "—" })).sort((a, b) => a.name.localeCompare(b.name));
 
   const href = (patch: Record<string, string | null>) => {
@@ -73,18 +75,18 @@ export default async function OpsContractsPage({
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">قراردادها</h1>
-      <p className="mt-1 text-sm text-secondary">قراردادهای CRM قدیم و سایت در یک‌جا — مهلت‌های لغو، جستجو و پروفایل کامل هر قرارداد.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("قراردادها")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("قراردادهای CRM قدیم و سایت در یک‌جا — مهلت‌های لغو، جستجو و پروفایل کامل هر قرارداد.")}</p>
 
       <div className="mt-5 flex flex-wrap gap-1.5">
         <FilterChip href={href({ view: "deadlines", page: null })} active={view === "deadlines"}>
-          مهلت‌های لغو
+          {t("مهلت‌های لغو")}
         </FilterChip>
         <FilterChip href={href({ view: "all", page: null })} active={view === "all"}>
-          همه قراردادها
+          {t("همه قراردادها")}
         </FilterChip>
         <FilterChip href={href({ view: "site", page: null })} active={view === "site"}>
-          قراردادهای سایت
+          {t("قراردادهای سایت")}
         </FilterChip>
       </div>
 
@@ -94,23 +96,23 @@ export default async function OpsContractsPage({
           {view === "all" && (
             <div className="flex min-w-64 flex-1 items-center gap-2 rounded-full border border-border-strong bg-white px-4 py-2 focus-within:border-purple-600">
               <MagnifyingGlass size={16} className="shrink-0 text-secondary" aria-hidden />
-              <input name="q" defaultValue={sp.q ?? ""} placeholder="عنوان، Vertragsnummer، کد، مشتری…" aria-label="جستجوی قرارداد" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
+              <input name="q" defaultValue={sp.q ?? ""} placeholder={t("عنوان، Vertragsnummer، کد، مشتری…")} aria-label={t("جستجوی قرارداد")} className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
             </div>
           )}
-          <Select name="owner" value={owner} label="مسئول" options={ownerOptions} />
-          <Select name="category" value={category} label="نوع قرارداد" options={categoryOptions} />
+          <Select name="owner" value={owner} label={t("مسئول")} options={ownerOptions} />
+          <Select name="category" value={category} label={t("نوع قرارداد")} options={categoryOptions} />
           {view === "all" && (
             <>
-              <Select name="step" value={sp.step ?? null} label="مرحله" options={["Angebot", "Aktuell", "Aktuell T"].map((s) => ({ id: s, name: s }))} />
-              <Select name="state" value={sp.state ?? null} label="وضعیت" options={Object.entries(STATE_FILTER).map(([id, s]) => ({ id, name: s.label }))} />
+              <Select name="step" value={sp.step ?? null} label={t("مرحله")} options={["Angebot", "Aktuell", "Aktuell T"].map((s) => ({ id: s, name: s }))} />
+              <Select name="state" value={sp.state ?? null} label={t("وضعیت")} options={Object.entries(STATE_FILTER).map(([id, s]) => ({ id, name: t(s.label) }))} />
             </>
           )}
           <button type="submit" className="press rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-            اعمال
+            {t("اعمال")}
           </button>
           {(owner || category || sp.q || sp.step || sp.state) && (
             <Link href={href({ q: null, owner: null, category: null, step: null, state: null, page: null })} className="text-xs font-medium text-secondary hover:text-purple-600">
-              حذف فیلترها
+              {t("حذف فیلترها")}
             </Link>
           )}
         </form>
@@ -124,6 +126,7 @@ export default async function OpsContractsPage({
 }
 
 async function Deadlines({ owner, category, page, href }: { owner: string | null; category: string | null; page: number; href: (p: Record<string, string | null>) => string }) {
+  const { t, intl } = await getOpsI18n();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const where = {
@@ -146,7 +149,7 @@ async function Deadlines({ owner, category, page, href }: { owner: string | null
   if (!total)
     return (
       <div className="mt-8">
-        <EmptyState icon={FileText} title="مهلت لغوی در این بازه نیست" body="قراردادهای فعال با مهلت لغو در ۳۰ روز گذشته تا ۹۰ روز آینده این‌جا نمایش داده می‌شوند." />
+        <EmptyState icon={FileText} title={t("مهلت لغوی در این بازه نیست")} body={t("قراردادهای فعال با مهلت لغو در ۳۰ روز گذشته تا ۹۰ روز آینده این‌جا نمایش داده می‌شوند.")} />
       </div>
     );
 
@@ -160,8 +163,8 @@ async function Deadlines({ owner, category, page, href }: { owner: string | null
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(Object.keys(BUCKET_LABEL) as Bucket[]).map((b) => (
           <div key={b} className="rounded-2xl border border-border bg-white p-4">
-            <p className="text-xs text-secondary">{BUCKET_LABEL[b]}</p>
-            <p className={`mt-1 text-2xl font-bold tabular-nums ${b === "overdue" && counts[b] ? "text-danger" : "text-purple-900"}`}>{counts[b].toLocaleString("fa-IR")}</p>
+            <p className="text-xs text-secondary">{t(BUCKET_LABEL[b])}</p>
+            <p className={`mt-1 text-2xl font-bold tabular-nums ${b === "overdue" && counts[b] ? "text-danger" : "text-purple-900"}`}>{counts[b].toLocaleString(intl)}</p>
           </div>
         ))}
       </div>
@@ -170,12 +173,12 @@ async function Deadlines({ owner, category, page, href }: { owner: string | null
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-secondary">
-              <th className="px-4 py-3 text-start font-medium">مهلت لغو</th>
-              <th className="px-4 py-3 text-start font-medium">قرارداد</th>
-              <th className="px-4 py-3 text-start font-medium">مشتری</th>
-              <th className="px-4 py-3 text-start font-medium">پایان</th>
-              <th className="px-4 py-3 text-start font-medium">مرحله</th>
-              <th className="px-4 py-3 text-start font-medium">مسئول</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مهلت لغو")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("قرارداد")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مشتری")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("پایان")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مرحله")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,25 +187,25 @@ async function Deadlines({ owner, category, page, href }: { owner: string | null
                 header && (
                   <tr key={`h-${bucket}`} className="border-b border-border bg-tint/60">
                     <td colSpan={6} className="px-4 py-2 text-xs font-bold text-purple-900">
-                      {BUCKET_LABEL[bucket]}
+                      {t(BUCKET_LABEL[bucket])}
                     </td>
                   </tr>
                 ),
                 <tr key={r.crmId} className="border-b border-border last:border-0 hover:bg-tint/40">
                   <td className="whitespace-nowrap px-4 py-3">
-                    <span className="text-body">{shownDate(r.data, "new_datelaqve")}</span>{" "}
-                    <Badge tone={BUCKET_TONE[bucket]}>{days < 0 ? `${(-days).toLocaleString("fa-IR")} روز گذشته` : days === 0 ? "امروز" : `${days.toLocaleString("fa-IR")} روز`}</Badge>
+                    <span className="text-body">{shownDate(r.data, "new_datelaqve", false, intl)}</span>{" "}
+                    <Badge tone={BUCKET_TONE[bucket]}>{days < 0 ? t("{n} روز گذشته", { n: (-days).toLocaleString(intl) }) : days === 0 ? t("امروز") : t("{n} روز", { n: days.toLocaleString(intl) })}</Badge>
                   </td>
                   <td className="px-4 py-3">
                     <Link href={`/ops/contracts/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                      {shown(r.data, "name") ?? "قرارداد"}
+                      {shown(r.data, "name") ?? t("قرارداد")}
                     </Link>
                     <span className="block text-xs text-secondary">{[shown(r.data, "new_category"), shown(r.data, "parentaccountid")].filter(Boolean).join(" · ")}</span>
                   </td>
                   <td className="px-4 py-3">
                     <CustomerLink data={r.data} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_dateend") ?? "—"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_dateend", false, intl) ?? "—"}</td>
                   <td className="px-4 py-3 text-xs text-secondary">{shown(r.data, "new_step") ?? "—"}</td>
                   <td className="px-4 py-3 text-xs text-secondary">{shown(r.data, "ownerid") ?? "—"}</td>
                 </tr>,
@@ -233,6 +236,7 @@ async function AllContracts({
   page: number;
   href: (p: Record<string, string | null>) => string;
 }) {
+  const { t, intl } = await getOpsI18n();
   const ids = q
     ? (
         await prisma.$queryRaw<{ crmId: string }[]>`
@@ -264,24 +268,24 @@ async function AllContracts({
   if (!rows.length)
     return (
       <div className="mt-8">
-        <EmptyState icon={FileText} title={q ? `قراردادی با «${q}» پیدا نشد` : "قراردادی با این فیلترها نیست"} body="فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید." />
+        <EmptyState icon={FileText} title={q ? t("قراردادی با «{q}» پیدا نشد", { q }) : t("قراردادی با این فیلترها نیست")} body={t("فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید.")} />
       </div>
     );
 
   return (
     <>
-      <p className="mt-5 text-xs text-secondary">{total.toLocaleString("fa-IR")} قرارداد{ids && ids.length >= 1000 ? " (۱٬۰۰۰ نتیجه اول جستجو)" : ""}</p>
+      <p className="mt-5 text-xs text-secondary">{t("{n} قرارداد", { n: total.toLocaleString(intl) })}{ids && ids.length >= 1000 ? t(" (۱٬۰۰۰ نتیجه اول جستجو)") : ""}</p>
       <div className="mt-2 overflow-x-auto rounded-xl border border-border bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-secondary">
-              <th className="px-4 py-3 text-start font-medium">قرارداد</th>
-              <th className="px-4 py-3 text-start font-medium">مشتری</th>
-              <th className="px-4 py-3 text-start font-medium">مرحله / وضعیت</th>
-              <th className="px-4 py-3 text-start font-medium">شروع</th>
-              <th className="px-4 py-3 text-start font-medium">مهلت لغو</th>
+              <th className="px-4 py-3 text-start font-medium">{t("قرارداد")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مشتری")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مرحله / وضعیت")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("شروع")}</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مهلت لغو")}</th>
               <th className="px-4 py-3 text-start font-medium">Vertragsnummer</th>
-              <th className="px-4 py-3 text-start font-medium">مسئول</th>
+              <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
             </tr>
           </thead>
           <tbody>
@@ -289,7 +293,7 @@ async function AllContracts({
               <tr key={r.crmId} className="border-b border-border last:border-0 hover:bg-tint/40">
                 <td className="px-4 py-3">
                   <Link href={`/ops/contracts/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                    {shown(r.data, "name") ?? "قرارداد"}
+                    {shown(r.data, "name") ?? t("قرارداد")}
                   </Link>
                   <span className="block text-xs text-secondary">{[shown(r.data, "new_category"), shown(r.data, "parentaccountid")].filter(Boolean).join(" · ")}</span>
                 </td>
@@ -297,8 +301,8 @@ async function AllContracts({
                   <CustomerLink data={r.data} />
                 </td>
                 <td className="px-4 py-3 text-xs text-secondary">{[shown(r.data, "new_step"), statusFa(shown(r.data, "statuscode"))].filter(Boolean).join(" · ") || "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_startdate") ?? "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_datelaqve") ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_startdate", false, intl) ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(r.data, "new_datelaqve", false, intl) ?? "—"}</td>
                 <td className="font-latin px-4 py-3 text-xs text-secondary">{shown(r.data, "new_shomareh") ?? "—"}</td>
                 <td className="px-4 py-3 text-xs text-secondary">{shown(r.data, "ownerid") ?? "—"}</td>
               </tr>
@@ -314,6 +318,7 @@ async function AllContracts({
 const SITE_STATUS_TONE: Record<string, BadgeTone> = { ACTIVE: "success", PENDING: "warning", EXPIRING: "warning", CANCELLED: "danger" };
 
 async function SiteContracts() {
+  const { t, intl } = await getOpsI18n();
   const contracts = await prisma.contract.findMany({
     where: { crmId: null }, // projected Dynamics contracts are in the views above
     orderBy: { createdAt: "desc" },
@@ -323,7 +328,7 @@ async function SiteContracts() {
   if (!contracts.length)
     return (
       <div className="mt-8">
-        <EmptyState icon={FileText} title="هنوز قراردادی در سایت ثبت نشده" body="با تایید یک درخواست، یک قرارداد ساخته می‌شود." />
+        <EmptyState icon={FileText} title={t("هنوز قراردادی در سایت ثبت نشده")} body={t("با تایید یک درخواست، یک قرارداد ساخته می‌شود.")} />
       </div>
     );
   return (
@@ -331,13 +336,13 @@ async function SiteContracts() {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-secondary">
-            <th className="px-4 py-3 text-start font-medium">ارائه‌دهنده / محصول</th>
-            <th className="px-4 py-3 text-start font-medium">مشتری</th>
-            <th className="px-4 py-3 text-start font-medium">دسته‌بندی</th>
-            <th className="px-4 py-3 text-start font-medium">قیمت</th>
-            <th className="px-4 py-3 text-start font-medium">وضعیت</th>
-            <th className="px-4 py-3 text-start font-medium">شروع</th>
-            <th className="px-4 py-3 text-start font-medium">سررسید لغو</th>
+            <th className="px-4 py-3 text-start font-medium">{t("ارائه‌دهنده / محصول")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("مشتری")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("دسته‌بندی")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("قیمت")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("شروع")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("سررسید لغو")}</th>
           </tr>
         </thead>
         <tbody>
@@ -358,8 +363,8 @@ async function SiteContracts() {
               <td className="px-4 py-3">
                 <Badge tone={SITE_STATUS_TONE[c.status]}>{CONTRACT_STATUS_FA[c.status] ?? c.status}</Badge>
               </td>
-              <td className="px-4 py-3 text-xs text-secondary">{c.startDate ? c.startDate.toLocaleDateString("fa-IR", { calendar: "gregory" }) : "—"}</td>
-              <td className="px-4 py-3 text-xs text-secondary">{c.cancellationDeadline ? c.cancellationDeadline.toLocaleDateString("fa-IR", { calendar: "gregory" }) : "—"}</td>
+              <td className="px-4 py-3 text-xs text-secondary">{c.startDate ? c.startDate.toLocaleDateString(intl, { calendar: "gregory" }) : "—"}</td>
+              <td className="px-4 py-3 text-xs text-secondary">{c.cancellationDeadline ? c.cancellationDeadline.toLocaleDateString(intl, { calendar: "gregory" }) : "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -368,21 +373,23 @@ async function SiteContracts() {
   );
 }
 
-function CustomerLink({ data }: { data: Record<string, unknown> }) {
+async function CustomerLink({ data }: { data: Record<string, unknown> }) {
+  const { t } = await getOpsI18n();
   const id = data._customerid_value;
   const name = shown(data, "customerid");
   if (typeof id !== "string") return <span className="text-xs text-secondary">—</span>;
   return (
     <Link href={`/ops/customers/${id}`} className="text-purple-900 hover:text-purple-600 hover:underline">
-      {name ?? "مشتری"}
+      {name ?? t("مشتری")}
     </Link>
   );
 }
 
-function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+async function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+  const { t } = await getOpsI18n();
   return (
     <select name={name} defaultValue={value ?? ""} aria-label={label} className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
-      <option value="">{label}: همه</option>
+      <option value="">{t("{label}: همه", { label })}</option>
       {options.map((o) => (
         <option key={o.id} value={o.id}>
           {o.name}
@@ -392,19 +399,20 @@ function Select({ name, value, label, options }: { name: string; value: string |
   );
 }
 
-function Pager({ page, hasNext, href }: { page: number; hasNext: boolean; href: (p: Record<string, string | null>) => string }) {
+async function Pager({ page, hasNext, href }: { page: number; hasNext: boolean; href: (p: Record<string, string | null>) => string }) {
+  const { t, intl } = await getOpsI18n();
   if (page === 1 && !hasNext) return null;
   return (
     <div className="mt-4 flex items-center gap-3 text-sm">
       {page > 1 && (
         <Link href={href({ page: page > 2 ? String(page - 1) : null })} className="font-medium text-purple-600 hover:underline">
-          صفحه قبل
+          {t("صفحه قبل")}
         </Link>
       )}
-      <span className="text-secondary">صفحه {page.toLocaleString("fa-IR")}</span>
+      <span className="text-secondary">{t("صفحه {n}", { n: page.toLocaleString(intl) })}</span>
       {hasNext && (
         <Link href={href({ page: String(page + 1) })} className="font-medium text-purple-600 hover:underline">
-          صفحه بعد
+          {t("صفحه بعد")}
         </Link>
       )}
     </div>

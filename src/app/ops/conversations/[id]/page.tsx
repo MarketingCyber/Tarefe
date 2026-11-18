@@ -10,6 +10,7 @@ import { describeService, requestStep, STATUS_WORDS, ticketNumber } from "@/lib/
 import { addMessage, GENERAL_TITLE } from "@/lib/app-conversations";
 import { Button } from "@/components/shared/Button";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 async function reply(formData: FormData) {
   "use server";
   const session = await auth();
@@ -36,6 +37,7 @@ async function assignToMe(formData: FormData) {
 }
 
 export default async function OpsConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!session?.user?.id || !canAccessPipeline(session.user.role)) redirect("/ops");
   const { id } = await params;
@@ -64,7 +66,7 @@ export default async function OpsConversationPage({ params }: { params: Promise<
     <div className="container-page py-8">
       <Link href="/ops/conversations" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
         <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        بازگشت به گفتگوها
+        {t("بازگشت به گفتگوها")}
       </Link>
 
       <div className="grid gap-6 2xl:grid-cols-3">
@@ -81,18 +83,18 @@ export default async function OpsConversationPage({ params }: { params: Promise<
               </p>
             </div>
             <div className="flex items-center gap-2 text-sm text-secondary">
-              مسئول: {conv.advisor?.name ?? "ندارد"}
+              {t("مسئول:")} {conv.advisor?.name ?? t("ندارد")}
               {!conv.advisor && (
                 <form action={assignToMe}>
                   <input type="hidden" name="conversationId" value={conv.id} />
-                  <Button type="submit" variant="secondary">واگذاری به من</Button>
+                  <Button type="submit" variant="secondary">{t("واگذاری به من")}</Button>
                 </form>
               )}
             </div>
           </div>
 
           <div className="space-y-3">
-            {conv.messages.length === 0 && <p className="text-sm text-secondary">هنوز پیامی نیست.</p>}
+            {conv.messages.length === 0 && <p className="text-sm text-secondary">{t("هنوز پیامی نیست.")}</p>}
             {conv.messages.map((m) =>
               m.kind === "SYSTEM" ? (
                 <p key={m.id} className="mx-auto w-fit rounded-full border border-dashed border-border-strong px-3 py-1 text-xs font-semibold text-secondary">
@@ -100,14 +102,14 @@ export default async function OpsConversationPage({ params }: { params: Promise<
                 </p>
               ) : (
                 <div key={m.id} className={`max-w-[80%] rounded-xl p-3 ${m.sender.role === "CUSTOMER" ? "bg-tint" : "ms-auto bg-purple-600/10"}`}>
-                  <p className="text-xs font-semibold text-purple-900">{m.sender.name || "مشتری"}</p>
+                  <p className="text-xs font-semibold text-purple-900">{m.sender.name || t("مشتری")}</p>
                   <p className="mt-1 whitespace-pre-line text-sm text-body">{m.content}</p>
                   {m.document && (
                     <a href={`/api/documents/${m.document.id}`} className="mt-1 inline-block text-xs font-semibold text-purple-600 hover:underline">
-                      فایل: {m.document.title}
+                      {t("فایل:")} {m.document.title}
                     </a>
                   )}
-                  <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</p>
+                  <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString(intl, { calendar: "gregory" })}</p>
                 </div>
               ),
             )}
@@ -118,11 +120,11 @@ export default async function OpsConversationPage({ params }: { params: Promise<
             <textarea
               name="content"
               rows={2}
-              placeholder="پاسخ به مشتری…"
+              placeholder={t("پاسخ به مشتری…")}
               className="flex-1 resize-none rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
             />
             <button type="submit" className="press self-end rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900">
-              ارسال
+              {t("ارسال")}
             </button>
           </form>
         </div>
@@ -130,18 +132,18 @@ export default async function OpsConversationPage({ params }: { params: Promise<
         <div className="space-y-6">
           {conv.contract && (
             <div className="rounded-2xl border border-border bg-white p-6 text-sm">
-              <h2 className="mb-3 font-bold text-purple-900">قرارداد</h2>
+              <h2 className="mb-3 font-bold text-purple-900">{t("قرارداد")}</h2>
               <p className="text-body">{conv.contract.provider} · <span className="font-latin">{conv.contract.productName}</span></p>
               {conv.contract.contractNumber && <p className="mt-1 font-latin text-secondary">{conv.contract.contractNumber}</p>}
               {conv.contract.cancellationDeadline && (
-                <p className="mt-1 text-secondary">مهلت فسخ: {conv.contract.cancellationDeadline.toLocaleDateString("fa-IR", { calendar: "gregory" })}</p>
+                <p className="mt-1 text-secondary">{t("مهلت فسخ: {date}", { date: conv.contract.cancellationDeadline.toLocaleDateString(intl, { calendar: "gregory" }) })}</p>
               )}
-              <Link href={`/ops/customers/${conv.customer.id}`} className="mt-3 inline-block font-semibold text-purple-600 hover:underline">پرونده مشتری</Link>
+              <Link href={`/ops/customers/${conv.customer.id}`} className="mt-3 inline-block font-semibold text-purple-600 hover:underline">{t("پرونده مشتری")}</Link>
             </div>
           )}
           <div className="rounded-2xl border border-border bg-white p-6 text-sm">
-            <h2 className="mb-3 font-bold text-purple-900">درخواست‌های این قرارداد</h2>
-            {requests.length === 0 && <p className="text-secondary">درخواستی نیست.</p>}
+            <h2 className="mb-3 font-bold text-purple-900">{t("درخواست‌های این قرارداد")}</h2>
+            {requests.length === 0 && <p className="text-secondary">{t("درخواستی نیست.")}</p>}
             <ul className="space-y-2">
               {requests.map((r) => (
                 <li key={r.id}>

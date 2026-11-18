@@ -6,7 +6,9 @@ import { createGuide } from "@/lib/guide-actions";
 import { GuideForm } from "@/components/crm/GuideForm";
 import { canAccessContent } from "@/lib/permissions";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 export default async function NewGuidePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!canAccessContent(session?.user?.role)) redirect("/ops");
 
@@ -16,11 +18,11 @@ export default async function NewGuidePage({ searchParams }: { searchParams: Pro
     <div className="container-page max-w-2xl py-8">
       <Link href="/ops/guides" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
         <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        بازگشت به راهنماها
+        {t("بازگشت به راهنماها")}
       </Link>
-      <h1 className="text-2xl font-bold text-purple-900">راهنمای جدید</h1>
+      <h1 className="text-2xl font-bold text-purple-900">{t("راهنمای جدید")}</h1>
       <div className="mt-6">
-        <GuideForm action={createGuide} error={error} submitLabel="ایجاد" />
+        <GuideForm action={createGuide} error={error} submitLabel={t("ایجاد")} />
       </div>
     </div>
   );

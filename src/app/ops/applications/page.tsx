@@ -8,6 +8,7 @@ import { ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import { APPLICATION_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const STATUS_TONE: Record<string, BadgeTone> = {
   DRAFT: "neutral",
   SUBMITTED: "purple",
@@ -18,6 +19,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 };
 
 export default async function OpsApplicationsPage() {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -29,24 +31,24 @@ export default async function OpsApplicationsPage() {
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">درخواست‌ها</h1>
-      <p className="mt-1 text-sm text-secondary">درخواست‌های قرارداد در جریان با یک ارائه‌دهنده، از پیش‌نویس تا تایید نهایی.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("درخواست‌ها")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("درخواست‌های قرارداد در جریان با یک ارائه‌دهنده، از پیش‌نویس تا تایید نهایی.")}</p>
 
       {applications.length === 0 ? (
         <div className="mt-8">
-          <EmptyState icon={ClipboardText} title="هنوز درخواستی ثبت نشده" body="با پیش‌رفتن یک لید واجد شرایط با ارائه‌دهنده، یک درخواست ساخته می‌شود." />
+          <EmptyState icon={ClipboardText} title={t("هنوز درخواستی ثبت نشده")} body={t("با پیش‌رفتن یک لید واجد شرایط با ارائه‌دهنده، یک درخواست ساخته می‌شود.")} />
         </div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-start text-xs text-secondary">
-                <th className="px-4 py-3 text-start font-medium">ارائه‌دهنده / تعرفه</th>
-                <th className="px-4 py-3 text-start font-medium">متقاضی</th>
-                <th className="px-4 py-3 text-start font-medium">دسته‌بندی</th>
-                <th className="px-4 py-3 text-start font-medium">وضعیت</th>
-                <th className="px-4 py-3 text-start font-medium">مشاور</th>
-                <th className="px-4 py-3 text-start font-medium">شروع</th>
+                <th className="px-4 py-3 text-start font-medium">{t("ارائه‌دهنده / تعرفه")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("متقاضی")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("دسته‌بندی")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("مشاور")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("شروع")}</th>
               </tr>
             </thead>
             <tbody>
@@ -75,7 +77,7 @@ export default async function OpsApplicationsPage() {
                       <Badge tone={STATUS_TONE[a.status]}>{APPLICATION_STATUS_FA[a.status] ?? a.status}</Badge>
                     </td>
                     <td className="px-4 py-3 text-secondary">{a.advisor?.name ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-secondary">{a.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}</td>
+                    <td className="px-4 py-3 text-xs text-secondary">{a.createdAt.toLocaleDateString(intl, { calendar: "gregory" })}</td>
                   </tr>
                 );
               })}

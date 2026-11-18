@@ -335,7 +335,7 @@ export function QualifyLeadForm({ customerName, ...common }: Common & { customer
         {t("CRM قدیم با روش خودش («Qualify») قرارداد می‌سازد و اتوماسیون‌هایش را اجرا می‌کند —")}{" "}
         {customerName ? (
           <>
-            {t("برای مشتری موجود")} <strong>{tn(customerName)}</strong>.
+            {t("برای مشتری موجود")} <strong>{customerName === "مشتری لید" || customerName === "مشتری موجود" ? t(customerName) : customerName}</strong>.
           </>
         ) : (
           t("مشتری‌ای با این شماره یا ایمیل پیدا نشد، پس مشتری جدید هم ساخته می‌شود.")

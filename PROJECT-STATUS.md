@@ -252,7 +252,7 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   an e-mail with a link (`emailCustomer`, also on status changes) — outgoing e-mail (Zoho SMTP) is **on since
   2026-11-17**. Old-CRM tickets a customer writes on in the
   portal now show in the staff ticket list, «کارهای من» and the overview count. **Live 2026-11-15.**
-- **CRM language switch fa / EN / DE (owner 2026-11-18), Phase 1 built, not deployed**: switch at the bottom of the
+- **CRM language switch fa / EN / DE (owner 2026-11-18) — whole CRM, live 2026-11-18**: switch at the bottom of the
   side menu, remembered per browser (`ops_locale` cookie, staff only); Persian right-to-left, English / German
   left-to-right (layout, fonts, drawer, back arrows, date / number formats). `src/lib/ops-i18n/` — texts keyed by
   their Persian original (`t("…")`, `tn()` for old-CRM values), dictionary `dict.ts` (~800 entries); anything not
@@ -260,8 +260,10 @@ pipeline pages need ADMIN / ADVISOR / LEAD_MANAGER. Staff accounts in `/ops/team
   page, edit panel, call result, convert, bulk, lead links), customers + Customer 360, tickets, problem report,
   save messages, and the fixed old-CRM labels (stages, statuses, reasons, sources, contract terms, task types,
   customer fields, table names). Free text (names, notes, messages) is never translated; texts written into the
-  old CRM and everything sent to customers (notifications, e-mails) stay Persian. **Phase 2 (open)**: contracts,
-  applications, conversations, referrals, QC, old-CRM browser + automations, reports, content pages, team, security.
+  old CRM and everything sent to customers (notifications, e-mails) stay Persian. Phase 2 (same day): contracts,
+  applications, app conversations, referrals, QC, old-CRM browser + automations, lead reports, tasks, website-content
+  editors (guides, FAQ, reviews, energy tariffs, app slider), team, security. Names and people's own text are never
+  translated (owner). Dictionary ~1,150 entries.
 - **Linking leads «سرنخ‌های مرتبط»** on an old-CRM lead page (`lib/crm/lead-links.ts`, table `lead_links`): other
   leads with the same phone / e-mail are shown as possible duplicates; any lead can be found by name, mobile, e-mail
   or lead code; «تکراریِ همین سرنخ است» / «همین سرنخ تکراری است» closes the duplicate in Dynamics (reason
@@ -604,4 +606,5 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-18 | E-mail template: Tarefe logo; sign-in code selects in one tap (copy hint in fa / de / ru); logo files in `docs/brand/`; deploys now include `public/email` | yes, 2026-11-18 |
 | 2026-11-18 | E-mail template: one-tap select and copy hint under the code removed (owner); logo kept | yes, 2026-11-18 |
 | 2026-11-18 | App launch prep: Expo project + Firebase files (com.app.tarefe), Android release signing with the new upload key, first Android store build; owner requested the Play upload-key reset | app repo only |
-| 2026-11-18 | CRM language switch fa / EN / DE, Phase 1 (menu, overview, My work, leads, calls, customers, tickets, old-CRM labels, save messages); first Android store build (Expo) finished | no |
+| 2026-11-18 | CRM language switch fa / EN / DE, Phase 1 (menu, overview, My work, leads, calls, customers, tickets, old-CRM labels, save messages); first Android store build (Expo) finished | yes, with Phase 2 |
+| 2026-11-18 | CRM language switch Phase 2: every remaining CRM page; dates and numbers in the chosen language | yes, 2026-11-18 |

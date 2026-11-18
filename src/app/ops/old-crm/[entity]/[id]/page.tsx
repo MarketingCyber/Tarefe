@@ -6,6 +6,7 @@ import { canAccessPipeline } from "@/lib/permissions";
 import { displayName, fieldValue, isMirroredTable, relatedRecords, TABLE_LABELS } from "@/lib/dynamics/view";
 import type { FormTab } from "@/lib/dynamics/sync";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * One old-CRM record, laid out like its Dynamics form (same tabs, sections, field order and labels), so operators
  * recognise the screen. Fields that aren't on the form, are hidden there, or are empty are folded away below —
@@ -14,6 +15,7 @@ import type { FormTab } from "@/lib/dynamics/sync";
 export const dynamic = "force-dynamic";
 
 export default async function OldCrmRecordPage({ params }: { params: Promise<{ entity: string; id: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
   const { entity, id } = await params;
@@ -71,14 +73,14 @@ export default async function OldCrmRecordPage({ params }: { params: Promise<{ e
   return (
     <div className="container-page py-8">
       <div className="flex flex-wrap gap-x-2 text-sm">
-        <Link href="/ops/old-crm" className="text-purple-600 hover:underline">CRM قدیم</Link>
+        <Link href="/ops/old-crm" className="text-purple-600 hover:underline">{t("CRM قدیم")}</Link>
         <span className="text-secondary">/</span>
         <Link href={`/ops/old-crm/${entity}`} className="text-purple-600 hover:underline">{TABLE_LABELS[entity] ?? entity}</Link>
       </div>
       <h1 className="mt-1 text-2xl font-bold text-purple-900">{displayName(entity, data)}</h1>
       <p className="mt-1 text-xs text-secondary">
-        {record.deletedAt ? "در CRM قدیم حذف شده — " : ""}آخرین تغییر در CRM قدیم:{" "}
-        {record.crmModifiedAt ? new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }).format(record.crmModifiedAt) : "—"}
+        {record.deletedAt ? t("در CRM قدیم حذف شده — ") : ""}{t("آخرین تغییر در CRM قدیم:")}{" "}
+        {record.crmModifiedAt ? new Intl.DateTimeFormat(intl, { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }).format(record.crmModifiedAt) : "—"}
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -96,14 +98,14 @@ export default async function OldCrmRecordPage({ params }: { params: Promise<{ e
           ))}
           {otherFilled.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-border bg-white">
-              <h3 className="border-b border-border bg-tint px-4 py-2 text-sm font-semibold text-purple-900">{formTabs.length ? "فیلدهای دیگر (خارج از فرم)" : "فیلدها"}</h3>
+              <h3 className="border-b border-border bg-tint px-4 py-2 text-sm font-semibold text-purple-900">{formTabs.length ? t("فیلدهای دیگر (خارج از فرم)") : t("فیلدها")}</h3>
               <dl className="divide-y divide-border">{otherFilled.map((r) => <Field key={r.name} r={r} />)}</dl>
             </div>
           )}
-          {fields.length === 0 && <p className="text-sm text-secondary">برچسب فیلدها هنوز همگام نشده‌اند.</p>}
+          {fields.length === 0 && <p className="text-sm text-secondary">{t("برچسب فیلدها هنوز همگام نشده‌اند.")}</p>}
           {rest.length > 0 && (
             <details className="mt-3 rounded-xl border border-border bg-white">
-              <summary className="cursor-pointer px-4 py-3 text-sm text-secondary">{rest.length.toLocaleString("fa-IR")} فیلد خالی یا «استفاده نشود»</summary>
+              <summary className="cursor-pointer px-4 py-3 text-sm text-secondary">{t("{n} فیلد خالی یا «استفاده نشود»", { n: rest.length.toLocaleString(intl) })}</summary>
               <dl className="divide-y divide-border border-t border-border">{rest.map((r) => <Field key={r.name} r={r} />)}</dl>
             </details>
           )}
@@ -113,7 +115,7 @@ export default async function OldCrmRecordPage({ params }: { params: Promise<{ e
           {Object.entries(related).map(([table, list]) => (
             <section key={table} className="overflow-hidden rounded-xl border border-border bg-white">
               <h2 className="border-b border-border px-4 py-3 text-sm font-semibold text-purple-900">
-                {TABLE_LABELS[table] ?? table} <span className="font-normal text-secondary">({list.length.toLocaleString("fa-IR")})</span>
+                {TABLE_LABELS[table] ?? table} <span className="font-normal text-secondary">({list.length.toLocaleString(intl)})</span>
               </h2>
               <ul className="divide-y divide-border">
                 {list.map((r) => (

@@ -7,6 +7,7 @@ import { Badge } from "@/components/shared/Badge";
 import { REFERRAL_STATUS_FA, checkReferrals } from "@/lib/referral-check";
 import { markVoucherSent, undoVoucherSent } from "@/lib/crm/referral-actions";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Referrals and the 10 € voucher (owner's rules, lib/referral-check.ts): who came with whose code, where each one
  * stands, and the vouchers to send. Re-checked when the page opens (and by the old-CRM sync every 15 minutes).
@@ -25,9 +26,10 @@ const TONE: Record<string, "neutral" | "purple" | "success" | "warning" | "dange
 };
 const ORDER = ["due", "waiting_period", "referrer_no_contract", "waiting_contract", "waiting_customer", "sent", "friend_cancelled", "invalid"];
 const F = "@OData.Community.Display.V1.FormattedValue";
-const faDate = (d: Date | string | null | undefined) => (d ? new Date(d).toLocaleDateString("fa-IR", { calendar: "gregory" }) : "—");
 
 export default async function ReferralsPage() {
+  const { t, intl } = await getOpsI18n();
+  const faDate = (d: Date | string | null | undefined) => (d ? new Date(d).toLocaleDateString(intl, { calendar: "gregory" }) : "—");
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/referrals");
   if (!canAccessPipeline(session.user.role)) redirect("/ops");
@@ -62,7 +64,7 @@ export default async function ReferralsPage() {
       })
     ).map((o) => {
       const d = o.data as Record<string, unknown>;
-      return [o.crmId.toLowerCase(), String(d.name ?? d[`_new_category_value${F}`] ?? "قرارداد")] as const;
+      return [o.crmId.toLowerCase(), String(d.name ?? d[`_new_category_value${F}`] ?? t("قرارداد"))] as const;
     }),
   );
 
@@ -79,26 +81,26 @@ export default async function ReferralsPage() {
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">معرفی‌ها و کارت هدیه</h1>
+      <h1 className="text-2xl font-bold text-purple-900">{t("معرفی‌ها و کارت هدیه")}</h1>
       <p className="mt-1 max-w-[80ch] text-sm leading-relaxed text-secondary">
-        کارت هدیه ۱۰ یورویی برای معرف وقتی قابل ارسال است که دوستش قراردادی امضا کند و تا ۱۴ روز فسخ نکند، و خود معرف قرارداد فعال داشته باشد. وضعیت‌ها از CRM قدیم
-        خوانده می‌شوند؛ ۱۴ روز از اولین باری شمرده می‌شود که قرارداد دوست امضاشده دیده شد.
+        {t("کارت هدیه ۱۰ یورویی برای معرف وقتی قابل ارسال است که دوستش قراردادی امضا کند و تا ۱۴ روز فسخ نکند، و خود معرف قرارداد فعال داشته باشد. وضعیت‌ها از CRM قدیم")}
+        {t("خوانده می‌شوند؛ ۱۴ روز از اولین باری شمرده می‌شود که قرارداد دوست امضاشده دیده شد.")}
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {ORDER.filter((s) => counts[s]).map((s) => (
           <span key={s} className="flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-xs">
             <Badge tone={TONE[s]}>{REFERRAL_STATUS_FA[s]}</Badge>
-            <span className="font-semibold text-purple-900">{counts[s].toLocaleString("fa-IR")}</span>
+            <span className="font-semibold text-purple-900">{counts[s].toLocaleString(intl)}</span>
           </span>
         ))}
       </div>
 
       {sorted.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border-strong bg-tint py-14 text-center">
-          <p className="text-sm font-medium text-purple-900">هنوز معرفی‌ای ثبت نشده</p>
+          <p className="text-sm font-medium text-purple-900">{t("هنوز معرفی‌ای ثبت نشده")}</p>
           <p className="mx-auto mt-1 max-w-[50ch] text-xs text-secondary">
-            وقتی کسی با لینک یا کد معرفی یک مشتری ثبت‌نام کند یا فرم سایت را بفرستد، اینجا می‌آید.
+            {t("وقتی کسی با لینک یا کد معرفی یک مشتری ثبت‌نام کند یا فرم سایت را بفرستد، اینجا می‌آید.")}
           </p>
         </div>
       ) : (
@@ -106,11 +108,11 @@ export default async function ReferralsPage() {
           <table className="w-full min-w-[860px] text-sm">
             <thead className="bg-tint text-right text-xs text-secondary">
               <tr>
-                <th className="px-4 py-3 font-medium">دوست معرفی‌شده</th>
-                <th className="px-4 py-3 font-medium">معرف (کد)</th>
-                <th className="px-4 py-3 font-medium">وضعیت</th>
-                <th className="px-4 py-3 font-medium">قرارداد دوست</th>
-                <th className="px-4 py-3 font-medium">تاریخ‌ها</th>
+                <th className="px-4 py-3 font-medium">{t("دوست معرفی‌شده")}</th>
+                <th className="px-4 py-3 font-medium">{t("معرف (کد)")}</th>
+                <th className="px-4 py-3 font-medium">{t("وضعیت")}</th>
+                <th className="px-4 py-3 font-medium">{t("قرارداد دوست")}</th>
+                <th className="px-4 py-3 font-medium">{t("تاریخ‌ها")}</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
@@ -129,7 +131,7 @@ export default async function ReferralsPage() {
                     ) : (
                       <span className="font-medium text-purple-900">{friendLabel(r)}</span>
                     )}
-                    <p className="text-xs text-secondary">{r.leadId ? "فرم سایت" : "حساب سایت / اپ"}</p>
+                    <p className="text-xs text-secondary">{r.leadId ? t("فرم سایت") : t("حساب سایت / اپ")}</p>
                   </td>
                   <td className="px-4 py-3">
                     {r.referrerContactId ? (
@@ -143,7 +145,7 @@ export default async function ReferralsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={TONE[r.status] ?? "neutral"}>{REFERRAL_STATUS_FA[r.status] ?? r.status}</Badge>
-                    {r.status === "waiting_period" && r.statusNote && <p className="mt-1 text-xs text-secondary">تا {faDate(r.statusNote)}</p>}
+                    {r.status === "waiting_period" && r.statusNote && <p className="mt-1 text-xs text-secondary">{t("تا {date}", { date: faDate(r.statusNote) })}</p>}
                     {r.status === "invalid" && r.statusNote && <p className="mt-1 text-xs text-secondary">{r.statusNote}</p>}
                     {r.status === "sent" && (
                       <p className="mt-1 text-xs text-secondary">
@@ -154,28 +156,28 @@ export default async function ReferralsPage() {
                   <td className="px-4 py-3 text-xs">
                     {r.contractCrmId ? (
                       <Link href={`/ops/old-crm/opportunity/${r.contractCrmId}`} className="text-body hover:text-purple-600 hover:underline">
-                        {contractNames.get(r.contractCrmId) ?? "قرارداد"}
+                        {contractNames.get(r.contractCrmId) ?? t("قرارداد")}
                       </Link>
                     ) : (
                       "—"
                     )}
-                    {r.signedAt && <p className="text-secondary">امضا (دیده‌شده): {faDate(r.signedAt)}</p>}
+                    {r.signedAt && <p className="text-secondary">{t("امضا (دیده‌شده): {date}", { date: faDate(r.signedAt) })}</p>}
                   </td>
                   <td className="px-4 py-3 text-xs text-secondary">
-                    <p>معرفی: {faDate(r.createdAt)}</p>
-                    {r.dueSince && <p>قابل ارسال از: {faDate(r.dueSince)}</p>}
+                    <p>{t("معرفی: {date}", { date: faDate(r.createdAt) })}</p>
+                    {r.dueSince && <p>{t("قابل ارسال از: {date}", { date: faDate(r.dueSince) })}</p>}
                   </td>
                   <td className="px-4 py-3 text-left">
                     {r.status === "due" && (
                       <form action={markVoucherSent}>
                         <input type="hidden" name="id" value={r.id} />
-                        <button className="press rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">کارت هدیه فرستاده شد</button>
+                        <button className="press rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">{t("کارت هدیه فرستاده شد")}</button>
                       </form>
                     )}
                     {r.status === "sent" && (
                       <form action={undoVoucherSent}>
                         <input type="hidden" name="id" value={r.id} />
-                        <button className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-body hover:border-purple-600">برگرداندن</button>
+                        <button className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-body hover:border-purple-600">{t("برگرداندن")}</button>
                       </form>
                     )}
                   </td>

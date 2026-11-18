@@ -10,6 +10,7 @@ import { updateApplicationStatus } from "@/lib/application-actions";
 import { APPLICATION_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const STATUS_OPTIONS = ["DRAFT", "SUBMITTED", "PROVIDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED"] as const;
 const STATUS_TONE: Record<string, BadgeTone> = {
   DRAFT: "neutral",
@@ -21,6 +22,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 };
 
 export default async function OpsApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -46,7 +48,7 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
     <div className="container-page py-8">
       <Link href="/ops/applications" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
         <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        بازگشت به درخواست‌ها
+        {t("بازگشت به درخواست‌ها")}
       </Link>
 
       <div className="grid gap-6 2xl:grid-cols-3">
@@ -63,14 +65,14 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
                       {application.customer.name}
                     </Link>
                   ) : (
-                    "بدون مشتری متصل"
+                    t("بدون مشتری متصل")
                   )}{" "}
                   · <span className="font-latin">{application.customer?.email}</span> · {application.category}
                   {application.monthlyPrice && ` · ${application.monthlyPrice}`}
                 </p>
                 {application.lead && (
                   <p className="mt-1 text-xs text-secondary">
-                    از لید:{" "}
+                    {t("از لید:")}{" "}
                     <Link href={`/ops/leads/${application.lead.id}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
                       {application.lead.name}
                     </Link>
@@ -82,10 +84,10 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
 
             {application.contract && (
               <p className="mt-4 rounded-lg bg-tint px-3 py-2 text-xs font-medium text-purple-900">
-                تایید شد — قرارداد ساخته شد.{" "}
+                {t("تایید شد — قرارداد ساخته شد.")}{" "}
                 {application.customer && (
                   <Link href={`/ops/customers/${application.customer.id}`} className="underline hover:text-purple-600">
-                    مشاهده در پروفایل مشتری
+                    {t("مشاهده در پروفایل مشتری")}
                   </Link>
                 )}
                 .
@@ -102,7 +104,7 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
                     </option>
                   ))}
                 </select>
-                <Button type="submit">به‌روزرسانی وضعیت</Button>
+                <Button type="submit">{t("به‌روزرسانی وضعیت")}</Button>
               </form>
             </div>
           </div>
@@ -110,25 +112,25 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
 
         <div>
           <div className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">جزئیات</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("جزئیات")}</h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-secondary">مشاور</dt>
+                <dt className="text-secondary">{t("مشاور")}</dt>
                 <dd className="font-medium text-purple-900">{application.advisor?.name ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-secondary">شروع</dt>
-                <dd className="text-purple-900">{application.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}</dd>
+                <dt className="text-secondary">{t("شروع")}</dt>
+                <dd className="text-purple-900">{application.createdAt.toLocaleDateString(intl, { calendar: "gregory" })}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-secondary">آخرین به‌روزرسانی</dt>
-                <dd className="text-purple-900">{application.updatedAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}</dd>
+                <dt className="text-secondary">{t("آخرین به‌روزرسانی")}</dt>
+                <dd className="text-purple-900">{application.updatedAt.toLocaleDateString(intl, { calendar: "gregory" })}</dd>
               </div>
             </dl>
           </div>
 
           <div className="mt-6 rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">فعالیت‌ها</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("فعالیت‌ها")}</h2>
             <ActivityTimeline entries={activityLogs} />
           </div>
         </div>
