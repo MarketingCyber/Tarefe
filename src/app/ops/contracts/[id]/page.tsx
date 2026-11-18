@@ -9,12 +9,13 @@ import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { isGuid } from "@/lib/dynamics/identity";
 import { loadWithRelated } from "@/lib/crm/record360";
-import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
+import { TABLE_LABELS } from "@/lib/dynamics/view";
 import { Badge } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, TicketCard, happenedAt, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
 import { BackLink } from "@/components/crm/BackLink";
+import { RecordName } from "@/components/crm/RecordName";
 /**
  * Contract 360 — one old-CRM contract (Dynamics opportunity) with its key facts and everything filed on it:
  * tickets, the merged history (e-mails, calls, tasks, appointments, notes), points and other records. Read-only
@@ -201,7 +202,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
                 {points.slice(0, 10).map((p) => (
                   <li key={p.crmId}>
                     <Link href={`/ops/old-crm/new_points/${p.crmId}`} className="text-body hover:text-purple-600 hover:underline">
-                      {displayName("new_points", p.data)}
+                      <RecordName entity={"new_points"} data={p.data} />
                     </Link>
                   </li>
                 ))}
@@ -225,7 +226,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
                             href={r.entity === "opportunity" ? `/ops/contracts/${r.crmId}` : `/ops/old-crm/${entity}/${r.crmId}`}
                             className="text-sm text-purple-900 hover:text-purple-600 hover:underline"
                           >
-                            {displayName(entity, r.data)}
+                            <RecordName entity={entity} data={r.data} />
                           </Link>
                         </li>
                       ))}

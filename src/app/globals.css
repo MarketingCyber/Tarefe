@@ -321,6 +321,15 @@
  * class (src/app/ops/layout.tsx); the public site and the customer portal keep the brand colours. Every panel
  * colour comes from these tokens, so the whole panel follows.
  */
+/*
+ * CRM in English / German (2026-11-18): old-CRM data is often Persian, or Persian mixed with Latin ("امتیازات 39 baf560").
+ * Each inline piece of text takes its direction from its own content, so mixed text isn't scrambled by the page's
+ * left-to-right direction. Inline only: block alignment stays as designed.
+ */
+html.ops-theme[dir="ltr"] :is(a, span, strong, em, b, bdi) {
+  unicode-bidi: plaintext;
+}
+
 html.ops-theme {
   --color-purple-600: #3a6491; /* accent: links, buttons, focus */
   --color-purple-900: #20364d; /* headings, dark buttons */

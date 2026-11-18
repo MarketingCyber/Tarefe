@@ -9,13 +9,14 @@ import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
 import { loadWithRelated } from "@/lib/crm/record360";
 import { emailKey, personKeys, phoneKey } from "@/lib/dynamics/identity";
-import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
+import { TABLE_LABELS } from "@/lib/dynamics/view";
 import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
 import { BackLink } from "@/components/crm/BackLink";
+import { RecordName } from "@/components/crm/RecordName";
 /**
  * An old-CRM lead (Dynamics lead): who asked about what, where they came from (source), what became of it — the
  * contract it was converted to, or why it was closed — the same person's website form submissions (matched by
@@ -228,7 +229,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
                             href={entity === "opportunity" ? `/ops/contracts/${r.crmId}` : entity === "contact" ? `/ops/customers/${r.crmId}` : `/ops/old-crm/${entity}/${r.crmId}`}
                             className="text-sm text-purple-900 hover:text-purple-600 hover:underline"
                           >
-                            {displayName(entity, r.data)}
+                            <RecordName entity={entity} data={r.data} />
                           </Link>
                         </li>
                       ))}

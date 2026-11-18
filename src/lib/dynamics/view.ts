@@ -55,12 +55,28 @@ const TARGET = "@Microsoft.Dynamics.CRM.lookuplogicalname";
 type Data = Record<string, unknown>;
 
 /** The name a record is known by in Dynamics. */
-export function displayName(entity: string, data: Data): string {
-  for (const key of ["fullname", "name", "title", "subject", "new_name", "bs_name", "bsnotif_name", "bsfulm_name", "filename"]) {
+const NAME_KEYS = ["fullname", "name", "title", "subject", "new_name", "new_topic", "bs_name", "bsnotif_name", "bsfulm_name", "filename"];
+
+/**
+ * A record's name for lists and headings. Records without a name field (points, consultation details …) use their
+ * topic, else their type's display text, else "table · date" — never a fragment of the record ID (2026-11-18:
+ * «امتیازات 39 baf560» was unreadable). `t` / `intl` give the table name and date in the staff member's language.
+ */
+export function recordName(entity: string, data: Data, t: (fa: string) => string = (s) => s, intl = "fa-IR"): string {
+  for (const key of NAME_KEYS) {
     const v = data[key];
-    if (typeof v === "string" && v.trim()) return v;
+    if (typeof v === "string" && v.trim()) return v.trim();
   }
-  return `${TABLE_LABELS[entity] ?? entity} ${String(data[`${entity}id`] ?? data.activityid ?? "").slice(0, 8)}`;
+  const type = data[`new_type${F}`];
+  if (typeof type === "string" && type.trim()) return t(type.trim());
+  const created = typeof data.createdon === "string" ? new Date(data.createdon) : null;
+  const when = created && !Number.isNaN(created.getTime()) ? created.toLocaleDateString(intl, { calendar: "gregory", timeZone: "Europe/Berlin" }) : null;
+  return [t(TABLE_LABELS[entity] ?? entity), when].filter(Boolean).join(" · ");
+}
+
+/** @deprecated in pages — use <RecordName> (translated, direction-safe). Kept for non-UI callers. */
+export function displayName(entity: string, data: Data): string {
+  return recordName(entity, data);
 }
 
 export type FieldValue = { text: string; link?: { entity: string; id: string } } | null;

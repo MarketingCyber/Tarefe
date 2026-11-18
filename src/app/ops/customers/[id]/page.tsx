@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { loadCustomer, type CrmRow } from "@/lib/crm/customer360";
-import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
+import { TABLE_LABELS } from "@/lib/dynamics/view";
 import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { TaskList } from "@/components/crm/TaskList";
 import { QuickAddTask } from "@/components/crm/QuickAddTask";
@@ -23,6 +23,7 @@ import { CONTRACT_STATUS_FA, APPLICATION_STATUS_FA, TICKET_STATUS_FA, LEAD_STATU
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
 import { BackLink } from "@/components/crm/BackLink";
+import { RecordName } from "@/components/crm/RecordName";
 const CONTRACT_STATUS_TONE: Record<string, BadgeTone> = {
   ACTIVE: "success",
   PENDING: "warning",
@@ -489,7 +490,7 @@ export default async function CustomerDetailPage({
                       {rows.slice(0, 5).map((r) => (
                         <li key={r.crmId}>
                           <Link href={`/ops/old-crm/${entity}/${r.crmId}`} className="text-sm text-purple-900 hover:text-purple-600 hover:underline">
-                            {displayName(entity, r.data)}
+                            <RecordName entity={entity} data={r.data} />
                           </Link>
                         </li>
                       ))}
@@ -539,7 +540,7 @@ async function PointRow({ r }: { r: CrmRow }) {
   return (
     <li className="flex items-baseline justify-between gap-3">
       <Link href={`/ops/old-crm/new_points/${r.crmId}`} className="min-w-0 truncate text-body hover:text-purple-600 hover:underline">
-        {displayName("new_points", r.data)}
+        <RecordName entity={"new_points"} data={r.data} />
       </Link>
       <span className="shrink-0 tabular-nums text-secondary">{typeof amount === "number" ? amount.toLocaleString(intl) : shownDate(r.data, "createdon", false, intl)}</span>
     </li>

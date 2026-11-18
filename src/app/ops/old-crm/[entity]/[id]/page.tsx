@@ -3,10 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
-import { displayName, fieldValue, isMirroredTable, relatedRecords, TABLE_LABELS } from "@/lib/dynamics/view";
+import { fieldValue, isMirroredTable, relatedRecords, TABLE_LABELS } from "@/lib/dynamics/view";
 import type { FormTab } from "@/lib/dynamics/sync";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { RecordName } from "@/components/crm/RecordName";
 /**
  * One old-CRM record, laid out like its Dynamics form (same tabs, sections, field order and labels), so operators
  * recognise the screen. Fields that aren't on the form, are hidden there, or are empty are folded away below —
@@ -77,7 +78,7 @@ export default async function OldCrmRecordPage({ params }: { params: Promise<{ e
         <span className="text-secondary">/</span>
         <Link href={`/ops/old-crm/${entity}`} className="text-purple-600 hover:underline">{TABLE_LABELS[entity] ?? entity}</Link>
       </div>
-      <h1 className="mt-1 text-2xl font-bold text-purple-900">{displayName(entity, data)}</h1>
+      <h1 className="mt-1 text-2xl font-bold text-purple-900"><RecordName entity={entity} data={data} /></h1>
       <p className="mt-1 text-xs text-secondary">
         {record.deletedAt ? t("در CRM قدیم حذف شده — ") : ""}{t("آخرین تغییر در CRM قدیم:")}{" "}
         {record.crmModifiedAt ? new Intl.DateTimeFormat(intl, { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }).format(record.crmModifiedAt) : "—"}
@@ -120,7 +121,7 @@ export default async function OldCrmRecordPage({ params }: { params: Promise<{ e
               <ul className="divide-y divide-border">
                 {list.map((r) => (
                   <li key={r.crmId}>
-                    <Link href={`/ops/old-crm/${table}/${r.crmId}`} className="block px-4 py-2.5 text-sm text-purple-900 hover:bg-tint">{displayName(table, r.data)}</Link>
+                    <Link href={`/ops/old-crm/${table}/${r.crmId}`} className="block px-4 py-2.5 text-sm text-purple-900 hover:bg-tint"><RecordName entity={table} data={r.data} /></Link>
                   </li>
                 ))}
               </ul>

@@ -5,12 +5,13 @@ import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { loadWithRelated } from "@/lib/crm/record360";
-import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
+import { TABLE_LABELS } from "@/lib/dynamics/view";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
 import { BackLink } from "@/components/crm/BackLink";
+import { RecordName } from "@/components/crm/RecordName";
 /**
  * An old-CRM ticket (Dynamics incident) — what the customer asked, the operator's note, the contract and customer
  * it's about, the follow-up date, and its history (e-mails, calls, tasks, notes filed on it). Read-only until
@@ -189,7 +190,7 @@ export async function CrmTicket({ id, history }: { id: string; history?: string 
                             href={entity === "opportunity" ? `/ops/contracts/${r.crmId}` : `/ops/old-crm/${entity}/${r.crmId}`}
                             className="text-sm text-purple-900 hover:text-purple-600 hover:underline"
                           >
-                            {displayName(entity, r.data)}
+                            <RecordName entity={entity} data={r.data} />
                           </Link>
                         </li>
                       ))}

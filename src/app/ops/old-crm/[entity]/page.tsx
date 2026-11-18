@@ -3,9 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
-import { displayName, isMirroredTable, TABLE_LABELS } from "@/lib/dynamics/view";
+import { isMirroredTable, TABLE_LABELS } from "@/lib/dynamics/view";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { RecordName } from "@/components/crm/RecordName";
 /** One old-CRM table: newest first, with a search over every field (name, phone, email, contract number …). */
 export const dynamic = "force-dynamic";
 const PAGE = 50;
@@ -54,7 +55,7 @@ export default async function OldCrmTablePage({ params, searchParams }: { params
         {rows.map((r) => (
           <li key={r.crmId}>
             <Link href={`/ops/old-crm/${entity}/${r.crmId}`} className="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-tint">
-              <span className="font-medium text-purple-900">{displayName(entity, r.data)}</span>
+              <span className="font-medium text-purple-900"><RecordName entity={entity} data={r.data} /></span>
               <span className="shrink-0 text-xs text-secondary">{r.crmModifiedAt ? new Intl.DateTimeFormat(intl, { dateStyle: "short", timeZone: "Europe/Berlin" }).format(r.crmModifiedAt) : ""}</span>
             </Link>
           </li>
