@@ -132,8 +132,39 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
 };
 
-/** Lead reports for leads created since `since`: per operator (owner) and per contract type. */
-export async function leadReports(since: string): Promise<{ operators: OperatorRow[]; types: TypeRow[] }> {
+/** One row of lead KPIs for any dimension (owner, source / medium, campaign). */
+export type KpiRow = {
+  key: string;
+  /** For source / medium rows without UTM: the old CRM's «نحوه آشنایی» value they fall back to. */
+  fallback?: string | null;
+  leads: number;
+  converted: number;
+  closed: number;
+  open: number;
+  called: number;
+  medianFirstCallHours: number | null;
+  medianDaysToContract: number | null;
+};
+
+type Acc = KpiRow & { firstCalls: number[]; toContract: number[] };
+
+const NOT_SET = "(not set)";
+const clean = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().toLowerCase() : null);
+
+/**
+ * Lead reports for leads created since `since`: per operator (owner), per contract type, and — for marketing
+ * (owner 2026-11-18) — per source / medium and per campaign, from the old CRM's own UTM fields (`new_utm_source`,
+ * `new_utm_medium`, `new_utm_campaign`, filled by the website since late Oct 2026). Leads without UTM are grouped as
+ * "(not set)" under their «نحوه آشنایی» (leadsourcecode) value.
+ */
+export async function leadReports(since: string): Promise<{
+  operators: OperatorRow[];
+  types: TypeRow[];
+  sources: KpiRow[];
+  campaigns: KpiRow[];
+  withUtm: number;
+  total: number;
+}> {
   const rows = await prisma.$queryRaw<{ crmId: string; data: Data; state: number | null }[]>`
     SELECT "crmId", data, state FROM crm_records WHERE entity = 'lead' AND "deletedAt" IS NULL AND data->>'createdon' >= ${since}`;
   const ids = rows.map((r) => r.crmId.toLowerCase());
@@ -147,25 +178,56 @@ export async function leadReports(since: string): Promise<{ operators: OperatorR
     : [];
   const contractCreated = new Map(contracts.map((c) => [c.crmId.toLowerCase(), String((c.data as Data).createdon ?? "")]));
 
-  const ops = new Map<string, OperatorRow & { firstCalls: number[]; toContract: number[] }>();
+  const ops = new Map<string, Acc>();
+  const sources = new Map<string, Acc>();
+  const campaigns = new Map<string, Acc>();
   const types = new Map<string, TypeRow>();
+  const blank = (key: string, fallback?: string | null): Acc => ({
+    key,
+    fallback,
+    leads: 0,
+    converted: 0,
+    closed: 0,
+    open: 0,
+    called: 0,
+    medianFirstCallHours: null,
+    medianDaysToContract: null,
+    firstCalls: [],
+    toContract: [],
+  });
+  let withUtm = 0;
+
   for (const r of rows) {
     const d = r.data as Data;
-    const owner = String(d[`_ownerid_value${F}`] ?? "—");
-    const o = ops.get(owner) ?? { owner, leads: 0, converted: 0, closed: 0, open: 0, called: 0, medianFirstCallHours: null, medianDaysToContract: null, firstCalls: [], toContract: [] };
-    o.leads++;
-    if (r.state === 1) o.converted++;
-    else if (r.state === 2) o.closed++;
-    else o.open++;
     const created = typeof d.createdon === "string" ? Date.parse(d.createdon) : NaN;
     const c = calls.get(r.crmId.toLowerCase());
-    if (c) {
-      o.called++;
-      if (c.first && !Number.isNaN(created)) o.firstCalls.push(Math.max(0, (Date.parse(c.first) - created) / 3_600_000));
-    }
+    const firstCall = c?.first && !Number.isNaN(created) ? Math.max(0, (Date.parse(c.first) - created) / 3_600_000) : null;
     const contract = typeof d._qualifyingopportunityid_value === "string" ? contractCreated.get(d._qualifyingopportunityid_value.toLowerCase()) : undefined;
-    if (contract && !Number.isNaN(created)) o.toContract.push(Math.max(0, (Date.parse(contract) - created) / 86_400_000));
-    ops.set(owner, o);
+    const toContract = contract && !Number.isNaN(created) ? Math.max(0, (Date.parse(contract) - created) / 86_400_000) : null;
+    const add = (map: Map<string, Acc>, key: string, fallback?: string | null) => {
+      const mapKey = fallback === undefined ? key : `${key}\u0000${fallback ?? ""}`;
+      const a = map.get(mapKey) ?? blank(key, fallback);
+      a.leads++;
+      if (r.state === 1) a.converted++;
+      else if (r.state === 2) a.closed++;
+      else a.open++;
+      if (c) a.called++;
+      if (firstCall !== null) a.firstCalls.push(firstCall);
+      if (toContract !== null) a.toContract.push(toContract);
+      map.set(mapKey, a);
+    };
+
+    add(ops, String(d[`_ownerid_value${F}`] ?? "—"));
+
+    const source = clean(d.new_utm_source);
+    const medium = clean(d.new_utm_medium);
+    if (source || medium) {
+      withUtm++;
+      add(sources, `${source ?? "(none)"} / ${medium ?? "(none)"}`);
+    } else {
+      add(sources, NOT_SET, (d[`leadsourcecode${F}`] as string | undefined)?.trim() || null);
+    }
+    add(campaigns, clean(d.new_utm_campaign) ?? NOT_SET);
 
     const type = String(d[`_new_type_value${F}`] ?? "نامشخص");
     const t = types.get(type) ?? { type, leads: 0, converted: 0 };
@@ -173,11 +235,19 @@ export async function leadReports(since: string): Promise<{ operators: OperatorR
     if (r.state === 1) t.converted++;
     types.set(type, t);
   }
-  return {
-    operators: [...ops.values()]
+
+  const done = (map: Map<string, Acc>): KpiRow[] =>
+    [...map.values()]
       .map(({ firstCalls, toContract, ...o }) => ({ ...o, medianFirstCallHours: median(firstCalls), medianDaysToContract: median(toContract) }))
-      .sort((a, b) => b.leads - a.leads),
+      .sort((a, b) => (a.key === NOT_SET ? 1 : 0) - (b.key === NOT_SET ? 1 : 0) || b.leads - a.leads);
+
+  return {
+    operators: done(ops).map(({ key, ...o }) => ({ owner: key, ...o })),
     types: [...types.values()].sort((a, b) => b.leads - a.leads),
+    sources: done(sources),
+    campaigns: done(campaigns),
+    withUtm,
+    total: rows.length,
   };
 }
 

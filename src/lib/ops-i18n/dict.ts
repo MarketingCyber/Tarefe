@@ -39,6 +39,10 @@ export const DICT: Record<string, readonly [string, string]> = {
   "امنیت": ["Security", "Sicherheit"],
   "کارکنان": ["Staff", "Mitarbeitende"],
   "مارکتینگ": ["Marketing", "Marketing"],
+  "به تفکیک کمپین": ["By campaign", "Nach Kampagne"],
+  "به تفکیک منبع / رسانه (Source / Medium)": ["By source / medium", "Nach Source / Medium"],
+  "کمپین": ["Campaign", "Kampagne"],
+  "{n} از {all} سرنخ این بازه UTM دارند (سایت جدید از اواخر اکتبر ۲۰۲۶ می‌فرستد). بقیه «(not set)» هستند، به تفکیک «نحوه آشنایی» در CRM قدیم.": ["{n} of {all} leads in this period have UTM data (the new website sends it since late October 2026). The rest are \"(not set)\", split by the old CRM's \"how they found us\".", "{n} von {all} Leads in diesem Zeitraum haben UTM-Daten (die neue Website sendet sie seit Ende Oktober 2026). Der Rest ist „(not set)“, aufgeteilt nach „Wie gefunden“ im alten CRM."],
 
   // ── Common words, buttons, messages ───────────────────────────────────────────────────────────────────────────
   "بستن": ["Close", "Schließen"],
