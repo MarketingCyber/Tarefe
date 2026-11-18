@@ -59,6 +59,17 @@ async function main() {
     },
   });
 
+  // Local test ADMIN (2026-11-18) — same rules as the fixtures above: only with SEED_TEST_USERS=1, never in
+  // production. For trying admin-only pages (/ops/team, all of /ops) on localhost.
+  const adminTestPassword = await bcrypt.hash("Tarefe-AdminTest-2026!", 10);
+  if (withFixtures) {
+    await prisma.user.upsert({
+      where: { email: "admin-test@tarefe.de" },
+      update: {},
+      create: { email: "admin-test@tarefe.de", passwordHash: adminTestPassword, name: "Admin Test", role: "ADMIN", locale: "fa" },
+    });
+  }
+
   // Real ADMIN account, seeded only when the actual credentials are passed
   // via env — unlike the advisor/customer accounts above (deliberately
   // simple test fixtures, documented as such), an admin password is a real
