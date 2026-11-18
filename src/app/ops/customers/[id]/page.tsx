@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { CustomerLinkForm, CustomerLinkStatus } from "@/components/crm/customer/CustomerLinkForms";
 import { writeMode } from "@/lib/dynamics/write";
+import { JumpToNote } from "@/components/crm/customer/JumpToNote";
 import { AddNoteForm, CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import Link from "next/link";
 import { ArrowRight, ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
@@ -77,6 +78,11 @@ export default async function CustomerDetailPage({
   const writes = writeMode();
 
   const contracts = related.opportunity ?? [];
+  // Old CRM: state 2 = ended (lost / cancelled); 0 and 1 count as running, as on /ops/contracts.
+  const activeContracts = contracts.filter((r) => Number(r.data.statecode) !== 2);
+  const inactiveContracts = contracts.filter((r) => Number(r.data.statecode) === 2);
+  const activeSite = account?.contracts.filter((ct) => ct.status !== "CANCELLED") ?? [];
+  const inactiveSite = account?.contracts.filter((ct) => ct.status === "CANCELLED") ?? [];
   const tickets = related.incident ?? [];
   const points = related.new_points ?? [];
   const historyAll = Object.keys(HISTORY_TYPES)
@@ -140,6 +146,9 @@ export default async function CustomerDetailPage({
           </div>
           {contact && (
             <div className="flex flex-wrap gap-2">
+              {writes !== "off" && (
+                <JumpToNote />
+              )}
               <Link href={`/ops/old-crm/contact/${contact.crmId}`} className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600">
                 {t("فرم کامل در CRM قدیم")}
               </Link>
@@ -200,41 +209,62 @@ export default async function CustomerDetailPage({
         )}
       </div>
 
-      {contact && <CrmEditPanel entity="contact" id={contact.crmId} data={c} state={null} returnPath={self} />}
-
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <div className="space-y-6 2xl:col-span-2">
-          <Section title={t("قراردادها ({n})", { n: contracts.length + (account?.contracts.length ?? 0) })}>
-            {contracts.length + (account?.contracts.length ?? 0) === 0 ? (
+          {/* Active and inactive contracts as two lists, like the old CRM's customer form (staff feedback 2026-11-18). */}
+          <Section title={t("قراردادهای فعال ({n})", { n: activeContracts.length + activeSite.length })}>
+            {activeContracts.length + activeSite.length === 0 ? (
               <Empty />
             ) : (
               <div className="space-y-2">
-                {contracts.map((r) => (
+                {activeContracts.map((r) => (
                   <ContractCard key={r.crmId} r={r} />
                 ))}
-                {account?.contracts.map((ct) => (
-                  <div key={ct.id} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm">
-                    <div>
-                      <p className="font-medium text-purple-900">
-                        {ct.provider} — {ct.productName}
-                      </p>
-                      <p className="text-xs text-secondary">{t(ct.category)} · {t("ثبت‌شده در سایت")}</p>
-                    </div>
-                    <Badge tone={CONTRACT_STATUS_TONE[ct.status]}>{CONTRACT_STATUS_FA[ct.status] ?? ct.status}</Badge>
-                  </div>
+                {activeSite.map((ct) => (
+                  <SiteContract key={ct.id} ct={ct} />
                 ))}
               </div>
             )}
           </Section>
+
+          {inactiveContracts.length + inactiveSite.length > 0 && (
+            <details className="group rounded-2xl border border-border bg-white p-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                <h2 className="text-sm font-bold text-purple-900">{t("قراردادهای غیرفعال ({n})", { n: inactiveContracts.length + inactiveSite.length })}</h2>
+                <span className="text-xs font-medium text-secondary group-open:hidden">{t("نمایش")}</span>
+                <span className="hidden text-xs font-medium text-secondary group-open:inline">{t("بستن")}</span>
+              </summary>
+              <div className="mt-3 space-y-2">
+                {inactiveContracts.map((r) => (
+                  <ContractCard key={r.crmId} r={r} />
+                ))}
+                {inactiveSite.map((ct) => (
+                  <SiteContract key={ct.id} ct={ct} />
+                ))}
+              </div>
+            </details>
+          )}
 
           <Section title={t("تیکت‌ها ({n})", { n: tickets.length + (account?.serviceRequests.length ?? 0) })}>
             {tickets.length + (account?.serviceRequests.length ?? 0) === 0 ? (
               <Empty />
             ) : (
               <div className="space-y-2">
-                {tickets.map((r) => (
+                {tickets.slice(0, TICKETS_SHOWN).map((r) => (
                   <TicketCard key={r.crmId} r={r} />
                 ))}
+                {tickets.length > TICKETS_SHOWN && (
+                  <details className="group">
+                    <summary className="cursor-pointer list-none rounded-xl border border-dashed border-border-strong px-3 py-2 text-center text-xs font-medium text-purple-900 hover:border-purple-600 group-open:hidden [&::-webkit-details-marker]:hidden">
+                      {t("نمایش همه ({n})", { n: tickets.length.toLocaleString(intl) })}
+                    </summary>
+                    <div className="space-y-2">
+                      {tickets.slice(TICKETS_SHOWN).map((r) => (
+                        <TicketCard key={r.crmId} r={r} />
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {account?.serviceRequests.map((sr) => (
                   <Link key={sr.id} href={`/ops/tickets/${sr.id}`} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
                     <div>
@@ -252,7 +282,7 @@ export default async function CustomerDetailPage({
             <Section title={t("تاریخچه ({n})", { n: historyAll.length })} note={t("ایمیل‌ها، تماس‌ها، تسک‌ها، قرارها و یادداشت‌های CRM قدیم — هم آن‌هایی که روی خود مشتری ثبت شده‌اند و هم روی قراردادها و تیکت‌هایش.")}>
               {writes !== "off" && (
                 <div className="mb-4">
-                  <AddNoteForm entity="contact" id={contact.crmId} returnPath={self} dry={writes === "dry"} />
+                  <AddNoteForm entity="contact" id={contact.crmId} returnPath={self} dry={writes === "dry"} anchor="note" />
                 </div>
               )}
               <div className="mb-4 flex flex-wrap gap-1.5">
@@ -495,6 +525,12 @@ export default async function CustomerDetailPage({
           )}
         </div>
       </div>
+
+      {contact && (
+        <div className="mt-6">
+          <CrmEditPanel entity="contact" id={contact.crmId} data={c} state={null} returnPath={self} folded />
+        </div>
+      )}
     </div>
   );
 }
@@ -509,6 +545,27 @@ async function PointRow({ r }: { r: CrmRow }) {
       </Link>
       <span className="shrink-0 tabular-nums text-secondary">{typeof amount === "number" ? amount.toLocaleString(intl) : shownDate(r.data, "createdon", false, intl)}</span>
     </li>
+  );
+}
+
+/** Tickets listed before "show all" — the notes box below shouldn't be thousands of pixels away (staff feedback). */
+const TICKETS_SHOWN = 5;
+
+/** A contract made on the website (not in the old CRM). */
+async function SiteContract({ ct }: { ct: { id: string; provider: string; productName: string; category: string; status: string } }) {
+  const { t } = await getOpsI18n();
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border p-3 text-sm">
+      <div>
+        <p className="font-medium text-purple-900">
+          {ct.provider} — {ct.productName}
+        </p>
+        <p className="text-xs text-secondary">
+          {t(ct.category)} · {t("ثبت‌شده در سایت")}
+        </p>
+      </div>
+      <Badge tone={CONTRACT_STATUS_TONE[ct.status]}>{t(CONTRACT_STATUS_FA[ct.status] ?? ct.status)}</Badge>
+    </div>
   );
 }
 

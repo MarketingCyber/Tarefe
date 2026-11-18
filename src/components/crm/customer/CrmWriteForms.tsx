@@ -34,7 +34,7 @@ export function CloseActivityButton({ entity, id, returnPath, dry }: { entity: s
   );
 }
 
-export function AddNoteForm({ entity, id, returnPath, dry }: { entity: string; id: string; returnPath: string; dry?: boolean }) {
+export function AddNoteForm({ entity, id, returnPath, dry, anchor }: { entity: string; id: string; returnPath: string; dry?: boolean; anchor?: string }) {
   const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(addCrmNote, null);
   const form = useRef<HTMLFormElement>(null);
@@ -42,7 +42,7 @@ export function AddNoteForm({ entity, id, returnPath, dry }: { entity: string; i
     if (state?.ok) form.current?.reset();
   }, [state]);
   return (
-    <form ref={form} action={action} className="rounded-xl border border-dashed border-border-strong p-3">
+    <form ref={form} id={anchor} action={action} className="scroll-mt-6 rounded-xl border border-border-strong bg-tint/60 p-3">
       <input type="hidden" name="entity" value={entity} />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="returnPath" value={returnPath} />
@@ -54,7 +54,8 @@ export function AddNoteForm({ entity, id, returnPath, dry }: { entity: string; i
         name="text"
         required
         maxLength={5000}
-        rows={2}
+        rows={3}
+        placeholder={t("یادداشت را این‌جا بنویسید…")}
         className="mt-1.5 w-full rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-body outline-none focus:border-purple-600"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">

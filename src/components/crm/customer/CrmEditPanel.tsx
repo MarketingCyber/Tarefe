@@ -17,12 +17,15 @@ export async function CrmEditPanel({
   data,
   state,
   returnPath,
+  folded = false,
 }: {
   entity: "lead" | "contact" | "opportunity" | "incident";
   id: string;
   data: Record<string, unknown>;
   state: number | null;
   returnPath: string;
+  /** Closed by default behind its heading (customer / contract pages, where it isn't the main job; staff feedback 2026-11-18). */
+  folded?: boolean;
 }) {
   const { t } = await getOpsI18n();
   const mode = writeMode();
@@ -39,11 +42,14 @@ export async function CrmEditPanel({
   // Lead → contract: whose contract it becomes (the lead's customer, else the one customer with its phone / e-mail).
   const customerName = openLead ? await leadCustomerName(data) : null;
 
-  return (
-    <section aria-labelledby={`edit-${id}`} className="mt-6 rounded-2xl border border-border bg-white p-6">
-      <h2 id={`edit-${id}`} className="text-sm font-bold text-purple-900">
-        {t("ویرایش در CRM قدیم")}{dry ? t(" (آزمایشی — چیزی ارسال نمی‌شود)") : ""}
-      </h2>
+  const title = (
+    <>
+      {t("ویرایش در CRM قدیم")}
+      {dry ? t(" (آزمایشی — چیزی ارسال نمی‌شود)") : ""}
+    </>
+  );
+  const body = (
+    <>
       <p className="mt-1 text-xs text-secondary">{t("هر تغییر اول در CRM قدیم ثبت می‌شود و بعد اینجا نمایش داده می‌شود؛ نام شما در گزارش فعالیت می‌ماند.")}</p>
 
       <div className="mt-5 space-y-5 divide-y divide-border [&>*:not(:first-child)]:pt-5">
@@ -64,6 +70,30 @@ export async function CrmEditPanel({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (folded)
+    return (
+      <details className="group rounded-2xl border border-border bg-white p-6">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="block text-sm font-bold text-purple-900">{title}</span>
+            <span className="mt-0.5 block text-xs text-secondary">{t("نتیجه تماس، واگذاری، تماس بعدی، فایل")}</span>
+          </span>
+          <span className="shrink-0 rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-purple-900 group-open:hidden">{t("باز کردن")}</span>
+          <span className="hidden shrink-0 rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-purple-900 group-open:inline">{t("بستن")}</span>
+        </summary>
+        {body}
+      </details>
+    );
+
+  return (
+    <section aria-labelledby={`edit-${id}`} className="mt-6 rounded-2xl border border-border bg-white p-6">
+      <h2 id={`edit-${id}`} className="text-sm font-bold text-purple-900">
+        {title}
+      </h2>
+      {body}
     </section>
   );
 }

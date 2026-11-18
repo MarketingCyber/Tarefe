@@ -742,6 +742,21 @@ export const DICT: Record<string, readonly [string, string]> = {
   "آخرین تغییر در CRM قدیم:": ["Last change in the old CRM:", "Letzte Änderung im alten CRM:"],
   "در CRM قدیم حذف شده — ": ["Deleted in the old CRM — ", "Im alten CRM gelöscht — "],
 
+  // ── Contract / customer page layout (staff feedback 2026-11-18) ───────────────────────────────────────────────
+  "مالی": ["Money", "Finanzen"],
+  "شماره‌ها": ["Numbers", "Nummern"],
+  "مسئول و ثبت": ["Owner and record", "Zuständig und Anlage"],
+  "بازگشت به {name}": ["Back to {name}", "Zurück zu {name}"],
+  "+ یادداشت": ["+ Note", "+ Notiz"],
+  "جزئیات قرارداد": ["Contract details", "Vertragsdetails"],
+  "یادداشت‌ها و فعالیت‌ها ({n})": ["Notes and activities ({n})", "Notizen und Aktivitäten ({n})"],
+  "قراردادهای فعال ({n})": ["Active contracts ({n})", "Aktive Verträge ({n})"],
+  "قراردادهای غیرفعال ({n})": ["Inactive contracts ({n})", "Inaktive Verträge ({n})"],
+  "نتیجه تماس، واگذاری، تماس بعدی، فایل": ["Call result, assign, next call, file", "Anrufergebnis, Zuweisen, nächster Anruf, Datei"],
+  "باز کردن": ["Open", "Öffnen"],
+  "نمایش": ["Show", "Anzeigen"],
+  "یادداشت را این‌جا بنویسید…": ["Write the note here…", "Notiz hier schreiben…"],
+
   // ── Contracts ─────────────────────────────────────────────────────────────────────────────────────────────────
   "قراردادهای CRM قدیم و سایت در یک‌جا — مهلت‌های لغو، جستجو و پروفایل کامل هر قرارداد.": ["Old-CRM and website contracts in one place — cancellation deadlines, search and each contract's full profile.", "Verträge aus dem alten CRM und der Website an einem Ort — Kündigungsfristen, Suche und vollständiges Vertragsprofil."],
   "همه قراردادها": ["All contracts", "Alle Verträge"],

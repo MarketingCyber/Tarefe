@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { writeMode } from "@/lib/dynamics/write";
+import { JumpToNote } from "@/components/crm/customer/JumpToNote";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound, redirect } from "next/navigation";
 import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
@@ -57,57 +58,96 @@ export default async function ContractPage({ params, searchParams }: { params: P
   const historyShown = history && HISTORY_TYPES[history] ? historyAll.filter((r) => r.entity === history) : historyAll;
   const others = Object.entries(related).filter(([entity]) => !OWN_SECTION.has(entity));
 
-  // Facts in the order operators read a contract; each one only when filled. Everything else: the full form.
-  const facts: [string, string | null][] = [
-    [t("شروع"), shownDate(d, "new_startdate", false, intl)],
-    [t("پایان"), shownDate(d, "new_dateend", false, intl)],
-    [t("مدت"), tn(shown(d, "new_modat"))],
-    [t("لغو شد"), shownDate(d, "new_cancellation_date", false, intl)],
-    [t("مبلغ"), euro(d.new_mablaq) && [euro(d.new_mablaq), tn(shown(d, "new_mah"))].filter(Boolean).join(" / ")],
-    [t("پورسانت"), euro(d.new_commision_amount)],
-    [t("درآمد تعرفه"), euro(d.new_total_tarefe_income)],
-    [t("درآمد اپراتور"), euro(d.new_total_operator_income)],
-    [t("امتیاز قرارداد"), typeof d.new_opp_point === "number" && d.new_opp_point ? d.new_opp_point.toLocaleString(intl) : null],
-    ["Vertragsnummer", shown(d, "new_shomareh")],
-    ["Auftragsnummer", shown(d, "new_request_number")],
-    ["Referenznummer", shown(d, "new_refrenznummer")],
-    [t("کد قرارداد"), shown(d, "new_code")],
-    [t("پلاک"), shown(d, "new_pelak")],
-    ["HSN / TSN", [shown(d, "new_hsn_tsn"), shown(d, "new_tsn")].filter(Boolean).join(" / ") || null],
-    ["SF", shown(d, "new_sf_klasse")],
-    [t("مصرف سالیانه"), shown(d, "new_masraf")],
-    [t("شماره کنتور"), shown(d, "new_kontor")],
-    [t("ایجاد از طریق"), tn(shown(d, "new_created_from"))],
-    [t("مسئول"), shown(d, "ownerid")],
-    [t("ثبت"), shownDate(d, "createdon", false, intl)],
+  // Facts grouped the way operators read a contract (staff feedback 2026-11-18: one long list was hard to scan); each
+  // fact only when filled, each group only when it has one. Everything else: the full form («فرم کامل در CRM قدیم»).
+  const groups: [string, [string, string | null][]][] = [
+    [
+      t("تاریخ‌ها"),
+      [
+        [t("شروع"), shownDate(d, "new_startdate", false, intl)],
+        [t("پایان"), shownDate(d, "new_dateend", false, intl)],
+        [t("مدت"), tn(shown(d, "new_modat"))],
+        [t("مهلت لغو"), shownDate(d, "new_datelaqve", false, intl)],
+        [t("لغو شد"), shownDate(d, "new_cancellation_date", false, intl)],
+      ],
+    ],
+    [
+      t("مالی"),
+      [
+        [t("مبلغ"), euro(d.new_mablaq) && [euro(d.new_mablaq), tn(shown(d, "new_mah"))].filter(Boolean).join(" / ")],
+        [t("پورسانت"), euro(d.new_commision_amount)],
+        [t("درآمد تعرفه"), euro(d.new_total_tarefe_income)],
+        [t("درآمد اپراتور"), euro(d.new_total_operator_income)],
+        [t("امتیاز قرارداد"), typeof d.new_opp_point === "number" && d.new_opp_point ? d.new_opp_point.toLocaleString(intl) : null],
+      ],
+    ],
+    [
+      t("شماره‌ها"),
+      [
+        ["Vertragsnummer", shown(d, "new_shomareh")],
+        ["Auftragsnummer", shown(d, "new_request_number")],
+        ["Referenznummer", shown(d, "new_refrenznummer")],
+        [t("کد قرارداد"), shown(d, "new_code")],
+        [t("پلاک"), shown(d, "new_pelak")],
+        ["HSN / TSN", [shown(d, "new_hsn_tsn"), shown(d, "new_tsn")].filter(Boolean).join(" / ") || null],
+        ["SF", shown(d, "new_sf_klasse")],
+        [t("مصرف سالیانه"), shown(d, "new_masraf")],
+        [t("شماره کنتور"), shown(d, "new_kontor")],
+      ],
+    ],
+    [
+      t("مسئول و ثبت"),
+      [
+        [t("مسئول"), shown(d, "ownerid")],
+        [t("ایجاد از طریق"), tn(shown(d, "new_created_from"))],
+        [t("ثبت"), shownDate(d, "createdon", false, intl)],
+      ],
+    ],
   ];
+  const writes = writeMode();
+  const customerName = shown(d, "customerid");
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/contracts" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به قراردادها")}
-      </Link>
+      {/* Back goes to the customer the contract belongs to (staff feedback: it used to open the whole contract list). */}
+      <nav className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        {customerId ? (
+          <Link href={`/ops/customers/${customerId}`} className="inline-flex items-center gap-1.5 font-medium text-secondary hover:text-purple-600">
+            <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
+            {t("بازگشت به {name}", { name: customerName ?? t("مشتری") })}
+          </Link>
+        ) : null}
+        <Link
+          href="/ops/contracts"
+          className={customerId ? "text-xs text-secondary hover:text-purple-600" : "inline-flex items-center gap-1.5 font-medium text-secondary hover:text-purple-600"}
+        >
+          {!customerId && <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />}
+          {customerId ? t("همه قراردادها") : t("بازگشت به قراردادها")}
+        </Link>
+      </nav>
 
-      <div className="rounded-2xl border border-border bg-white p-6">
+      <header className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold text-purple-900">{shown(d, "name") ?? t("قرارداد بدون عنوان")}</h1>
               {shown(d, "new_step") && <Badge tone={cancelled ? "neutral" : "purple"}>{shown(d, "new_step")}</Badge>}
-              {tn(shown(d, "statuscode")) && <Badge>{statusFa(tn(shown(d, "statuscode")))}</Badge>}
+              {shown(d, "statuscode") && <Badge>{tn(statusFa(shown(d, "statuscode")))}</Badge>}
             </div>
             <p className="mt-1 text-sm text-secondary">{[shown(d, "new_category"), shown(d, "parentaccountid"), shown(d, "new_contract_company")].filter(Boolean).join(" · ")}</p>
             {customerId && (
               <p className="mt-2 text-sm">
                 <span className="text-secondary">{t("مشتری:")} </span>
                 <Link href={`/ops/customers/${customerId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                  {shown(d, "customerid") ?? t("مشاهده مشتری")}
+                  {customerName ?? t("مشاهده مشتری")}
                 </Link>
               </p>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
+            {writes !== "off" && (
+              <JumpToNote />
+            )}
             <Link href={`/ops/old-crm/opportunity/${contract.crmId}`} className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600">
               {t("فرم کامل در CRM قدیم")}
             </Link>
@@ -128,64 +168,45 @@ export default async function ContractPage({ params, searchParams }: { params: P
             className={`mt-4 inline-flex items-baseline gap-2 rounded-xl px-3 py-2 text-sm ${daysLeft !== null && daysLeft < 0 ? "bg-danger-bg text-danger" : daysLeft !== null && daysLeft <= 30 ? "bg-warning-bg text-warning" : "bg-tint text-body"}`}
           >
             <span className="font-medium">{t("مهلت لغو: {date}", { date: shownDate(d, "new_datelaqve", false, intl) })}</span>
-            {daysLeft !== null && <span className="text-xs">{daysLeft < 0 ? t("{n} روز گذشته", { n: (-daysLeft).toLocaleString(intl) }) : daysLeft === 0 ? t("امروز") : t("{n} روز مانده", { n: daysLeft.toLocaleString(intl) })}</span>}
+            {daysLeft !== null && (
+              <span className="text-xs">
+                {daysLeft < 0 ? t("{n} روز گذشته", { n: (-daysLeft).toLocaleString(intl) }) : daysLeft === 0 ? t("امروز") : t("{n} روز مانده", { n: daysLeft.toLocaleString(intl) })}
+              </span>
+            )}
           </div>
         )}
+      </header>
 
-        <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          {facts
-            .filter(([, v]) => v)
-            .map(([label, value]) => (
-              <div key={label} className="flex gap-2">
-                <dt className="shrink-0 text-secondary">{label}:</dt>
-                <dd className="min-w-0 text-body [overflow-wrap:anywhere]">{value}</dd>
-              </div>
-            ))}
-        </dl>
-      </div>
+      {/* Two columns like the old CRM's form: the contract on one side, notes and activities on the other. */}
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-5">
+        <div className="space-y-6 lg:col-span-3">
+          <section className="rounded-2xl border border-border bg-white p-6">
+            <h2 className="text-sm font-bold text-purple-900">{t("جزئیات قرارداد")}</h2>
+            <div className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2">
+              {groups
+                .map(([title, rows]) => [title, rows.filter(([, v]) => v)] as const)
+                .filter(([, rows]) => rows.length)
+                .map(([title, rows]) => (
+                  <div key={title}>
+                    <h3 className="mb-1.5 text-xs font-semibold text-secondary">{title}</h3>
+                    <dl className="divide-y divide-border text-sm">
+                      {rows.map(([label, value]) => (
+                        <div key={label} className="flex justify-between gap-4 py-1.5">
+                          <dt className="shrink-0 text-secondary">{label}</dt>
+                          <dd className="min-w-0 text-end font-medium text-body [overflow-wrap:anywhere]">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                ))}
+            </div>
+          </section>
 
-      <CrmEditPanel entity="opportunity" id={contract.crmId} data={d} state={Number(d.statecode)} returnPath={self} />
-
-      <div className="mt-6 grid gap-6 2xl:grid-cols-3">
-        <div className="space-y-6 2xl:col-span-2">
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-sm font-bold text-purple-900">{t("تیکت‌های این قرارداد ({n})", { n: tickets.length.toLocaleString(intl) })}</h2>
             <div className="mt-3 space-y-2">{tickets.length ? tickets.map((r) => <TicketCard key={r.crmId} r={r} />) : <Empty />}</div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="text-sm font-bold text-purple-900">{t("تاریخچه ({n})", { n: historyAll.length.toLocaleString(intl) })}</h2>
-            {writeMode() !== "off" && (
-              <div className="mt-3">
-                <AddNoteForm entity="opportunity" id={contract.crmId} returnPath={self} dry={writeMode() === "dry"} />
-              </div>
-            )}
-            <div className="mb-4 mt-3 flex flex-wrap gap-1.5">
-              <FilterChip href={self} active={!history}>
-                {t("همه")}
-              </FilterChip>
-              {Object.entries(HISTORY_TYPES).map(([type, t]) => {
-                const n = (related[type] ?? []).length;
-                return n ? (
-                  <FilterChip key={type} href={`${self}?history=${type}`} active={history === type}>
-                    {t.label} ({n.toLocaleString(intl)})
-                  </FilterChip>
-                ) : null;
-              })}
-            </div>
-            {historyShown.length ? (
-              <ol className="relative">
-                {historyShown.map((r) => (
-                  <HistoryItem key={`${r.entity}:${r.crmId}`} r={r} customerId={contract.crmId} />
-                ))}
-              </ol>
-            ) : (
-              <Empty />
-            )}
-          </section>
-        </div>
-
-        <div className="space-y-6">
           {points.length > 0 && (
             <section className="rounded-2xl border border-border bg-white p-6">
               <h2 className="mb-3 text-sm font-bold text-purple-900">{t("امتیازها ({n})", { n: points.length.toLocaleString(intl) })}</h2>
@@ -208,7 +229,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
                 {others.map(([entity, rows]) => (
                   <div key={entity}>
                     <p className="text-xs font-medium text-secondary">
-                      {TABLE_LABELS[entity] ?? entity} ({rows.length.toLocaleString(intl)})
+                      {t(TABLE_LABELS[entity] ?? entity)} ({rows.length.toLocaleString(intl)})
                     </p>
                     <ul className="mt-1 space-y-0.5">
                       {rows.slice(0, 5).map((r) => (
@@ -227,7 +248,40 @@ export default async function ContractPage({ params, searchParams }: { params: P
               </div>
             </section>
           )}
+
+          <CrmEditPanel entity="opportunity" id={contract.crmId} data={d} state={Number(d.statecode)} returnPath={self} folded />
         </div>
+
+        <section className="rounded-2xl border border-border bg-white p-6 lg:col-span-2">
+          <h2 className="text-sm font-bold text-purple-900">{t("یادداشت‌ها و فعالیت‌ها ({n})", { n: historyAll.length.toLocaleString(intl) })}</h2>
+          {writes !== "off" && (
+            <div className="mt-3">
+              <AddNoteForm entity="opportunity" id={contract.crmId} returnPath={self} dry={writes === "dry"} anchor="note" />
+            </div>
+          )}
+          <div className="mb-4 mt-4 flex flex-wrap gap-1.5">
+            <FilterChip href={self} active={!history}>
+              {t("همه")}
+            </FilterChip>
+            {Object.entries(HISTORY_TYPES).map(([type, ht]) => {
+              const n = (related[type] ?? []).length;
+              return n ? (
+                <FilterChip key={type} href={`${self}?history=${type}`} active={history === type}>
+                  {t(ht.label)} ({n.toLocaleString(intl)})
+                </FilterChip>
+              ) : null;
+            })}
+          </div>
+          {historyShown.length ? (
+            <ol className="relative">
+              {historyShown.map((r) => (
+                <HistoryItem key={`${r.entity}:${r.crmId}`} r={r} customerId={contract.crmId} />
+              ))}
+            </ol>
+          ) : (
+            <Empty />
+          )}
+        </section>
       </div>
     </div>
   );
