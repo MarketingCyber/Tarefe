@@ -331,6 +331,9 @@ html.ops-theme[dir="ltr"] :is(a, span, strong, em, b, bdi) {
 }
 
 html.ops-theme {
+  /* Slightly smaller base (owner 2026-11-18): 15px instead of 16px. Text and the rem-based spacing scale together,
+     so the CRM fits more on a laptop screen without changing its proportions. CRM only — the public site keeps 16px. */
+  font-size: 93.75%;
   --color-purple-600: #3a6491; /* accent: links, buttons, focus */
   --color-purple-900: #20364d; /* headings, dark buttons */
   --color-yellow-500: #e2b43c;
