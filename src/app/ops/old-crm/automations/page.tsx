@@ -48,7 +48,7 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
   return (
     <div className="container-page py-8">
       <Link href="/ops/old-crm" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
         CRM قدیم
       </Link>
       <h1 className="text-2xl font-bold text-purple-900">اتوماسیون‌ها در حالت آزمایشی</h1>

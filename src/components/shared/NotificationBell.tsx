@@ -15,12 +15,13 @@ export interface NotificationItem {
   createdAt: Date;
 }
 
-const LABELS: Record<"en" | "fa", { empty: string; markAll: string; title: string }> = {
+const LABELS: Record<"en" | "fa" | "de", { empty: string; markAll: string; title: string }> = {
   en: { empty: "No notifications yet.", markAll: "Mark all read", title: "Notifications" },
+  de: { empty: "Noch keine Benachrichtigungen.", markAll: "Alle als gelesen markieren", title: "Benachrichtigungen" },
   fa: { empty: "هنوز اعلانی وجود ندارد.", markAll: "علامت‌گذاری همه به‌عنوان خوانده‌شده", title: "اعلان‌ها" },
 };
 
-export function NotificationBell({ initialNotifications, locale = "en" }: { initialNotifications: NotificationItem[]; locale?: "en" | "fa" }) {
+export function NotificationBell({ initialNotifications, locale = "en" }: { initialNotifications: NotificationItem[]; locale?: "en" | "fa" | "de" }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState(initialNotifications);
   const [, startTransition] = useTransition();

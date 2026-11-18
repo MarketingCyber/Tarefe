@@ -20,6 +20,7 @@ import { CrmTicket } from "@/components/crm/customer/CrmTicket";
 import { addMessage } from "@/lib/app-conversations";
 import { requestStep, STATUS_WORDS, ticketNumber } from "@/lib/app-api";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const STATUS_OPTIONS = ["RECEIVED", "UNDER_REVIEW", "SENT_TO_PROVIDER", "PROVIDER_PROCESSING", "COMPLETED"] as const;
 
 async function updateStatus(formData: FormData) {
@@ -96,6 +97,7 @@ async function replyToTicket(formData: FormData) {
 }
 
 export default async function OpsTicketDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string; replyError?: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -127,8 +129,8 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
   return (
     <div className="container-page py-8">
       <Link href="/ops/tickets" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
-        بازگشت به تیکت‌ها
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
+        {t("بازگشت به تیکت‌ها")}
       </Link>
 
       <div className="grid gap-6 2xl:grid-cols-3">
@@ -150,7 +152,7 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
                 {sla && (
                   <span className={`inline-flex items-center gap-1 text-xs font-semibold ${sla.breached ? "text-danger" : "text-secondary"}`}>
                     <Clock size={12} weight={sla.breached ? "fill" : "regular"} />
-                    {Math.round(sla.hoursWaiting)} ساعت در انتظار پاسخ
+                    {t("{n} ساعت در انتظار پاسخ", { n: Math.round(sla.hoursWaiting) })}
                   </span>
                 )}
               </div>
@@ -167,13 +169,13 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
                     </option>
                   ))}
                 </select>
-                <Button type="submit">به‌روزرسانی وضعیت</Button>
+                <Button type="submit">{t("به‌روزرسانی وضعیت")}</Button>
               </form>
               {!ticket.advisor && (
                 <form action={assignToMe}>
                   <input type="hidden" name="ticketId" value={ticket.id} />
                   <Button type="submit" variant="secondary">
-                    واگذاری به من
+                    {t("واگذاری به من")}
                   </Button>
                 </form>
               )}
@@ -181,9 +183,9 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
           </div>
 
           <div className="mt-6 rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">گفتگو</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("گفتگو")}</h2>
             <div className="space-y-3">
-              {ticket.messages.length === 0 && <p className="text-sm text-secondary">هنوز پیامی ثبت نشده.</p>}
+              {ticket.messages.length === 0 && <p className="text-sm text-secondary">{t("هنوز پیامی ثبت نشده.")}</p>}
               {ticket.messages.map((m) => (
                 <div key={m.id} className={`max-w-[80%] rounded-xl p-3 ${m.sender.role === "CUSTOMER" ? "bg-tint" : "ms-auto bg-purple-600/10"}`}>
                   <p className="text-xs font-semibold text-purple-900">{m.sender.name}</p>
@@ -194,21 +196,21 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
                       {m.document.title}
                     </a>
                   )}
-                  <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</p>
+                  <p className="mt-1 text-[10px] text-secondary">{m.createdAt.toLocaleString(intl, { calendar: "gregory" })}</p>
                 </div>
               ))}
             </div>
             <form action={replyToTicket} className="mt-5 space-y-2">
               <input type="hidden" name="ticketId" value={ticket.id} />
               <label htmlFor="reply" className="text-xs font-medium text-secondary">
-                پاسخ به مشتری — در پنل مشتری (و اپ) نمایش داده می‌شود{process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "console" ? " و ایمیل اطلاع‌رسانی می‌رود" : ""}
+                {t("پاسخ به مشتری — در پنل مشتری (و اپ) نمایش داده می‌شود")}{process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "console" ? t(" و ایمیل اطلاع‌رسانی می‌رود") : ""}
               </label>
               <textarea
                 id="reply"
                 name="content"
                 rows={3}
                 maxLength={5000}
-                placeholder="پاسخ خود را بنویسید…"
+                placeholder={t("پاسخ خود را بنویسید…")}
                 className="w-full rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -216,16 +218,16 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
                   name="file"
                   type="file"
                   accept="application/pdf,image/jpeg,image/png,image/webp"
-                  aria-label="پیوست (PDF یا عکس، تا ۱۵ مگابایت)"
+                  aria-label={t("پیوست (PDF یا عکس، تا ۱۵ مگابایت)")}
                   className="text-xs text-body file:me-3 file:rounded-lg file:border-0 file:bg-tint file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-purple-900"
                 />
                 <button type="submit" className="press rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900">
-                  ارسال پاسخ
+                  {t("ارسال پاسخ")}
                 </button>
               </div>
               {replyError && (
                 <p role="alert" className="text-xs text-danger">
-                  {replyError === "size" ? "پیوست بزرگ‌تر از ۱۵ مگابایت است." : "پیوست فقط PDF یا عکس (JPG، PNG، WEBP) می‌تواند باشد."}
+                  {replyError === "size" ? t("پیوست بزرگ‌تر از ۱۵ مگابایت است.") : t("پیوست فقط PDF یا عکس (JPG، PNG، WEBP) می‌تواند باشد.")}
                 </p>
               )}
             </form>
@@ -234,7 +236,7 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
 
         <div>
           <div className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">تسک‌ها</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("تسک‌ها")}</h2>
             <div className="mb-4">
               <QuickAddTask returnPath={`/ops/tickets/${ticket.id}`} serviceRequestId={ticket.id} />
             </div>
@@ -242,8 +244,8 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
           </div>
 
           <div className="mt-6 rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">فعالیت‌ها</h2>
-            <ActivityTimeline entries={activityLogs} locale="fa" />
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("فعالیت‌ها")}</h2>
+            <ActivityTimeline entries={activityLogs} />
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ export default async function NewGuidePage({ searchParams }: { searchParams: Pro
   return (
     <div className="container-page max-w-2xl py-8">
       <Link href="/ops/guides" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
         بازگشت به راهنماها
       </Link>
       <h1 className="text-2xl font-bold text-purple-900">راهنمای جدید</h1>

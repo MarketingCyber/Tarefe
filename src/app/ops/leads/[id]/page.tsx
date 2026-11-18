@@ -17,6 +17,7 @@ import { isGuid } from "@/lib/dynamics/identity";
 import { CrmLead } from "@/components/crm/customer/CrmLead";
 import { LeadAttributionPanel } from "@/components/crm/LeadAttribution";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const STATUS_OPTIONS = ["NEW", "CONTACTED", "QUALIFIED", "CONSULTATION_SCHEDULED", "APPLICATION_STARTED", "APPLICATION_SUBMITTED", "CONTRACT_ACTIVE", "LOST"] as const;
 
 async function updateStatus(formData: FormData) {
@@ -57,6 +58,7 @@ async function addNote(formData: FormData) {
 }
 
 export default async function LeadDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ history?: string; linkq?: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -79,8 +81,8 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
   return (
     <div className="container-page py-8">
       <Link href="/ops/leads" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
-        بازگشت به لیدها
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
+        {t("بازگشت به لیدها")}
       </Link>
 
       <div className="grid gap-6 2xl:grid-cols-3">
@@ -98,28 +100,28 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
 
             <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-xs text-secondary">خدمت</dt>
+                <dt className="text-xs text-secondary">{t("خدمت")}</dt>
                 <dd className="mt-0.5 text-body">
                   {lead.category ?? "—"} {lead.serviceSlug ? `/ ${lead.serviceSlug}` : ""}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-secondary">صفحه منبع</dt>
+                <dt className="text-xs text-secondary">{t("صفحه منبع")}</dt>
                 <dd className="font-latin mt-0.5 text-body">{lead.sourcePage ?? "—"}</dd>
               </div>
               {lead.referralCode && (
                 <div>
-                  <dt className="text-xs text-secondary">کد معرف (لینک معرفی مشتری)</dt>
+                  <dt className="text-xs text-secondary">{t("کد معرف (لینک معرفی مشتری)")}</dt>
                   <dd className="font-latin mt-0.5 text-body">{lead.referralCode}</dd>
                 </div>
               )}
               <div>
-                <dt className="text-xs text-secondary">مشاور واگذارشده</dt>
-                <dd className="mt-0.5 text-body">{lead.assignedAdvisor?.name ?? "بدون مشاور"}</dd>
+                <dt className="text-xs text-secondary">{t("مشاور واگذارشده")}</dt>
+                <dd className="mt-0.5 text-body">{lead.assignedAdvisor?.name ?? t("بدون مشاور")}</dd>
               </div>
               <div>
-                <dt className="text-xs text-secondary">دریافت</dt>
-                <dd className="mt-0.5 text-body">{lead.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</dd>
+                <dt className="text-xs text-secondary">{t("دریافت")}</dt>
+                <dd className="mt-0.5 text-body">{lead.createdAt.toLocaleString(intl, { calendar: "gregory" })}</dd>
               </div>
             </dl>
 
@@ -140,13 +142,13 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
                     </option>
                   ))}
                 </select>
-                <Button type="submit">به‌روزرسانی وضعیت</Button>
+                <Button type="submit">{t("به‌روزرسانی وضعیت")}</Button>
               </form>
               {!lead.assignedAdvisor && (
                 <form action={assignToMe}>
                   <input type="hidden" name="leadId" value={lead.id} />
                   <Button type="submit" variant="secondary">
-                    واگذاری به من
+                    {t("واگذاری به من")}
                   </Button>
                 </form>
               )}
@@ -154,7 +156,7 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
           </div>
 
           <div className="mt-6 rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">تسک‌ها</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("تسک‌ها")}</h2>
             <div className="mb-4">
               <QuickAddTask returnPath={`/ops/leads/${lead.id}`} leadId={lead.id} />
             </div>
@@ -163,19 +165,19 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
         </div>
 
         <div className="rounded-2xl border border-border bg-white p-6">
-          <h2 className="mb-4 text-sm font-bold text-purple-900">فعالیت‌ها</h2>
+          <h2 className="mb-4 text-sm font-bold text-purple-900">{t("فعالیت‌ها")}</h2>
           <form action={addNote} className="mb-5 flex gap-2">
             <input type="hidden" name="leadId" value={lead.id} />
             <input
               name="note"
-              placeholder="یادداشتی اضافه کن…"
+              placeholder={t("یادداشتی اضافه کن…")}
               className="flex-1 rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none transition-colors focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
             />
             <button type="submit" className="press rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-              افزودن
+              {t("افزودن")}
             </button>
           </form>
-          <ActivityTimeline entries={lead.activityLogs} locale="fa" />
+          <ActivityTimeline entries={lead.activityLogs} />
         </div>
       </div>
     </div>

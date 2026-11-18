@@ -9,6 +9,7 @@ import { canAccessPipeline } from "@/lib/permissions";
 import { emailKey, personKeys, phoneKey } from "@/lib/dynamics/identity";
 import { shown } from "@/components/crm/customer/OldCrmParts";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Customers across both CRMs, each linking to its Customer 360 (/ops/customers/[id]). The old CRM's contacts
  * (Dynamics mirror) are the customer base; tarefe.de accounts that match one (same e-mail or phone) are shown on
@@ -21,6 +22,7 @@ const PAGE = 50;
 type ContactRow = { crmId: string; data: Record<string, unknown> };
 
 export default async function OpsCustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
+  const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -76,9 +78,9 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">مشتریان</h1>
+      <h1 className="text-2xl font-bold text-purple-900">{t("مشتریان")}</h1>
       <p className="mt-1 text-sm text-secondary">
-        همه مشتریان CRM قدیم ({totalContacts.toLocaleString("fa-IR")} نفر) همراه با حساب‌های سایت و اپ — هر ردیف به پروفایل کامل مشتری می‌رود.
+        {t("همه مشتریان CRM قدیم ({n} نفر) همراه با حساب‌های سایت و اپ — هر ردیف به پروفایل کامل مشتری می‌رود.", { n: totalContacts.toLocaleString(intl) })}
       </p>
 
       <form className="mt-6 flex max-w-xl items-center gap-2 rounded-full border border-border-strong bg-white px-4 py-2 focus-within:border-purple-600" role="search">
@@ -86,18 +88,18 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
         <input
           name="q"
           defaultValue={q}
-          placeholder="نام، ایمیل، تلفن، شماره مشتری…"
-          aria-label="جستجوی مشتری"
+          placeholder={t("نام، ایمیل، تلفن، شماره مشتری…")}
+          aria-label={t("جستجوی مشتری")}
           className="min-w-0 flex-1 bg-transparent text-sm text-purple-900 outline-none placeholder:text-secondary"
         />
         <button type="submit" className="press rounded-full bg-purple-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">
-          جستجو
+          {t("جستجو")}
         </button>
       </form>
 
       {contacts.length === 0 && siteOnly.length === 0 ? (
         <div className="mt-8">
-          <EmptyState icon={UsersThree} title={q ? `مشتری‌ای با «${q}» پیدا نشد` : "هنوز مشتری‌ای ثبت نشده"} body={q ? "نام، ایمیل یا شماره تلفن را به شکل دیگری امتحان کنید." : "مشتریان CRM قدیم بعد از همگام‌سازی همین‌جا نمایش داده می‌شوند."} />
+          <EmptyState icon={UsersThree} title={q ? t("مشتری‌ای با «{q}» پیدا نشد", { q }) : t("هنوز مشتری‌ای ثبت نشده")} body={q ? t("نام، ایمیل یا شماره تلفن را به شکل دیگری امتحان کنید.") : t("مشتریان CRM قدیم بعد از همگام‌سازی همین‌جا نمایش داده می‌شوند.")} />
         </div>
       ) : (
         <>
@@ -106,14 +108,14 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-secondary">
-                    <th className="px-4 py-3 text-start font-medium">نام</th>
-                    <th className="px-4 py-3 text-start font-medium">شماره مشتری</th>
-                    <th className="px-4 py-3 text-start font-medium">اطلاعات تماس</th>
-                    <th className="px-4 py-3 text-start font-medium">شهر</th>
-                    <th className="px-4 py-3 text-start font-medium">قراردادها</th>
-                    <th className="px-4 py-3 text-start font-medium">تیکت‌ها</th>
-                    <th className="px-4 py-3 text-start font-medium">مسئول</th>
-                    <th className="px-4 py-3 text-start font-medium">حساب سایت / اپ</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("شماره مشتری")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("اطلاعات تماس")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("شهر")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("قراردادها")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("تیکت‌ها")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
+                    <th className="px-4 py-3 text-start font-medium">{t("حساب سایت / اپ")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -121,7 +123,7 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
                     <tr key={c.crmId} className="border-b border-border last:border-0 hover:bg-tint/50">
                       <td className="px-4 py-3 font-medium text-purple-900">
                         <Link href={`/ops/customers/${c.crmId}`} className="hover:text-purple-600 hover:underline">
-                          {shown(c.data, "fullname") ?? "بدون نام"}
+                          {shown(c.data, "fullname") ?? t("بدون نام")}
                         </Link>
                       </td>
                       <td className="font-latin px-4 py-3 text-xs text-secondary">{shown(c.data, "new_customernumber") ?? "—"}</td>
@@ -131,10 +133,10 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
                         {shown(c.data, "mobilephone") ?? shown(c.data, "telephone1") ?? ""}
                       </td>
                       <td className="px-4 py-3 text-xs text-secondary">{shown(c.data, "new_stadt") ?? "—"}</td>
-                      <td className="px-4 py-3 tabular-nums text-secondary">{count("opportunity", c.crmId).toLocaleString("fa-IR")}</td>
-                      <td className="px-4 py-3 tabular-nums text-secondary">{count("incident", c.crmId).toLocaleString("fa-IR")}</td>
+                      <td className="px-4 py-3 tabular-nums text-secondary">{count("opportunity", c.crmId).toLocaleString(intl)}</td>
+                      <td className="px-4 py-3 tabular-nums text-secondary">{count("incident", c.crmId).toLocaleString(intl)}</td>
                       <td className="px-4 py-3 text-xs text-secondary">{shown(c.data, "ownerid") ?? "—"}</td>
-                      <td className="px-4 py-3">{contactHasAccount(c) ? <Badge tone="success">دارد</Badge> : <span className="text-xs text-secondary">—</span>}</td>
+                      <td className="px-4 py-3">{contactHasAccount(c) ? <Badge tone="success">{t("دارد")}</Badge> : <span className="text-xs text-secondary">—</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -146,13 +148,13 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
             <div className="mt-4 flex items-center gap-3 text-sm">
               {page > 1 && (
                 <Link href={pageHref(page - 1)} className="font-medium text-purple-600 hover:underline">
-                  صفحه قبل
+                  {t("صفحه قبل")}
                 </Link>
               )}
-              <span className="text-secondary">صفحه {page.toLocaleString("fa-IR")}</span>
+              <span className="text-secondary">{t("صفحه {n}", { n: page.toLocaleString(intl) })}</span>
               {hasNext && (
                 <Link href={pageHref(page + 1)} className="font-medium text-purple-600 hover:underline">
-                  صفحه بعد
+                  {t("صفحه بعد")}
                 </Link>
               )}
             </div>
@@ -160,18 +162,18 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
 
           {page === 1 && siteOnly.length > 0 && (
             <>
-              <h2 className="mt-10 text-sm font-bold text-purple-900">فقط در سایت / اپ ({siteOnly.length.toLocaleString("fa-IR")})</h2>
-              <p className="mt-1 text-xs text-secondary">حساب‌هایی که با همین ایمیل یا شماره تلفن در CRM قدیم پیدا نشدند.</p>
+              <h2 className="mt-10 text-sm font-bold text-purple-900">{t("فقط در سایت / اپ ({n})", { n: siteOnly.length.toLocaleString(intl) })}</h2>
+              <p className="mt-1 text-xs text-secondary">{t("حساب‌هایی که با همین ایمیل یا شماره تلفن در CRM قدیم پیدا نشدند.")}</p>
               <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-secondary">
-                      <th className="px-4 py-3 text-start font-medium">نام</th>
-                      <th className="px-4 py-3 text-start font-medium">اطلاعات تماس</th>
-                      <th className="px-4 py-3 text-start font-medium">قراردادها</th>
-                      <th className="px-4 py-3 text-start font-medium">درخواست‌ها</th>
-                      <th className="px-4 py-3 text-start font-medium">تیکت‌ها</th>
-                      <th className="px-4 py-3 text-start font-medium">تاریخ عضویت</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("اطلاعات تماس")}</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("قراردادها")}</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("درخواست‌ها")}</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("تیکت‌ها")}</th>
+                      <th className="px-4 py-3 text-start font-medium">{t("تاریخ عضویت")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -190,7 +192,7 @@ export default async function OpsCustomersPage({ searchParams }: { searchParams:
                         <td className="px-4 py-3 text-secondary">{u._count.contracts}</td>
                         <td className="px-4 py-3 text-secondary">{u._count.applications}</td>
                         <td className="px-4 py-3 text-secondary">{u._count.serviceRequests}</td>
-                        <td className="px-4 py-3 text-xs text-secondary">{u.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}</td>
+                        <td className="px-4 py-3 text-xs text-secondary">{u.createdAt.toLocaleDateString(intl, { calendar: "gregory" })}</td>
                       </tr>
                     ))}
                   </tbody>

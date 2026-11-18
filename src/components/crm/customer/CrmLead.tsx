@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { LeadLinks } from "@/components/crm/customer/LeadLinks";
-import { conversionRates, scoreLead, TIER_FA } from "@/lib/crm/lead-score";
+import { conversionRates, scoreLead, TIER_FA, reasonText } from "@/lib/crm/lead-score";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
@@ -14,6 +14,7 @@ import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * An old-CRM lead (Dynamics lead): who asked about what, where they came from (source), what became of it — the
  * contract it was converted to, or why it was closed — the same person's website form submissions (matched by
@@ -25,6 +26,7 @@ const DYNAMICS_RECORD = (id: string) => `http://tarefe.online/Tarefe/main.aspx?e
 export const LEAD_STATE_TONE: BadgeTone[] = ["purple", "success", "neutral"]; // 0 open, 1 qualified, 2 disqualified
 
 export async function CrmLead({ id, history, linkQuery }: { id: string; history?: string; linkQuery?: string }) {
+  const { t, tn, intl } = await getOpsI18n();
   const loaded = await loadWithRelated("lead", id);
   if (!loaded) notFound();
   const { record, related } = loaded;
@@ -47,7 +49,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
           where: {
             OR: [
               ...emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } })),
-              ...phoneTails.map((t) => ({ phone: { contains: t } })),
+              ...phoneTails.map((tail) => ({ phone: { contains: tail } })),
             ],
           },
           orderBy: { createdAt: "desc" },
@@ -57,59 +59,59 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
     : [];
 
   const historyAll = Object.keys(HISTORY_TYPES)
-    .flatMap((t) => related[t] ?? [])
+    .flatMap((k) => related[k] ?? [])
     .sort((a, b) => happenedAt(b) - happenedAt(a));
   const historyShown = history && HISTORY_TYPES[history] ? historyAll.filter((r) => r.entity === history) : historyAll;
   const others = Object.entries(related).filter(([entity]) => !(entity in HISTORY_TYPES) && !(entity === "opportunity" && contractId));
 
   const facts: [string, string | null][] = [
-    ["منبع", shown(d, "leadsourcecode")],
-    ["نوع قرارداد", shown(d, "new_type")],
-    ["موبایل", shown(d, "mobilephone") ?? shown(d, "telephone1")],
-    ["ایمیل", shown(d, "emailaddress1")],
-    ["زبان مادری", shown(d, "new_motherllanguage")],
-    ["شهر", [shown(d, "new_codeposti"), shown(d, "new_city")].filter(Boolean).join(" ") || null],
-    ["تاریخ تولد", shownDate(d, "new_birthday")],
-    ["مرحله", shown(d, "new_step")],
-    ["کد سرنخ", shown(d, "new_leadcode")],
-    ["مسئول", shown(d, "ownerid")],
-    ["ایجاد", shownDate(d, "createdon", true)],
+    [t("منبع"), tn(shown(d, "leadsourcecode"))],
+    [t("نوع قرارداد"), shown(d, "new_type")],
+    [t("موبایل"), shown(d, "mobilephone") ?? shown(d, "telephone1")],
+    [t("ایمیل"), shown(d, "emailaddress1")],
+    [t("زبان مادری"), tn(shown(d, "new_motherllanguage"))],
+    [t("شهر"), [shown(d, "new_codeposti"), shown(d, "new_city")].filter(Boolean).join(" ") || null],
+    [t("تاریخ تولد"), shownDate(d, "new_birthday", false, intl)],
+    [t("مرحله"), shown(d, "new_step")],
+    [t("کد سرنخ"), shown(d, "new_leadcode")],
+    [t("مسئول"), shown(d, "ownerid")],
+    [t("ایجاد"), shownDate(d, "createdon", true, intl)],
   ];
 
   return (
     <div className="container-page py-8">
       <Link href="/ops/leads" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
-        بازگشت به لیدها
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
+        {t("بازگشت به لیدها")}
       </Link>
 
       <div className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold text-purple-900">{shown(d, "fullname") ?? "بدون نام"}</h1>
-              <Badge tone={LEAD_STATE_TONE[state] ?? "neutral"}>{shown(d, "new_status") ?? "—"}</Badge>
+              <h1 className="text-xl font-bold text-purple-900">{shown(d, "fullname") ?? t("بدون نام")}</h1>
+              <Badge tone={LEAD_STATE_TONE[state] ?? "neutral"}>{tn(shown(d, "new_status")) ?? "—"}</Badge>
               {score && (
-                <span title={score.reasons.join(" — ")} className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${score.tier === "hot" ? "bg-danger-bg text-danger" : score.tier === "warm" ? "bg-warning-bg text-warning" : "bg-tint text-secondary"}`}>
-                  امتیاز {score.score.toLocaleString("fa-IR")}٪ · {TIER_FA[score.tier]}
+                <span title={score.reasons.map((r) => reasonText(r, t, intl)).join(" — ")} className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${score.tier === "hot" ? "bg-danger-bg text-danger" : score.tier === "warm" ? "bg-warning-bg text-warning" : "bg-tint text-secondary"}`}>
+                  {t("امتیاز {n}٪", { n: score.score.toLocaleString(intl) })} · {t(TIER_FA[score.tier])}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-secondary">{shown(d, "subject") ?? "بدون موضوع"}</p>
+            <p className="mt-1 text-sm text-secondary">{shown(d, "subject") ?? t("بدون موضوع")}</p>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               {contractId && (
                 <p>
-                  <span className="text-secondary">تبدیل شد به: </span>
+                  <span className="text-secondary">{t("تبدیل شد به:")} </span>
                   <Link href={`/ops/contracts/${contractId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                    {shown(d, "qualifyingopportunityid") ?? "قرارداد"}
+                    {shown(d, "qualifyingopportunityid") ?? t("قرارداد")}
                   </Link>
                 </p>
               )}
               {contactId && (
                 <p>
-                  <span className="text-secondary">مشتری: </span>
+                  <span className="text-secondary">{t("مشتری:")} </span>
                   <Link href={`/ops/customers/${contactId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                    {shown(d, "parentcontactid") ?? shown(d, "customerid") ?? "مشاهده مشتری"}
+                    {shown(d, "parentcontactid") ?? shown(d, "customerid") ?? t("مشاهده مشتری")}
                   </Link>
                 </p>
               )}
@@ -117,7 +119,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/ops/old-crm/lead/${record.crmId}`} className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600">
-              فرم کامل در CRM قدیم
+              {t("فرم کامل در CRM قدیم")}
             </Link>
             <a
               href={DYNAMICS_RECORD(record.crmId)}
@@ -125,7 +127,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
               rel="noreferrer"
               className="press inline-flex items-center gap-1 rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600"
             >
-              ویرایش در Dynamics
+              {t("ویرایش در Dynamics")}
               <ArrowSquareOut size={12} />
             </a>
           </div>
@@ -133,8 +135,8 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
 
         {state === 2 && (
           <p className="mt-4 rounded-xl bg-tint px-3 py-2 text-sm text-body">
-            <span className="font-medium">دلیل بستن: </span>
-            {shown(d, "statuscode") ?? "—"}
+            <span className="font-medium">{t("دلیل بستن:")} </span>
+            {tn(shown(d, "statuscode")) ?? "—"}
             {plain(d.new_disqualified_desc) && <span className="text-secondary"> — {plain(d.new_disqualified_desc)}</span>}
           </p>
         )}
@@ -145,7 +147,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
             .map(([label, value]) => (
               <div key={label} className="flex gap-2">
                 <dt className="shrink-0 text-secondary">{label}:</dt>
-                <dd className={`min-w-0 text-body [overflow-wrap:anywhere] ${label === "موبایل" || label === "ایمیل" ? "font-latin" : ""}`}>{value}</dd>
+                <dd className={`min-w-0 text-body [overflow-wrap:anywhere] ${label === t("موبایل") || label === t("ایمیل") ? "font-latin" : ""}`}>{value}</dd>
               </div>
             ))}
         </dl>
@@ -157,7 +159,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <section className="rounded-2xl border border-border bg-white p-6 2xl:col-span-2">
-          <h2 className="text-sm font-bold text-purple-900">تاریخچه ({historyAll.length.toLocaleString("fa-IR")})</h2>
+          <h2 className="text-sm font-bold text-purple-900">{t("تاریخچه ({n})", { n: historyAll.length.toLocaleString(intl) })}</h2>
           {writeMode() !== "off" && (
             <div className="mt-3">
               <AddNoteForm entity="lead" id={record.crmId} returnPath={self} dry={writeMode() === "dry"} />
@@ -166,13 +168,13 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
           {historyAll.length > 0 && (
             <div className="mb-4 mt-3 flex flex-wrap gap-1.5">
               <FilterChip href={self} active={!history}>
-                همه
+                {t("همه")}
               </FilterChip>
-              {Object.entries(HISTORY_TYPES).map(([type, t]) => {
+              {Object.entries(HISTORY_TYPES).map(([type, ht]) => {
                 const n = (related[type] ?? []).length;
                 return n ? (
                   <FilterChip key={type} href={`${self}?history=${type}`} active={history === type}>
-                    {t.label} ({n.toLocaleString("fa-IR")})
+                    {t(ht.label)} ({n.toLocaleString(intl)})
                   </FilterChip>
                 ) : null;
               })}
@@ -185,24 +187,24 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
               ))}
             </ol>
           ) : (
-            <p className="mt-3 text-sm text-secondary">موردی وجود ندارد.</p>
+            <p className="mt-3 text-sm text-secondary">{t("موردی وجود ندارد.")}</p>
           )}
         </section>
 
         <div className="space-y-6">
           <section className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="text-sm font-bold text-purple-900">فرم‌های سایت ({siteLeads.length.toLocaleString("fa-IR")})</h2>
-            <p className="mt-1 text-xs text-secondary">ثبت‌های همین شخص در سایت، با همان شماره یا ایمیل.</p>
+            <h2 className="text-sm font-bold text-purple-900">{t("فرم‌های سایت ({n})", { n: siteLeads.length.toLocaleString(intl) })}</h2>
+            <p className="mt-1 text-xs text-secondary">{t("ثبت‌های همین شخص در سایت، با همان شماره یا ایمیل.")}</p>
             {siteLeads.length === 0 ? (
-              <p className="mt-3 text-sm text-secondary">موردی پیدا نشد.</p>
+              <p className="mt-3 text-sm text-secondary">{t("موردی پیدا نشد.")}</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {siteLeads.map((l) => (
                   <li key={l.id}>
                     <Link href={`/ops/leads/${l.id}`} className="block rounded-lg border border-border p-2.5 text-sm hover:border-purple-600">
-                      <span className="font-medium text-body">{[l.category, l.serviceSlug].filter(Boolean).join(" / ") || "فرم مشاوره"}</span>
+                      <span className="font-medium text-body">{[l.category, l.serviceSlug].filter(Boolean).join(" / ") || t("فرم مشاوره")}</span>
                       <span className="mt-0.5 block text-xs text-secondary">
-                        {l.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" })} · {LEAD_STATUS_FA[l.status] ?? l.status}
+                        {l.createdAt.toLocaleDateString(intl, { calendar: "gregory" })} · {LEAD_STATUS_FA[l.status] ?? l.status}
                         {l.utmLastSource ? ` · ${l.utmLastSource}` : ""}
                       </span>
                     </Link>
@@ -214,12 +216,12 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
 
           {others.length > 0 && (
             <section className="rounded-2xl border border-border bg-white p-6">
-              <h2 className="mb-3 text-sm font-bold text-purple-900">سوابق مرتبط</h2>
+              <h2 className="mb-3 text-sm font-bold text-purple-900">{t("سوابق مرتبط")}</h2>
               <div className="space-y-4">
                 {others.map(([entity, rows]) => (
                   <div key={entity}>
                     <p className="text-xs font-medium text-secondary">
-                      {TABLE_LABELS[entity] ?? entity} ({rows.length.toLocaleString("fa-IR")})
+                      {t(TABLE_LABELS[entity] ?? entity)} ({rows.length.toLocaleString(intl)})
                     </p>
                     <ul className="mt-1 space-y-0.5">
                       {rows.slice(0, 5).map((r) => (

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canAccessPipeline, canAccessContent, canAccessAnalytics } from "@/lib/permissions";
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 
 export default async function OpsOverview() {
   // This dashboard is entirely pipeline stats (leads/contracts/tickets) —
@@ -18,6 +19,7 @@ export default async function OpsOverview() {
     redirect("/ops/my-work");
   }
 
+  const { t } = await getOpsI18n();
   const weekFromNow = new Date(new Date().getTime() + 7 * 86_400_000);
 
   const [newLeads, totalLeads, activeContracts, openTickets, deadlinesSoon] = await Promise.all([
@@ -32,16 +34,16 @@ export default async function OpsOverview() {
   ]);
 
   const stats = [
-    { label: "لیدهای جدید", value: newLeads, href: "/ops/leads" },
-    { label: "مجموع لیدها", value: totalLeads, href: "/ops/leads" },
-    { label: "قراردادهای فعال", value: activeContracts, href: "/ops/contracts" },
-    { label: "تیکت‌های باز", value: openTickets, href: "/ops/tickets" },
-    { label: "سررسیدهای ۷ روز آینده", value: deadlinesSoon, href: "/ops/contracts" },
+    { label: t("لیدهای جدید"), value: newLeads, href: "/ops/leads" },
+    { label: t("مجموع لیدها"), value: totalLeads, href: "/ops/leads" },
+    { label: t("قراردادهای فعال"), value: activeContracts, href: "/ops/contracts" },
+    { label: t("تیکت‌های باز"), value: openTickets, href: "/ops/tickets" },
+    { label: t("سررسیدهای ۷ روز آینده"), value: deadlinesSoon, href: "/ops/contracts" },
   ];
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">نمای کلی عملیات</h1>
+      <h1 className="text-2xl font-bold text-purple-900">{t("نمای کلی عملیات")}</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className="rounded-xl border border-border bg-white p-5 transition-colors hover:border-purple-600">

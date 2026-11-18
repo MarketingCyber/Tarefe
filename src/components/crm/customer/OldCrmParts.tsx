@@ -4,6 +4,7 @@ import { CalendarBlank, EnvelopeSimple, ListChecks, NotePencil, Paperclip, Phone
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import type { CrmRow } from "@/lib/crm/customer360";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Pieces of the Customer 360 that show old-CRM (Dynamics mirror) records: contract and ticket cards and the merged
  * history of tasks, e-mails, calls, appointments and notes. Read-only until write-back to Dynamics exists — every
@@ -32,15 +33,15 @@ const STANDARD_FA: Record<string, string> = {
 /** A status as Persian operators read it. */
 export const statusFa = (text: string | null) => (text ? (STANDARD_FA[text] ?? text) : null);
 
-/** Dates as the rest of /ops shows them (Gregorian, Persian digits); date-only fields without a time. */
-export function shownDate(data: Data, field: string, withTime = false): string | null {
+/** Dates as the rest of /ops shows them (Gregorian; Persian digits unless `intl` says otherwise); date-only fields without a time. */
+export function shownDate(data: Data, field: string, withTime = false, intl = "fa-IR"): string | null {
   const raw = data[field];
   if (typeof raw !== "string" || !raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
   return withTime
-    ? d.toLocaleString("fa-IR", { calendar: "gregory", dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" })
-    : d.toLocaleDateString("fa-IR", { calendar: "gregory", timeZone: "Europe/Berlin" });
+    ? d.toLocaleString(intl, { calendar: "gregory", dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" })
+    : d.toLocaleDateString(intl, { calendar: "gregory", timeZone: "Europe/Berlin" });
 }
 
 // Contracts and tickets open their workspace pages; everything else the Dynamics-form view of the mirror.
@@ -66,54 +67,56 @@ function Meta({ items }: { items: [string, string | null][] }) {
   );
 }
 
-export function ContractCard({ r }: { r: CrmRow }) {
+export async function ContractCard({ r }: { r: CrmRow }) {
+  const { t, tn, intl } = await getOpsI18n();
   const d = r.data;
   const amount = typeof d.new_mablaq === "number" && d.new_mablaq > 0 ? `${d.new_mablaq.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €` : null;
   return (
     <Link href={`/ops/contracts/${r.crmId}`} className="block rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-purple-900">{shown(d, "name") ?? "قرارداد بدون عنوان"}</p>
+          <p className="font-medium text-purple-900">{shown(d, "name") ?? t("قرارداد بدون عنوان")}</p>
           <p className="text-xs text-secondary">{[shown(d, "new_category"), shown(d, "parentaccountid"), shown(d, "new_contract_company")].filter(Boolean).join(" · ")}</p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
           {shown(d, "new_step") && <Badge tone={stateTone(r)}>{shown(d, "new_step")}</Badge>}
-          {shown(d, "statuscode") && <Badge>{statusFa(shown(d, "statuscode"))}</Badge>}
+          {tn(shown(d, "statuscode")) && <Badge>{tn(statusFa(shown(d, "statuscode")))}</Badge>}
         </div>
       </div>
       <Meta
         items={[
-          ["شروع", shownDate(d, "new_startdate")],
-          ["پایان", shownDate(d, "new_dateend")],
-          ["مهلت لغو", shownDate(d, "new_datelaqve")],
-          ["لغو شد", shownDate(d, "new_cancellation_date")],
-          ["مدت", shown(d, "new_modat")],
-          ["مبلغ", amount && [amount, shown(d, "new_mah")].filter(Boolean).join(" / ")],
+          [t("شروع"), shownDate(d, "new_startdate", false, intl)],
+          [t("پایان"), shownDate(d, "new_dateend", false, intl)],
+          [t("مهلت لغو"), shownDate(d, "new_datelaqve", false, intl)],
+          [t("لغو شد"), shownDate(d, "new_cancellation_date", false, intl)],
+          [t("مدت"), tn(shown(d, "new_modat"))],
+          [t("مبلغ"), amount && [amount, tn(shown(d, "new_mah"))].filter(Boolean).join(" / ")],
           ["Vertragsnummer", shown(d, "new_shomareh")],
-          ["کد", shown(d, "new_code")],
-          ["مسئول", shown(d, "ownerid")],
+          [t("کد"), shown(d, "new_code")],
+          [t("مسئول"), shown(d, "ownerid")],
         ]}
       />
     </Link>
   );
 }
 
-export function TicketCard({ r }: { r: CrmRow }) {
+export async function TicketCard({ r }: { r: CrmRow }) {
+  const { t, tn, intl } = await getOpsI18n();
   const d = r.data;
   return (
     <Link href={recordHref(r)} className="block rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-purple-900">{shown(d, "title") ?? "تیکت بدون عنوان"}</p>
+          <p className="font-medium text-purple-900">{shown(d, "title") ?? t("تیکت بدون عنوان")}</p>
           <p className="text-xs text-secondary">{[shown(d, "new_category"), shown(d, "new_opportunity")].filter(Boolean).join(" · ")}</p>
         </div>
-        <Badge tone={stateTone(r)}>{shown(d, "new_status") ?? statusFa(shown(d, "statuscode")) ?? "—"}</Badge>
+        <Badge tone={stateTone(r)}>{tn(shown(d, "new_status")) ?? tn(statusFa(shown(d, "statuscode"))) ?? "—"}</Badge>
       </div>
       <Meta
         items={[
-          ["شماره", shown(d, "ticketnumber")],
-          ["ایجاد", shownDate(d, "createdon")],
-          ["مسئول", shown(d, "ownerid")],
+          [t("شماره"), shown(d, "ticketnumber")],
+          [t("ایجاد"), shownDate(d, "createdon", false, intl)],
+          [t("مسئول"), shown(d, "ownerid")],
         ]}
       />
     </Link>
@@ -140,12 +143,13 @@ export const plain = (html: unknown) =>
     ? html.replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim()
     : "";
 
-export function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }) {
+export async function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }) {
+  const { t, tn } = await getOpsI18n();
   const d = r.data;
   const type = HISTORY_TYPES[r.entity];
   const Icon = type?.icon ?? NotePencil;
   const isNote = r.entity === "annotation";
-  const title = shown(d, "subject") ?? (isNote ? shown(d, "filename") : null) ?? type?.label ?? r.entity;
+  const title = shown(d, "subject") ?? (isNote ? shown(d, "filename") : null) ?? tn(type?.label) ?? r.entity;
   const body = plain(isNote ? d.notetext : d.description);
   // "About" only when the activity is filed on something other than the person (e.g. a contract or a ticket).
   const aboutId = (d._regardingobjectid_value ?? d._objectid_value) as string | undefined;
@@ -158,16 +162,16 @@ export function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }
       </span>
       <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
         <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-secondary">
-          <span className="font-medium text-purple-900">{type?.label}</span>
-          {shown(d, "directioncode") && <span>{statusFa(shown(d, "directioncode"))}</span>}
-          {r.entity === "task" && shown(d, "statecode") && <span>{statusFa(shown(d, "statecode"))}</span>}
+          <span className="font-medium text-purple-900">{tn(type?.label)}</span>
+          {shown(d, "directioncode") && <span>{tn(statusFa(shown(d, "directioncode")))}</span>}
+          {r.entity === "task" && tn(shown(d, "statecode")) && <span>{tn(statusFa(shown(d, "statecode")))}</span>}
           <span>{when}</span>
           {(shown(d, "ownerid") ?? shown(d, "createdby")) && <span>· {shown(d, "ownerid") ?? shown(d, "createdby")}</span>}
         </div>
         <Link href={recordHref(r)} className="mt-0.5 block text-sm font-medium text-body hover:text-purple-600 hover:underline">
           {title}
         </Link>
-        {about && <p className="text-xs text-secondary">درباره: {about}</p>}
+        {about && <p className="text-xs text-secondary">{t("درباره:")} {about}</p>}
         {body && (
           <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-secondary">
             <Linkified text={body} />
@@ -180,7 +184,7 @@ export function HistoryItem({ r, customerId }: { r: CrmRow; customerId: string }
             rel="noreferrer"
             className="mt-1 inline-flex items-center gap-1 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600"
           >
-            <Paperclip size={12} /> <span className="font-latin">{String(d.filename ?? "فایل")}</span>
+            <Paperclip size={12} /> <span className="font-latin">{String(d.filename ?? t("فایل"))}</span>
           </a>
         )}
       </div>

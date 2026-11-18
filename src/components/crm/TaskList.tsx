@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle, Circle } from "@phosphor-icons/react/dist/ssr";
 import { toggleTaskStatus } from "@/lib/task-actions";
 import { PRIORITY_FA } from "@/lib/status-labels";
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 
 export interface TaskEntry {
   id: string;
@@ -32,9 +33,10 @@ function isOverdue(task: TaskEntry) {
  * after a status flip, since the same component renders in three
  * different places.
  */
-export function TaskList({ tasks, returnPath }: { tasks: TaskEntry[]; returnPath: string }) {
+export async function TaskList({ tasks, returnPath }: { tasks: TaskEntry[]; returnPath: string }) {
+  const { t, intl } = await getOpsI18n();
   if (tasks.length === 0) {
-    return <p className="text-sm text-secondary">هنوز تسکی ثبت نشده.</p>;
+    return <p className="text-sm text-secondary">{t("هنوز تسکی ثبت نشده.")}</p>;
   }
 
   return (
@@ -48,7 +50,7 @@ export function TaskList({ tasks, returnPath }: { tasks: TaskEntry[]; returnPath
             <input type="hidden" name="taskId" value={task.id} />
             <input type="hidden" name="nextStatus" value={task.status === "OPEN" ? "DONE" : "OPEN"} />
             <input type="hidden" name="returnPath" value={returnPath} />
-            <button type="submit" className="press text-purple-600 hover:text-purple-900" aria-label={task.status === "OPEN" ? "علامت‌گذاری به‌عنوان انجام‌شده" : "بازگشایی مجدد"}>
+            <button type="submit" className="press text-purple-600 hover:text-purple-900" aria-label={task.status === "OPEN" ? t("علامت‌گذاری به‌عنوان انجام‌شده") : t("بازگشایی مجدد")}>
               {task.status === "DONE" ? <CheckCircle size={20} weight="fill" /> : <Circle size={20} />}
             </button>
           </form>
@@ -68,11 +70,11 @@ export function TaskList({ tasks, returnPath }: { tasks: TaskEntry[]; returnPath
               {task.assignee && <span>{task.assignee.name}</span>}
               {task.dueAt && (
                 <span className={isOverdue(task) ? "font-semibold text-danger" : ""}>
-                  {isOverdue(task) ? "عقب‌افتاده: " : "سررسید: "}
-                  {task.dueAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}
+                  {isOverdue(task) ? t("عقب‌افتاده: ") : t("سررسید: ")}
+                  {task.dueAt.toLocaleDateString(intl, { calendar: "gregory" })}
                 </span>
               )}
-              <span className={`rounded-full px-2 py-0.5 font-medium ${PRIORITY_STYLE[task.priority]}`}>{PRIORITY_FA[task.priority] ?? task.priority}</span>
+              <span className={`rounded-full px-2 py-0.5 font-medium ${PRIORITY_STYLE[task.priority]}`}>{t(PRIORITY_FA[task.priority] ?? task.priority)}</span>
             </div>
           </div>
         </li>

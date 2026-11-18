@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/db";
+import type { T } from "@/lib/ops-i18n/core";
 
 /**
  * Lead score («امتیاز سرنخ»): an estimate of how likely an open lead is to become a contract, learned from the old
@@ -39,41 +40,48 @@ export const conversionRates = cache(async (): Promise<Rates> => {
   return { overall, bySource: group("source"), byType: group("type"), sample: total };
 });
 
-export type LeadScore = { score: number; tier: "hot" | "warm" | "cold"; reasons: string[] };
+/** One reason behind a score: a Persian template (translated by the CRM language switch) and its values. */
+export type ScoreReason = { fa: string; vars?: Record<string, string | number> };
+export type LeadScore = { score: number; tier: "hot" | "warm" | "cold"; reasons: ScoreReason[] };
+
+/** A reason as text in the staff member's CRM language (numbers formatted with `intl`). */
+export function reasonText(r: ScoreReason, t: T, intl: string): string {
+  const vars = Object.fromEntries(Object.entries(r.vars ?? {}).map(([k, v]) => [k, typeof v === "number" ? v.toLocaleString(intl) : t(v)]));
+  return t(r.fa, vars);
+}
 export const TIER_FA = { hot: "داغ", warm: "خوب", cold: "سرد" } as const;
 
-const pct = (x: number) => `${Math.round(x * 100).toLocaleString("fa-IR")}٪`;
 
 /** Score of one open lead. `attempts` = unanswered calls already logged. */
 export function scoreLead(d: Data, rates: Rates, attempts = 0): LeadScore {
-  const reasons: string[] = [];
+  const reasons: ScoreReason[] = [];
   const source = String(d[`leadsourcecode${F}`] ?? "—");
   const type = String(d[`_new_type_value${F}`] ?? "—");
   const ps = rates.bySource.get(source) ?? rates.overall;
   const pt = rates.byType.get(type) ?? rates.overall;
   let p = rates.overall > 0 ? (ps * pt) / rates.overall : 0;
-  reasons.push(`منبع «${source}»: ${pct(ps)} تبدیل`, `نوع «${type}»: ${pct(pt)} تبدیل`);
+  reasons.push({ fa: "منبع «{source}»: {p}٪ تبدیل", vars: { source, p: Math.round(ps * 100) } }, { fa: "نوع «{type}»: {p}٪ تبدیل", vars: { type, p: Math.round(pt * 100) } });
 
   const hasPhone = typeof d.mobilephone === "string" || typeof d.telephone1 === "string";
   const hasEmail = typeof d.emailaddress1 === "string";
   if (hasPhone && hasEmail) {
     p *= 1.1;
-    reasons.push("موبایل و ایمیل کامل");
+    reasons.push({ fa: "موبایل و ایمیل کامل" });
   } else if (!hasPhone) {
     p *= 0.6;
-    reasons.push("بدون شماره تماس");
+    reasons.push({ fa: "بدون شماره تماس" });
   }
   const ageDays = typeof d.createdon === "string" ? (Date.now() - Date.parse(d.createdon)) / 86_400_000 : 0;
   if (ageDays > 90) {
     p *= 0.4;
-    reasons.push("بیش از ۳ ماه پیش ثبت شده");
+    reasons.push({ fa: "بیش از ۳ ماه پیش ثبت شده" });
   } else if (ageDays > 30) {
     p *= 0.7;
-    reasons.push("بیش از یک ماه پیش ثبت شده");
+    reasons.push({ fa: "بیش از یک ماه پیش ثبت شده" });
   }
   if (attempts > 0) {
     p *= 0.85 ** attempts;
-    reasons.push(`${attempts.toLocaleString("fa-IR")} تماس بی‌پاسخ`);
+    reasons.push({ fa: "{n} تماس بی‌پاسخ", vars: { n: attempts } });
   }
 
   const score = Math.max(1, Math.min(95, Math.round(p * 100)));

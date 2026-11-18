@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { assignCrmRecord, callResultAction, closeCrmLead, linkCrmLeads, qualifyLeadAction, scheduleCrmCall, updateCrmLead, uploadCrmFile, type QualifyResult, type WriteResult } from "@/lib/crm/crm-write-actions";
 
+import { useOpsI18n } from "@/lib/ops-i18n/client";
 /**
  * Editing old-CRM records from /ops (lib/dynamics/write.ts): every change is written to Dynamics first and read
  * back, so the page shows Dynamics' answer. Each form reports what Dynamics said; `dry` = test mode (nothing sent).
@@ -27,44 +28,46 @@ function Hidden({ entity, id, returnPath }: Common) {
 }
 
 function Result({ state, dry }: { state: WriteResult; dry?: boolean }) {
+  const { t } = useOpsI18n();
   if (!state) return null;
   return (
     <span role="status" className={`text-xs ${state.ok ? "text-success" : "text-danger"}`}>
-      {state.ok && dry ? `${state.message} (آزمایشی — ارسال نشد)` : state.message}
+      {state.ok && dry ? `${state.message} ${t("(آزمایشی — ارسال نشد)")}` : state.message}
     </span>
   );
 }
 
 /** Stage («مرحله») and follow-up reason («وضعیت») of an open lead. */
 export function LeadStatusForm({ stages, reasons, stage, reason, ...common }: Common & { stages: Option[]; reasons: Option[]; stage: number | null; reason: number | null }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(updateCrmLead, null);
   return (
     <form action={action} className="flex flex-wrap items-end gap-3">
       <Hidden {...common} />
       <label className="min-w-40 flex-1">
-        <span className={label}>مرحله</span>
+        <span className={label}>{t("مرحله")}</span>
         <select name="stage" defaultValue={stage ?? ""} className={`${field} mt-1`}>
           {stage === null && <option value="">—</option>}
           {stages.map(([v, l]) => (
             <option key={v} value={v}>
-              {l}
+              {t(l)}
             </option>
           ))}
         </select>
       </label>
       <label className="min-w-40 flex-1">
-        <span className={label}>وضعیت پیگیری</span>
+        <span className={label}>{t("وضعیت پیگیری")}</span>
         <select name="reason" defaultValue={reason ?? ""} className={`${field} mt-1`}>
           {reason === null && <option value="">—</option>}
           {reasons.map(([v, l]) => (
             <option key={v} value={v}>
-              {l}
+              {t(l)}
             </option>
           ))}
         </select>
       </label>
       <button type="submit" disabled={pending} className={primary}>
-        {pending ? "در حال ثبت…" : "ذخیره"}
+        {pending ? t("در حال ثبت…") : t("ذخیره")}
       </button>
       <Result state={state} dry={common.dry} />
     </form>
@@ -73,40 +76,41 @@ export function LeadStatusForm({ stages, reasons, stage, reason, ...common }: Co
 
 /** Closes an open lead with a reason; asks for a second click so it isn't closed by accident. */
 export function CloseLeadForm({ reasons, ...common }: Common & { reasons: Option[] }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(closeCrmLead, null);
   const [open, setOpen] = useState(false);
   if (!open)
     return (
       <button type="button" onClick={() => setOpen(true)} className="press rounded-lg border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger-bg">
-        بستن سرنخ…
+        {t("بستن سرنخ…")}
       </button>
     );
   return (
     <form action={action} className="space-y-2 rounded-xl border border-danger/30 bg-danger-bg/40 p-3">
       <Hidden {...common} />
       <label className="block">
-        <span className={label}>دلیل بستن</span>
+        <span className={label}>{t("دلیل بستن")}</span>
         <select name="reason" required defaultValue="" className={`${field} mt-1`}>
           <option value="" disabled>
-            انتخاب کنید…
+            {t("انتخاب کنید…")}
           </option>
           {reasons.map(([v, l]) => (
             <option key={v} value={v}>
-              {l}
+              {t(l)}
             </option>
           ))}
         </select>
       </label>
       <label className="block">
-        <span className={label}>توضیح (اختیاری)</span>
+        <span className={label}>{t("توضیح (اختیاری)")}</span>
         <textarea name="explanation" rows={2} maxLength={2000} className={`${field} mt-1`} />
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" disabled={pending} className="press rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
-          {pending ? "در حال بستن…" : "بستن سرنخ"}
+          {pending ? t("در حال بستن…") : t("بستن سرنخ")}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="text-xs text-secondary hover:text-body">
-          انصراف
+          {t("انصراف")}
         </button>
         <Result state={state} dry={common.dry} />
       </div>
@@ -115,12 +119,13 @@ export function CloseLeadForm({ reasons, ...common }: Common & { reasons: Option
 }
 
 export function AssignForm({ users, ownerId, ...common }: Common & { users: User[]; ownerId: string | null }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(assignCrmRecord, null);
   return (
     <form action={action} className="flex flex-wrap items-end gap-3">
       <Hidden {...common} />
       <label className="min-w-48 flex-1">
-        <span className={label}>مسئول</span>
+        <span className={label}>{t("مسئول")}</span>
         <select name="userId" defaultValue={ownerId ?? ""} required className={`${field} mt-1`}>
           {!ownerId && <option value="">—</option>}
           {users.map((u) => (
@@ -131,7 +136,7 @@ export function AssignForm({ users, ownerId, ...common }: Common & { users: User
         </select>
       </label>
       <button type="submit" disabled={pending} className={primary}>
-        {pending ? "در حال ثبت…" : "واگذاری"}
+        {pending ? t("در حال ثبت…") : t("واگذاری")}
       </button>
       <Result state={state} dry={common.dry} />
     </form>
@@ -140,6 +145,7 @@ export function AssignForm({ users, ownerId, ...common }: Common & { users: User
 
 /** A follow-up phone call (Dynamics phone call activity) for an operator — shows in their «کارهای من». */
 export function ScheduleCallForm({ users, defaultOwnerId, ...common }: Common & { users: User[]; defaultOwnerId: string | null }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(scheduleCrmCall, null);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -159,17 +165,17 @@ export function ScheduleCallForm({ users, defaultOwnerId, ...common }: Common & 
       <Hidden {...common} />
       <input type="hidden" name="tzOffset" defaultValue="0" />
       <label className="min-w-40 flex-[2]">
-        <span className={label}>موضوع</span>
-        <input name="subject" maxLength={200} placeholder="تماس پیگیری" className={`${field} mt-1`} />
+        <span className={label}>{t("موضوع")}</span>
+        <input name="subject" maxLength={200} placeholder={t("تماس پیگیری")} className={`${field} mt-1`} />
       </label>
       <label className="min-w-44 flex-1">
-        <span className={label}>زمان تماس</span>
+        <span className={label}>{t("زمان تماس")}</span>
         <input name="dueAt" type="datetime-local" required className={`${field} font-latin mt-1`} />
       </label>
       <label className="min-w-40 flex-1">
-        <span className={label}>برای</span>
+        <span className={label}>{t("برای")}</span>
         <select name="ownerId" defaultValue={defaultOwnerId ?? ""} required className={`${field} mt-1`}>
-          {!defaultOwnerId && <option value="">انتخاب کنید…</option>}
+          {!defaultOwnerId && <option value="">{t("انتخاب کنید…")}</option>}
           {users.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
@@ -178,7 +184,7 @@ export function ScheduleCallForm({ users, defaultOwnerId, ...common }: Common & 
         </select>
       </label>
       <button type="submit" disabled={pending} className={primary}>
-        {pending ? "در حال ثبت…" : "ثبت تماس"}
+        {pending ? t("در حال ثبت…") : t("ثبت تماس")}
       </button>
       <Result state={state} dry={common.dry} />
     </form>
@@ -187,6 +193,7 @@ export function ScheduleCallForm({ users, defaultOwnerId, ...common }: Common & 
 
 /** Attaches a file (PDF or photo, up to 5 MB) as a note with a document in the old CRM. */
 export function UploadFileForm(common: Common) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(uploadCrmFile, null);
   const form = useRef<HTMLFormElement>(null);
   const [tooBig, setTooBig] = useState(false);
@@ -197,7 +204,7 @@ export function UploadFileForm(common: Common) {
     <form ref={form} action={action} className="flex flex-wrap items-end gap-3">
       <Hidden {...common} />
       <label className="min-w-52 flex-1">
-        <span className={label}>فایل (PDF یا عکس، تا ۵ مگابایت)</span>
+        <span className={label}>{t("فایل (PDF یا عکس، تا ۵ مگابایت)")}</span>
         <input
           name="file"
           type="file"
@@ -208,19 +215,20 @@ export function UploadFileForm(common: Common) {
         />
       </label>
       <label className="min-w-40 flex-1">
-        <span className={label}>توضیح (اختیاری)</span>
+        <span className={label}>{t("توضیح (اختیاری)")}</span>
         <input name="note" maxLength={2000} className={`${field} mt-1`} />
       </label>
       <button type="submit" disabled={pending || tooBig} className={primary}>
-        {pending ? "در حال بارگذاری…" : "بارگذاری"}
+        {pending ? t("در حال بارگذاری…") : t("بارگذاری")}
       </button>
-      {tooBig ? <span className="text-xs text-danger">فایل بزرگ‌تر از ۵ مگابایت است.</span> : <Result state={state} dry={common.dry} />}
+      {tooBig ? <span className="text-xs text-danger">{t("فایل بزرگ‌تر از ۵ مگابایت است.")}</span> : <Result state={state} dry={common.dry} />}
     </form>
   );
 }
 
 /** The two ways to link a found lead: it is a duplicate of this one, or this one is a duplicate of it. */
 export function LeadLinkButtons({ currentId, otherId, returnPath, dry }: { currentId: string; otherId: string; returnPath: string; dry?: boolean }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(linkCrmLeads, null);
   if (state?.ok) return <Result state={state} dry={dry} />;
   const button = (duplicate: string, main: string, text: string, title: string) => (
@@ -235,8 +243,8 @@ export function LeadLinkButtons({ currentId, otherId, returnPath, dry }: { curre
   );
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {button(otherId, currentId, "تکراریِ همین سرنخ است", "آن سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی همین سرنخ ادامه پیدا می‌کند")}
-      {button(currentId, otherId, "همین سرنخ تکراری است", "همین سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی آن سرنخ ادامه پیدا می‌کند")}
+      {button(otherId, currentId, t("تکراریِ همین سرنخ است"), t("آن سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی همین سرنخ ادامه پیدا می‌کند"))}
+      {button(currentId, otherId, t("همین سرنخ تکراری است"), t("همین سرنخ در CRM قدیم به‌عنوان تکراری بسته می‌شود؛ کار روی آن سرنخ ادامه پیدا می‌کند"))}
       <Result state={state} dry={dry} />
     </div>
   );
@@ -249,6 +257,7 @@ type CallOption = [string, string];
  * optional. `callId`: completing a planned call (call list) instead of logging a new one.
  */
 export function CallResultForm({ results, callId, compact, ...common }: Common & { results: CallOption[]; callId?: string; compact?: boolean }) {
+  const { t } = useOpsI18n();
   const [state, action, pending] = useActionState<WriteResult, FormData>(callResultAction, null);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -269,10 +278,10 @@ export function CallResultForm({ results, callId, compact, ...common }: Common &
       {callId && <input type="hidden" name="callId" value={callId} />}
       <input type="hidden" name="tzOffset" defaultValue="0" />
       <div className="flex flex-wrap gap-2">
-        <input name="note" maxLength={2000} placeholder="یادداشت تماس (اختیاری)" aria-label="یادداشت تماس" className={`${field} min-w-0 basis-56 flex-[2]`} />
+        <input name="note" maxLength={2000} placeholder={t("یادداشت تماس (اختیاری)")} aria-label={t("یادداشت تماس")} className={`${field} min-w-0 basis-56 flex-[2]`} />
         <label className="flex min-w-0 basis-56 flex-1 items-center gap-2">
-          <span className="shrink-0 text-xs text-secondary">تماس بعدی</span>
-          <input name="nextAt" type="datetime-local" aria-label="زمان تماس بعدی" className={`${field} font-latin min-w-0 flex-1`} />
+          <span className="shrink-0 text-xs text-secondary">{t("تماس بعدی")}</span>
+          <input name="nextAt" type="datetime-local" aria-label={t("زمان تماس بعدی")} className={`${field} font-latin min-w-0 flex-1`} />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -287,10 +296,10 @@ export function CallResultForm({ results, callId, compact, ...common }: Common &
               value === "wrong_number" ? "border border-danger/40 text-danger hover:bg-danger-bg" : value === "interested" ? "bg-purple-600 text-white hover:bg-purple-900" : "border border-border-strong text-purple-900 hover:border-purple-600"
             }`}
           >
-            {text}
+            {t(text)}
           </button>
         ))}
-        {pending && <span className="text-xs text-secondary">در حال ثبت…</span>}
+        {pending && <span className="text-xs text-secondary">{t("در حال ثبت…")}</span>}
         <Result state={state} dry={common.dry} />
       </div>
     </form>
@@ -299,15 +308,16 @@ export function CallResultForm({ results, callId, compact, ...common }: Common &
 
 /** «تبدیل به قرارداد»: Dynamics' own Qualify after a confirmation; links to the new contract. */
 export function QualifyLeadForm({ customerName, ...common }: Common & { customerName: string | null }) {
+  const { t, tn } = useOpsI18n();
   const [state, action, pending] = useActionState<QualifyResult, FormData>(qualifyLeadAction, null);
   const [open, setOpen] = useState(false);
   if (state?.ok)
     return (
       <p role="status" className="text-sm text-success">
-        {common.dry ? `${state.message} (آزمایشی — ارسال نشد)` : state.message}{" "}
+        {common.dry ? `${state.message} ${t("(آزمایشی — ارسال نشد)")}` : state.message}{" "}
         {state.href && (
           <a href={state.href} className="font-semibold underline">
-            رفتن به قرارداد
+            {t("رفتن به قرارداد")}
           </a>
         )}
       </p>
@@ -315,29 +325,29 @@ export function QualifyLeadForm({ customerName, ...common }: Common & { customer
   if (!open)
     return (
       <button type="button" onClick={() => setOpen(true)} className="press rounded-lg border border-success/40 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success-bg">
-        تبدیل به قرارداد…
+        {t("تبدیل به قرارداد…")}
       </button>
     );
   return (
     <form action={action} className="space-y-2 rounded-xl border border-success/30 bg-success-bg/50 p-3">
       <Hidden {...common} />
       <p className="text-sm text-body">
-        CRM قدیم با روش خودش («Qualify») قرارداد می‌سازد و اتوماسیون‌هایش را اجرا می‌کند —{" "}
+        {t("CRM قدیم با روش خودش («Qualify») قرارداد می‌سازد و اتوماسیون‌هایش را اجرا می‌کند —")}{" "}
         {customerName ? (
           <>
-            برای مشتری موجود <strong>{customerName}</strong>.
+            {t("برای مشتری موجود")} <strong>{tn(customerName)}</strong>.
           </>
         ) : (
-          "مشتری‌ای با این شماره یا ایمیل پیدا نشد، پس مشتری جدید هم ساخته می‌شود."
+          t("مشتری‌ای با این شماره یا ایمیل پیدا نشد، پس مشتری جدید هم ساخته می‌شود.")
         )}{" "}
-        بقیه‌ی جزئیات قرارداد را بعد در صفحه‌ی قرارداد تکمیل کنید.
+        {t("بقیه‌ی جزئیات قرارداد را بعد در صفحه‌ی قرارداد تکمیل کنید.")}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" disabled={pending} className="press rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
-          {pending ? "در حال تبدیل…" : "تبدیل به قرارداد"}
+          {pending ? t("در حال تبدیل…") : t("تبدیل به قرارداد")}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="text-xs text-secondary hover:text-body">
-          انصراف
+          {t("انصراف")}
         </button>
         {state && !state.ok && <span className="text-xs text-danger">{state.message}</span>}
       </div>

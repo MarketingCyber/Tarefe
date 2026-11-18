@@ -6,13 +6,15 @@ import { linkedLeads, possibleDuplicates, searchLeads, type LeadSummary } from "
 import { LeadLinkButtons } from "@/components/crm/customer/CrmEditForms";
 import { Badge } from "@/components/shared/Badge";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * «سرنخ‌های مرتبط» on an old-CRM lead page: leads already linked to this one, other leads with the same phone /
  * e-mail (possible duplicates), and a search to link any other lead (lib/crm/lead-links.ts).
  */
-const faDate = (v: string | null) => (v ? new Date(v).toLocaleDateString("fa-IR", { calendar: "gregory" }) : null);
+const faDate = (v: string | null, intl: string) => (v ? new Date(v).toLocaleDateString(intl, { calendar: "gregory" }) : null);
 
-function Row({ lead, children }: { lead: LeadSummary; children?: React.ReactNode }) {
+async function Row({ lead, children }: { lead: LeadSummary; children?: React.ReactNode }) {
+  const { t, tn, intl } = await getOpsI18n();
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="min-w-0">
@@ -20,7 +22,7 @@ function Row({ lead, children }: { lead: LeadSummary; children?: React.ReactNode
           {lead.name}
         </Link>
         <p className="mt-0.5 text-xs text-secondary">
-          {[lead.code && `کد ${lead.code}`, lead.status, faDate(lead.createdOn), lead.owner].filter(Boolean).join(" · ")}
+          {[lead.code && t("کد {code}", { code: lead.code }), tn(lead.status), faDate(lead.createdOn, intl), lead.owner].filter(Boolean).join(" · ")}
           {lead.phone && (
             <>
               <span className="mx-1">·</span>
@@ -37,6 +39,7 @@ function Row({ lead, children }: { lead: LeadSummary; children?: React.ReactNode
 }
 
 export async function LeadLinks({ id, data, query, returnPath }: { id: string; data: Record<string, unknown>; query?: string; returnPath: string }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   const canWrite = writeMode() !== "off" && !!session?.user?.id && canAccessPipeline(session.user.role);
   const dry = writeMode() === "dry";
@@ -48,14 +51,14 @@ export async function LeadLinks({ id, data, query, returnPath }: { id: string; d
   return (
     <section aria-labelledby="lead-links" className="mt-6 rounded-2xl border border-border bg-white p-6">
       <h2 id="lead-links" className="text-sm font-bold text-purple-900">
-        سرنخ‌های مرتبط
+        {t("سرنخ‌های مرتبط")}
       </h2>
 
       {linked.length > 0 && (
         <ul className="mt-2 divide-y divide-border">
           {linked.map((l) => (
             <Row key={l.id} lead={l}>
-              <Badge tone={l.role === "main" ? "purple" : "neutral"}>{l.role === "main" ? "سرنخ اصلی" : "تکراریِ این سرنخ"}</Badge>
+              <Badge tone={l.role === "main" ? "purple" : "neutral"}>{l.role === "main" ? t("سرنخ اصلی") : t("تکراریِ این سرنخ")}</Badge>
             </Row>
           ))}
         </ul>
@@ -63,7 +66,7 @@ export async function LeadLinks({ id, data, query, returnPath }: { id: string; d
 
       {candidates.length > 0 && (
         <div className="mt-4 rounded-xl border border-warning/30 bg-warning-bg/50 p-4">
-          <p className="text-sm font-medium text-warning">احتمالاً تکراری — همین شماره یا ایمیل در سرنخ‌های دیگر هم هست:</p>
+          <p className="text-sm font-medium text-warning">{t("احتمالاً تکراری — همین شماره یا ایمیل در سرنخ‌های دیگر هم هست:")}</p>
           <ul className="mt-1 divide-y divide-border">
             {candidates.map((l) => (
               <Row key={l.id} lead={l}>
@@ -78,7 +81,7 @@ export async function LeadLinks({ id, data, query, returnPath }: { id: string; d
         <div className="mt-4">
           <form method="get" className="flex flex-wrap items-end gap-2">
             <label className="min-w-56 flex-1">
-              <span className="text-xs font-medium text-secondary">اتصال به سرنخ دیگر — جستجو با نام، موبایل، ایمیل یا کد سرنخ</span>
+              <span className="text-xs font-medium text-secondary">{t("اتصال به سرنخ دیگر — جستجو با نام، موبایل، ایمیل یا کد سرنخ")}</span>
               <input
                 name="linkq"
                 defaultValue={query ?? ""}
@@ -86,12 +89,12 @@ export async function LeadLinks({ id, data, query, returnPath }: { id: string; d
               />
             </label>
             <button type="submit" className="press rounded-lg border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
-              جستجو
+              {t("جستجو")}
             </button>
           </form>
           {query && (
             <ul className="mt-2 divide-y divide-border">
-              {results.length === 0 && <li className="py-3 text-sm text-secondary">سرنخی پیدا نشد.</li>}
+              {results.length === 0 && <li className="py-3 text-sm text-secondary">{t("سرنخی پیدا نشد.")}</li>}
               {results.map((l) => (
                 <Row key={l.id} lead={l}>
                   <LeadLinkButtons currentId={id} otherId={l.id} returnPath={returnPath} dry={dry} />
@@ -102,7 +105,7 @@ export async function LeadLinks({ id, data, query, returnPath }: { id: string; d
         </div>
       )}
 
-      {!linked.length && !candidates.length && !canWrite && <p className="mt-2 text-sm text-secondary">سرنخ مرتبطی نیست.</p>}
+      {!linked.length && !candidates.length && !canWrite && <p className="mt-2 text-sm text-secondary">{t("سرنخ مرتبطی نیست.")}</p>}
     </section>
   );
 }

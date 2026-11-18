@@ -10,12 +10,14 @@ import { GtmScript } from "@/components/providers/GoogleTagManager";
 import { PageTransition } from "@/components/providers/PageTransition";
 import { isStaffRole } from "@/lib/permissions";
 import { isAppEnabled } from "@/lib/app-flag";
+import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { OpsI18nProvider } from "@/lib/ops-i18n/client";
 import "../globals.css";
 
-export const metadata: Metadata = {
-  title: "پنل عملیات | تعرفه",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getOpsI18n();
+  return { title: t("پنل عملیات | تعرفه"), robots: { index: false, follow: false } };
+}
 
 /**
  * Independent root layout for internal Ops/CRM (/ops/*). Own root layout,
@@ -41,10 +43,14 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
     take: 20,
   });
 
+  // Language + direction from the staff member's choice (side-menu switch, cookie): fa right-to-left, en / de left-to-right.
+  const { locale, dir } = await getOpsI18n();
+
   return (
-    <html lang="fa" dir="rtl" className={`ops-theme ${inter.variable} ${iransansx.variable}`}>
+    <html lang={locale} dir={dir} className={`ops-theme ${inter.variable} ${iransansx.variable}`}>
       <GtmScript />
       <body className="flex min-h-screen antialiased">
+        <OpsI18nProvider locale={locale}>
         <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} appEnabled={isAppEnabled()} />
         <div className="min-w-0 flex-1 bg-tint">
           <PageTransition>{children}</PageTransition>
@@ -53,6 +59,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         <Suspense fallback={null}>
           <ReportProblemButton />
         </Suspense>
+        </OpsI18nProvider>
       </body>
     </html>
   );

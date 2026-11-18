@@ -45,7 +45,7 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
   return (
     <div className="container-page py-8">
       <Link href="/ops/applications" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
         بازگشت به درخواست‌ها
       </Link>
 
@@ -129,7 +129,7 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
 
           <div className="mt-6 rounded-2xl border border-border bg-white p-6">
             <h2 className="mb-4 text-sm font-bold text-purple-900">فعالیت‌ها</h2>
-            <ActivityTimeline entries={activityLogs} locale="fa" />
+            <ActivityTimeline entries={activityLogs} />
           </div>
         </div>
       </div>

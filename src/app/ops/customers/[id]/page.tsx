@@ -20,6 +20,7 @@ import { uploadDocument, deleteDocument } from "@/lib/document-actions";
 import { createApplication } from "@/lib/application-actions";
 import { CONTRACT_STATUS_FA, APPLICATION_STATUS_FA, TICKET_STATUS_FA, LEAD_STATUS_FA, DOCUMENT_TYPE_FA } from "@/lib/status-labels";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const CONTRACT_STATUS_TONE: Record<string, BadgeTone> = {
   ACTIVE: "success",
   PENDING: "warning",
@@ -61,6 +62,7 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ docError?: string; history?: string; all?: string }>;
 }) {
+  const { t, tn, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
 
@@ -78,18 +80,18 @@ export default async function CustomerDetailPage({
   const tickets = related.incident ?? [];
   const points = related.new_points ?? [];
   const historyAll = Object.keys(HISTORY_TYPES)
-    .flatMap((t) => related[t] ?? [])
+    .flatMap((k) => related[k] ?? [])
     .sort((a, b) => happenedAt(b) - happenedAt(a));
   const historyFiltered = history && HISTORY_TYPES[history] ? historyAll.filter((r) => r.entity === history) : historyAll;
   const historyShown = all ? historyFiltered : historyFiltered.slice(0, HISTORY_PAGE);
-  const openCrmTasks = (related.task ?? []).filter((t) => Number(t.data.statecode) === 0).sort((a, b) => happenedAt(a) - happenedAt(b));
+  const openCrmTasks = (related.task ?? []).filter((x) => Number(x.data.statecode) === 0).sort((a, b) => happenedAt(a) - happenedAt(b));
   const others = Object.entries(related).filter(([entity]) => !OWN_SECTION.has(entity));
 
   const relatedLeads = account
     ? await prisma.lead.findMany({ where: { email: { equals: account.email, mode: "insensitive" } }, orderBy: { createdAt: "desc" } })
     : [];
   const leadIds = relatedLeads.map((l) => l.id);
-  const ticketIds = account?.serviceRequests.map((t) => t.id) ?? [];
+  const ticketIds = account?.serviceRequests.map((sr) => sr.id) ?? [];
   const activityLogs =
     leadIds.length === 0 && ticketIds.length === 0
       ? []
@@ -111,7 +113,7 @@ export default async function CustomerDetailPage({
     [shown(c, "new_plz"), shown(c, "new_stadt")].filter(Boolean).join(" "),
   ]
     .filter(Boolean)
-    .join("، ");
+    .join(t("، "));
   const iban = typeof c.new_iban === "string" && c.new_iban.trim() ? `${c.new_iban.trim().slice(0, 4)} •••• ${c.new_iban.trim().slice(-4)}` : null;
   const services = SERVICE_FLAGS.filter(([f]) => c[f] === true || c[f] === 1);
   const totalPoints = typeof c.new_total_point_rollup === "number" ? c.new_total_point_rollup : null;
@@ -119,8 +121,8 @@ export default async function CustomerDetailPage({
   return (
     <div className="container-page py-8">
       <Link href="/ops/customers" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
-        بازگشت به مشتریان
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
+        {t("بازگشت به مشتریان")}
       </Link>
 
       <div className="rounded-2xl border border-border bg-white p-6">
@@ -128,8 +130,8 @@ export default async function CustomerDetailPage({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold text-purple-900">{name}</h1>
-              {contact && <Badge tone="purple">CRM قدیم</Badge>}
-              {account && <Badge tone="success">حساب سایت / اپ</Badge>}
+              {contact && <Badge tone="purple">{t("CRM قدیم")}</Badge>}
+              {account && <Badge tone="success">{t("حساب سایت / اپ")}</Badge>}
             </div>
             <p className="font-latin mt-1 text-sm text-secondary">
               {[shown(c, "emailaddress1") ?? account?.email, shown(c, "mobilephone") ?? account?.phone, shown(c, "telephone1")].filter(Boolean).join(" · ") || "—"}
@@ -139,7 +141,7 @@ export default async function CustomerDetailPage({
           {contact && (
             <div className="flex flex-wrap gap-2">
               <Link href={`/ops/old-crm/contact/${contact.crmId}`} className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600">
-                فرم کامل در CRM قدیم
+                {t("فرم کامل در CRM قدیم")}
               </Link>
               <a
                 href={DYNAMICS_RECORD("contact", contact.crmId)}
@@ -147,7 +149,7 @@ export default async function CustomerDetailPage({
                 rel="noreferrer"
                 className="press inline-flex items-center gap-1 rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-purple-900 hover:border-purple-600"
               >
-                ویرایش در Dynamics
+                {t("ویرایش در Dynamics")}
                 <ArrowSquareOut size={12} />
               </a>
             </div>
@@ -157,18 +159,18 @@ export default async function CustomerDetailPage({
         <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
           {(
             [
-              ["شماره مشتری", shown(c, "new_customernumber")],
-              ["کد معرف", shown(c, "new_id") ?? account?.referralCode ?? null],
-              ["معرفی‌شده با کد", account?.referredByCode ?? null],
-              ["امتیاز", totalPoints !== null ? totalPoints.toLocaleString("fa-IR") : null],
-              ["تاریخ تولد", shownDate(c, "birthdate")],
-              ["زبان مادری", shown(c, "new_motherllanguage")],
-              ["نحوه آشنایی", shown(c, "new_nahvehashnaee")],
+              [t("شماره مشتری"), shown(c, "new_customernumber")],
+              [t("کد معرف"), shown(c, "new_id") ?? account?.referralCode ?? null],
+              [t("معرفی‌شده با کد"), account?.referredByCode ?? null],
+              [t("امتیاز"), totalPoints !== null ? totalPoints.toLocaleString(intl) : null],
+              [t("تاریخ تولد"), shownDate(c, "birthdate", false, intl)],
+              [t("زبان مادری"), tn(shown(c, "new_motherllanguage"))],
+              [t("نحوه آشنایی"), tn(shown(c, "new_nahvehashnaee"))],
               ["IBAN", iban],
-              ["مسئول", shown(c, "ownerid")],
-              ["مشتری از", contact ? shownDate(c, "createdon") : null],
-              ["عضویت سایت", account ? account.createdAt.toLocaleDateString("fa-IR", { calendar: "gregory" }) : null],
-              ["زبان سایت", account ? account.locale.toUpperCase() : null],
+              [t("مسئول"), shown(c, "ownerid")],
+              [t("مشتری از"), contact ? shownDate(c, "createdon", false, intl) : null],
+              [t("عضویت سایت"), account ? account.createdAt.toLocaleDateString(intl, { calendar: "gregory" }) : null],
+              [t("زبان سایت"), account ? account.locale.toUpperCase() : null],
             ] as [string, string | null][]
           )
             .filter(([, v]) => v)
@@ -183,7 +185,7 @@ export default async function CustomerDetailPage({
         {services.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
             {services.map(([, label]) => (
-              <Badge key={label}>{label}</Badge>
+              <Badge key={label}>{t(label)}</Badge>
             ))}
           </div>
         )}
@@ -202,7 +204,7 @@ export default async function CustomerDetailPage({
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-3">
         <div className="space-y-6 2xl:col-span-2">
-          <Section title={`قراردادها (${contracts.length + (account?.contracts.length ?? 0)})`}>
+          <Section title={t("قراردادها ({n})", { n: contracts.length + (account?.contracts.length ?? 0) })}>
             {contracts.length + (account?.contracts.length ?? 0) === 0 ? (
               <Empty />
             ) : (
@@ -216,7 +218,7 @@ export default async function CustomerDetailPage({
                       <p className="font-medium text-purple-900">
                         {ct.provider} — {ct.productName}
                       </p>
-                      <p className="text-xs text-secondary">{ct.category} · ثبت‌شده در سایت</p>
+                      <p className="text-xs text-secondary">{t(ct.category)} · {t("ثبت‌شده در سایت")}</p>
                     </div>
                     <Badge tone={CONTRACT_STATUS_TONE[ct.status]}>{CONTRACT_STATUS_FA[ct.status] ?? ct.status}</Badge>
                   </div>
@@ -225,7 +227,7 @@ export default async function CustomerDetailPage({
             )}
           </Section>
 
-          <Section title={`تیکت‌ها (${tickets.length + (account?.serviceRequests.length ?? 0)})`}>
+          <Section title={t("تیکت‌ها ({n})", { n: tickets.length + (account?.serviceRequests.length ?? 0) })}>
             {tickets.length + (account?.serviceRequests.length ?? 0) === 0 ? (
               <Empty />
             ) : (
@@ -233,13 +235,13 @@ export default async function CustomerDetailPage({
                 {tickets.map((r) => (
                   <TicketCard key={r.crmId} r={r} />
                 ))}
-                {account?.serviceRequests.map((t) => (
-                  <Link key={t.id} href={`/ops/tickets/${t.id}`} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
+                {account?.serviceRequests.map((sr) => (
+                  <Link key={sr.id} href={`/ops/tickets/${sr.id}`} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
                     <div>
-                      <p className="font-medium text-purple-900">{t.subject}</p>
-                      <p className="text-xs text-secondary">{t.advisor ? `مشاور: ${t.advisor.name}` : "بدون مشاور"} · ثبت‌شده در سایت / اپ</p>
+                      <p className="font-medium text-purple-900">{sr.subject}</p>
+                      <p className="text-xs text-secondary">{sr.advisor ? t("مشاور: {name}", { name: sr.advisor.name }) : t("بدون مشاور")} · {t("ثبت‌شده در سایت / اپ")}</p>
                     </div>
-                    <Badge>{TICKET_STATUS_FA[t.status] ?? t.status}</Badge>
+                    <Badge>{t(TICKET_STATUS_FA[sr.status] ?? sr.status)}</Badge>
                   </Link>
                 ))}
               </div>
@@ -247,7 +249,7 @@ export default async function CustomerDetailPage({
           </Section>
 
           {contact && (
-            <Section title={`تاریخچه (${historyAll.length})`} note="ایمیل‌ها، تماس‌ها، تسک‌ها، قرارها و یادداشت‌های CRM قدیم — هم آن‌هایی که روی خود مشتری ثبت شده‌اند و هم روی قراردادها و تیکت‌هایش.">
+            <Section title={t("تاریخچه ({n})", { n: historyAll.length })} note={t("ایمیل‌ها، تماس‌ها، تسک‌ها، قرارها و یادداشت‌های CRM قدیم — هم آن‌هایی که روی خود مشتری ثبت شده‌اند و هم روی قراردادها و تیکت‌هایش.")}>
               {writes !== "off" && (
                 <div className="mb-4">
                   <AddNoteForm entity="contact" id={contact.crmId} returnPath={self} dry={writes === "dry"} />
@@ -255,13 +257,13 @@ export default async function CustomerDetailPage({
               )}
               <div className="mb-4 flex flex-wrap gap-1.5">
                 <FilterChip href={self} active={!history}>
-                  همه
+                  {t("همه")}
                 </FilterChip>
-                {Object.entries(HISTORY_TYPES).map(([type, t]) => {
+                {Object.entries(HISTORY_TYPES).map(([type, ht]) => {
                   const n = (related[type] ?? []).length;
                   return n ? (
                     <FilterChip key={type} href={`${self}?history=${type}`} active={history === type}>
-                      {t.label} ({n.toLocaleString("fa-IR")})
+                      {t(ht.label)} ({n.toLocaleString(intl)})
                     </FilterChip>
                   ) : null;
                 })}
@@ -277,23 +279,23 @@ export default async function CustomerDetailPage({
               )}
               {!all && historyFiltered.length > HISTORY_PAGE && (
                 <Link href={`${self}?${history ? `history=${history}&` : ""}all=1`} className="mt-4 inline-block text-sm font-medium text-purple-600 hover:underline">
-                  نمایش همه ({historyFiltered.length.toLocaleString("fa-IR")})
+                  {t("نمایش همه ({n})", { n: historyFiltered.length.toLocaleString(intl) })}
                 </Link>
               )}
             </Section>
           )}
 
           {account && (
-            <Section title={`درخواست‌ها (${account.applications.length})`}>
+            <Section title={t("درخواست‌ها ({n})", { n: account.applications.length })}>
               <form action={createApplication} className="mb-4 grid gap-2 rounded-xl border border-dashed border-border-strong p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto]">
                 <input type="hidden" name="customerId" value={account.id} />
                 <input type="hidden" name="returnPath" value={self} />
-                <input name="provider" placeholder="ارائه‌دهنده" required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
-                <input name="tariffName" placeholder="نام تعرفه / پلن" required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
-                <input name="category" placeholder="دسته‌بندی" required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
-                <input name="monthlyPrice" placeholder="یورو/ماه (اختیاری)" className="w-28 rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
+                <input name="provider" placeholder={t("ارائه‌دهنده")} required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
+                <input name="tariffName" placeholder={t("نام تعرفه / پلن")} required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
+                <input name="category" placeholder={t("دسته‌بندی")} required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
+                <input name="monthlyPrice" placeholder={t("یورو/ماه (اختیاری)")} className="w-28 rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
                 <button type="submit" className="press rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-                  شروع درخواست
+                  {t("شروع درخواست")}
                 </button>
               </form>
               {account.applications.length === 0 ? (
@@ -306,7 +308,7 @@ export default async function CustomerDetailPage({
                         <p className="font-medium text-purple-900">
                           {a.provider} — {a.tariffName}
                         </p>
-                        <p className="text-xs text-secondary">{a.advisor ? `مشاور: ${a.advisor.name}` : "بدون مشاور"}</p>
+                        <p className="text-xs text-secondary">{a.advisor ? t("مشاور: {name}", { name: a.advisor.name }) : t("بدون مشاور")}</p>
                       </div>
                       <Badge>{APPLICATION_STATUS_FA[a.status] ?? a.status}</Badge>
                     </Link>
@@ -317,28 +319,28 @@ export default async function CustomerDetailPage({
           )}
 
           {account && (
-            <Section title={`مدارک (${account.documents.length})`}>
+            <Section title={t("مدارک ({n})", { n: account.documents.length })}>
               {docError && (
                 <p role="alert" className="mb-3 rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">
-                  {docError === "missing_fields" ? "عنوان و فایل هر دو الزامی هستند." : `آپلود ناموفق بود: ${decodeURIComponent(docError)}`}
+                  {docError === "missing_fields" ? t("عنوان و فایل هر دو الزامی هستند.") : t("آپلود ناموفق بود: {error}", { error: decodeURIComponent(docError) })}
                 </p>
               )}
               <form action={uploadDocument} className="mb-4 grid gap-2 rounded-xl border border-dashed border-border-strong p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
                 <input type="hidden" name="ownerId" value={account.id} />
                 <input type="hidden" name="returnPath" value={self} />
-                <input name="title" placeholder="عنوان مدرک" required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
+                <input name="title" placeholder={t("عنوان مدرک")} required className="rounded-lg border border-border-strong bg-white px-3 py-2 text-xs text-purple-900 outline-none focus:border-purple-600" />
                 <select name="type" defaultValue="OTHER" className="rounded-lg border border-border-strong bg-white px-2 py-2 text-xs font-medium text-purple-900">
-                  <option value="CONTRACT">قرارداد</option>
-                  <option value="POLICY">بیمه‌نامه</option>
-                  <option value="INVOICE">فاکتور</option>
-                  <option value="LETTER">نامه</option>
-                  <option value="ID_DOC">مدرک شناسایی</option>
-                  <option value="CERTIFICATE">گواهی</option>
-                  <option value="OTHER">سایر</option>
+                  <option value="CONTRACT">{t("قرارداد")}</option>
+                  <option value="POLICY">{t("بیمه‌نامه")}</option>
+                  <option value="INVOICE">{t("فاکتور")}</option>
+                  <option value="LETTER">{t("نامه")}</option>
+                  <option value="ID_DOC">{t("مدرک شناسایی")}</option>
+                  <option value="CERTIFICATE">{t("گواهی")}</option>
+                  <option value="OTHER">{t("سایر")}</option>
                 </select>
                 <input type="file" name="file" required accept="application/pdf,image/jpeg,image/png,image/webp" className="text-xs text-secondary file:mr-2 file:rounded-full file:border-0 file:bg-tint file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-purple-900" />
                 <button type="submit" className="press rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-                  آپلود
+                  {t("آپلود")}
                 </button>
               </form>
               {account.documents.length === 0 ? (
@@ -355,17 +357,17 @@ export default async function CustomerDetailPage({
                         {d.fileUrl && (
                           <a href={`/api/documents/${d.id}`} className="press flex items-center gap-1 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-purple-900 hover:border-purple-600">
                             <DownloadSimple size={12} />
-                            دانلود
+                            {t("دانلود")}
                           </a>
                         )}
                         <ConfirmDeleteForm
                           action={deleteDocument}
                           id={d.id}
-                          message={`حذف «${d.title}»؟ این عملیات قابل بازگشت نیست.`}
+                          message={t("حذف «{title}»؟ این عملیات قابل بازگشت نیست.", { title: d.title })}
                           hiddenFields={{ returnPath: self }}
                           className="press rounded-full border border-danger/40 px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger-bg"
                         >
-                          حذف
+                          {t("حذف")}
                         </ConfirmDeleteForm>
                       </div>
                     </div>
@@ -376,7 +378,7 @@ export default async function CustomerDetailPage({
           )}
 
           {relatedLeads.length > 0 && (
-            <Section title={`لیدهای سایت (${relatedLeads.length})`} note="بر اساس ایمیل تطبیق داده شده‌اند.">
+            <Section title={t("لیدهای سایت ({n})", { n: relatedLeads.length })} note={t("بر اساس ایمیل تطبیق داده شده‌اند.")}>
               <div className="space-y-2">
                 {relatedLeads.map((l) => (
                   <Link key={l.id} href={`/ops/leads/${l.id}`} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm transition-colors hover:border-purple-600">
@@ -393,7 +395,7 @@ export default async function CustomerDetailPage({
 
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-purple-900">تسک‌ها</h2>
+            <h2 className="mb-4 text-sm font-bold text-purple-900">{t("تسک‌ها")}</h2>
             {account && (
               <>
                 <div className="mb-4">
@@ -404,24 +406,24 @@ export default async function CustomerDetailPage({
             )}
             {contact && (
               <div className={account ? "mt-5 border-t border-border pt-4" : ""}>
-                <p className="mb-2 text-xs font-medium text-secondary">باز در CRM قدیم ({openCrmTasks.length.toLocaleString("fa-IR")})</p>
+                <p className="mb-2 text-xs font-medium text-secondary">{t("باز در CRM قدیم ({n})", { n: openCrmTasks.length.toLocaleString(intl) })}</p>
                 {openCrmTasks.length === 0 ? (
                   <Empty />
                 ) : (
                   <ul className="space-y-2">
-                    {openCrmTasks.slice(0, 15).map((t) => (
-                      <li key={t.crmId} className="rounded-lg border border-border p-2.5 text-sm">
-                        <Link href={`/ops/old-crm/task/${t.crmId}`} className="block hover:text-purple-600">
-                          <span className="font-medium text-body">{shown(t.data, "subject") ?? "تسک"}</span>
+                    {openCrmTasks.slice(0, 15).map((task) => (
+                      <li key={task.crmId} className="rounded-lg border border-border p-2.5 text-sm">
+                        <Link href={`/ops/old-crm/task/${task.crmId}`} className="block hover:text-purple-600">
+                          <span className="font-medium text-body">{shown(task.data, "subject") ?? t("تسک")}</span>
                           <span className="mt-0.5 block text-xs text-secondary">
-                            {[shownDate(t.data, "scheduledend") && `موعد ${shownDate(t.data, "scheduledend")}`, shown(t.data, "ownerid"), shown(t.data, "regardingobjectid")]
+                            {[shownDate(task.data, "scheduledend", false, intl) && t("موعد {date}", { date: shownDate(task.data, "scheduledend", false, intl) }), shown(task.data, "ownerid"), shown(task.data, "regardingobjectid")]
                               .filter(Boolean)
                               .join(" · ")}
                           </span>
                         </Link>
                         {writes !== "off" && (
                           <div className="mt-2">
-                            <CloseActivityButton entity="task" id={t.crmId} returnPath={self} dry={writes === "dry"} />
+                            <CloseActivityButton entity="task" id={task.crmId} returnPath={self} dry={writes === "dry"} />
                           </div>
                         )}
                       </li>
@@ -434,8 +436,8 @@ export default async function CustomerDetailPage({
 
           {contact && (
             <div className="rounded-2xl border border-border bg-white p-6">
-              <h2 className="text-sm font-bold text-purple-900">امتیازها</h2>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-purple-900">{(totalPoints ?? 0).toLocaleString("fa-IR")}</p>
+              <h2 className="text-sm font-bold text-purple-900">{t("امتیازها")}</h2>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-purple-900">{(totalPoints ?? 0).toLocaleString(intl)}</p>
               {points.length > 0 && (
                 <ul className="mt-3 space-y-1.5 text-sm">
                   {points.slice(0, 8).map((p) => (
@@ -448,12 +450,12 @@ export default async function CustomerDetailPage({
 
           {others.length > 0 && (
             <div className="rounded-2xl border border-border bg-white p-6">
-              <h2 className="mb-3 text-sm font-bold text-purple-900">سایر سوابق در CRM قدیم</h2>
+              <h2 className="mb-3 text-sm font-bold text-purple-900">{t("سایر سوابق در CRM قدیم")}</h2>
               <div className="space-y-4">
                 {others.map(([entity, rows]) => (
                   <div key={entity}>
                     <p className="text-xs font-medium text-secondary">
-                      {TABLE_LABELS[entity] ?? entity} ({rows.length.toLocaleString("fa-IR")})
+                      {t(TABLE_LABELS[entity] ?? entity)} ({rows.length.toLocaleString(intl)})
                     </p>
                     <ul className="mt-1 space-y-0.5">
                       {rows.slice(0, 5).map((r) => (
@@ -472,12 +474,12 @@ export default async function CustomerDetailPage({
 
           {account && account.conversations.length > 0 && (
             <div className="rounded-2xl border border-border bg-white p-6">
-              <h2 className="mb-3 text-sm font-bold text-purple-900">گفتگوهای اپ</h2>
+              <h2 className="mb-3 text-sm font-bold text-purple-900">{t("گفتگوهای اپ")}</h2>
               <ul className="space-y-1.5">
                 {account.conversations.map((cv) => (
                   <li key={cv.id}>
                     <Link href={`/ops/conversations/${cv.id}`} className="text-sm text-purple-900 hover:text-purple-600 hover:underline">
-                      گفتگو · {cv.lastMessageAt.toLocaleDateString("fa-IR", { calendar: "gregory" })}
+                      {t("گفتگو")} · {cv.lastMessageAt.toLocaleDateString(intl, { calendar: "gregory" })}
                     </Link>
                   </li>
                 ))}
@@ -487,8 +489,8 @@ export default async function CustomerDetailPage({
 
           {account && (
             <div className="rounded-2xl border border-border bg-white p-6">
-              <h2 className="mb-4 text-sm font-bold text-purple-900">فعالیت‌های سایت</h2>
-              <ActivityTimeline entries={activityLogs} locale="fa" />
+              <h2 className="mb-4 text-sm font-bold text-purple-900">{t("فعالیت‌های سایت")}</h2>
+              <ActivityTimeline entries={activityLogs} />
             </div>
           )}
         </div>
@@ -497,14 +499,15 @@ export default async function CustomerDetailPage({
   );
 }
 
-function PointRow({ r }: { r: CrmRow }) {
+async function PointRow({ r }: { r: CrmRow }) {
+  const { intl } = await getOpsI18n();
   const amount = r.data.new_point ?? r.data.new_points ?? r.data.new_amount;
   return (
     <li className="flex items-baseline justify-between gap-3">
       <Link href={`/ops/old-crm/new_points/${r.crmId}`} className="min-w-0 truncate text-body hover:text-purple-600 hover:underline">
         {displayName("new_points", r.data)}
       </Link>
-      <span className="shrink-0 tabular-nums text-secondary">{typeof amount === "number" ? amount.toLocaleString("fa-IR") : shownDate(r.data, "createdon")}</span>
+      <span className="shrink-0 tabular-nums text-secondary">{typeof amount === "number" ? amount.toLocaleString(intl) : shownDate(r.data, "createdon", false, intl)}</span>
     </li>
   );
 }
@@ -519,6 +522,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   );
 }
 
-function Empty() {
-  return <p className="text-sm text-secondary">موردی وجود ندارد.</p>;
+async function Empty() {
+  const { t } = await getOpsI18n();
+  return <p className="text-sm text-secondary">{t("موردی وجود ندارد.")}</p>;
 }

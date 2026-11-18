@@ -1,6 +1,7 @@
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { channelOf } from "@/lib/traffic-channel";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Where a lead came from — shown in the leads table (one compact cell) and on
  * the lead page (the full breakdown). Values are the same source / medium /
@@ -69,9 +70,10 @@ function ChannelBadge({ medium }: { medium: string | null }) {
 const dash = (v: string | null) => v || "—";
 
 /** Table cell: "google / cpc" with the channel and campaign under it. */
-export function LeadSourceCell({ lead }: { lead: LeadAttributionFields }) {
+export async function LeadSourceCell({ lead }: { lead: LeadAttributionFields }) {
+  const { t } = await getOpsI18n();
   const { visit } = touches(lead);
-  if (!hasAny(visit)) return <span className="text-xs text-secondary">ثبت نشده</span>;
+  if (!hasAny(visit)) return <span className="text-xs text-secondary">{t("ثبت نشده")}</span>;
   return (
     <div dir="ltr" className="font-latin text-start text-xs">
       <div className="font-medium text-purple-900">
@@ -86,21 +88,22 @@ export function LeadSourceCell({ lead }: { lead: LeadAttributionFields }) {
 }
 
 /** Lead page: this visit / first touch / last touch, each with all five fields. */
-export function LeadAttributionPanel({ lead }: { lead: LeadAttributionFields }) {
+export async function LeadAttributionPanel({ lead }: { lead: LeadAttributionFields }) {
+  const { t } = await getOpsI18n();
   const { visit, first, last, visitIsFallback } = touches(lead);
   const rows: { label: string; hint: string; touch: Touch }[] = [
-    { label: "این بازدید", hint: visitIsFallback ? "(برای این لید فقط آخرین منبع ثبت شده است)" : "بازدیدی که فرم در آن ارسال شد", touch: visit },
-    { label: "اولین منبع", hint: "اولین باری که این مرورگر دیده شد", touch: first },
-    { label: "آخرین منبع واقعی", hint: "ورود مستقیم بعدی آن را عوض نمی‌کند", touch: last },
+    { label: t("این بازدید"), hint: visitIsFallback ? t("(برای این لید فقط آخرین منبع ثبت شده است)") : t("بازدیدی که فرم در آن ارسال شد"), touch: visit },
+    { label: t("اولین منبع"), hint: t("اولین باری که این مرورگر دیده شد"), touch: first },
+    { label: t("آخرین منبع واقعی"), hint: t("ورود مستقیم بعدی آن را عوض نمی‌کند"), touch: last },
   ];
   const any = rows.some((r) => hasAny(r.touch));
 
   return (
     <div className="mt-5 border-t border-border pt-5">
-      <h2 className="text-sm font-bold text-purple-900">منبع ترافیک (Source / Medium)</h2>
+      <h2 className="text-sm font-bold text-purple-900">{t("منبع ترافیک (Source / Medium)")}</h2>
       {!any ? (
         <p className="mt-2 text-xs leading-relaxed text-secondary">
-          منبعی برای این لید ثبت نشده است. معمولاً یعنی بازدیدکننده کوکی را نپذیرفته بود یا فرم قبل از فعال‌شدن ردیابی منبع ثبت شده است.
+          {t("منبعی برای این لید ثبت نشده است. معمولاً یعنی بازدیدکننده کوکی را نپذیرفته بود یا فرم قبل از فعال‌شدن ردیابی منبع ثبت شده است.")}
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto" dir="ltr">
@@ -136,7 +139,7 @@ export function LeadAttributionPanel({ lead }: { lead: LeadAttributionFields }) 
                     </>
                   ) : (
                     <td colSpan={6} className="px-3 py-2.5 text-secondary" dir="rtl">
-                      ثبت نشده
+                      {t("ثبت نشده")}
                     </td>
                   )}
                 </tr>

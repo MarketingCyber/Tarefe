@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { bulkLeadsAction, type BulkResult } from "@/lib/crm/crm-write-actions";
 
+import { useOpsI18n } from "@/lib/ops-i18n/client";
 /**
  * Open leads with checkboxes and one action bar for the selected ones: assign, set stage / follow-up, or close with a
  * reason (at most 50 at a time; each is written to the old CRM, failures are listed).
@@ -46,6 +47,7 @@ export function BulkLeads({
   canWrite: boolean;
   dry?: boolean;
 }) {
+  const { t, intl } = useOpsI18n();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kind, setKind] = useState("assign");
   const [state, action, pending] = useActionState<BulkResult, FormData>(bulkLeadsAction, null);
@@ -66,16 +68,16 @@ export function BulkLeads({
           {[...selected].map((id) => (
             <input key={id} type="hidden" name="ids" value={id} />
           ))}
-          <span className="self-center text-xs font-semibold text-purple-900">{selected.size.toLocaleString("fa-IR")} انتخاب‌شده</span>
-          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="کار گروهی" className={field}>
-            <option value="assign">واگذاری</option>
-            <option value="status">تغییر مرحله / وضعیت</option>
-            <option value="close">بستن با دلیل</option>
+          <span className="self-center text-xs font-semibold text-purple-900">{t("{n} انتخاب‌شده", { n: selected.size.toLocaleString(intl) })}</span>
+          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} aria-label={t("کار گروهی")} className={field}>
+            <option value="assign">{t("واگذاری")}</option>
+            <option value="status">{t("تغییر مرحله / وضعیت")}</option>
+            <option value="close">{t("بستن با دلیل")}</option>
           </select>
           {kind === "assign" && (
-            <select name="userId" required defaultValue="" aria-label="به" className={field}>
+            <select name="userId" required defaultValue="" aria-label={t("به")} className={field}>
               <option value="" disabled>
-                به…
+                {t("به…")}
               </option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -86,19 +88,19 @@ export function BulkLeads({
           )}
           {kind === "status" && (
             <>
-              <select name="stage" defaultValue="" aria-label="مرحله" className={field}>
-                <option value="">مرحله: بدون تغییر</option>
+              <select name="stage" defaultValue="" aria-label={t("مرحله")} className={field}>
+                <option value="">{t("مرحله: بدون تغییر")}</option>
                 {stages.map(([v, l]) => (
                   <option key={v} value={v}>
-                    {l}
+                    {t(l)}
                   </option>
                 ))}
               </select>
-              <select name="reason" defaultValue="" aria-label="وضعیت پیگیری" className={field}>
-                <option value="">وضعیت: بدون تغییر</option>
+              <select name="reason" defaultValue="" aria-label={t("وضعیت پیگیری")} className={field}>
+                <option value="">{t("وضعیت: بدون تغییر")}</option>
                 {reasons.map(([v, l]) => (
                   <option key={v} value={v}>
-                    {l}
+                    {t(l)}
                   </option>
                 ))}
               </select>
@@ -106,34 +108,34 @@ export function BulkLeads({
           )}
           {kind === "close" && (
             <>
-              <select name="closeReason" required defaultValue="" aria-label="دلیل بستن" className={field}>
+              <select name="closeReason" required defaultValue="" aria-label={t("دلیل بستن")} className={field}>
                 <option value="" disabled>
-                  دلیل بستن…
+                  {t("دلیل بستن…")}
                 </option>
                 {closeReasons.map(([v, l]) => (
                   <option key={v} value={v}>
-                    {l}
+                    {t(l)}
                   </option>
                 ))}
               </select>
-              <input name="explanation" maxLength={500} placeholder="توضیح (اختیاری)" className={field} />
+              <input name="explanation" maxLength={500} placeholder={t("توضیح (اختیاری)")} className={field} />
             </>
           )}
           <button
             type="submit"
             disabled={pending || selected.size === 0}
             onClick={(e) => {
-              if (kind === "close" && !confirm(`${selected.size} سرنخ در CRM قدیم بسته شوند؟`)) e.preventDefault();
+              if (kind === "close" && !confirm(t("{n} سرنخ در CRM قدیم بسته شوند؟", { n: selected.size }))) e.preventDefault();
             }}
             className="press rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-900 disabled:opacity-50"
           >
-            {pending ? "در حال انجام…" : "اعمال روی انتخاب‌شده‌ها"}
+            {pending ? t("در حال انجام…") : t("اعمال روی انتخاب‌شده‌ها")}
           </button>
           {state && (
             <span role="status" className={`text-xs ${state.ok ? "text-success" : "text-danger"}`}>
               {state.message}
-              {dry && state.ok ? " (آزمایشی — ارسال نشد)" : ""}
-              {state.failed?.length ? ` — خطا: ${state.failed.slice(0, 3).join("، ")}` : ""}
+              {dry && state.ok ? t(" (آزمایشی — ارسال نشد)") : ""}
+              {state.failed?.length ? ` — ${t("خطا:")} ${state.failed.slice(0, 3).join(t("، "))}` : ""}
             </span>
           )}
         </form>
@@ -147,17 +149,17 @@ export function BulkLeads({
                 <th className="w-10 px-3 py-3">
                   <input
                     type="checkbox"
-                    aria-label="انتخاب همه (تا ۵۰)"
+                    aria-label={t("انتخاب همه (تا ۵۰)")}
                     checked={allShown.length > 0 && allShown.every((id) => selected.has(id))}
                     onChange={(e) => setSelected(e.target.checked ? new Set(allShown) : new Set())}
                   />
                 </th>
               )}
-              <th className="px-3 py-3 text-start font-medium">نام</th>
-              <th className="px-3 py-3 text-start font-medium">امتیاز</th>
-              <th className="px-3 py-3 text-start font-medium">منتظر</th>
-              <th className="px-3 py-3 text-start font-medium">مرحله</th>
-              <th className="px-3 py-3 text-start font-medium">مسئول</th>
+              <th className="px-3 py-3 text-start font-medium">{t("نام")}</th>
+              <th className="px-3 py-3 text-start font-medium">{t("امتیاز")}</th>
+              <th className="px-3 py-3 text-start font-medium">{t("منتظر")}</th>
+              <th className="px-3 py-3 text-start font-medium">{t("مرحله")}</th>
+              <th className="px-3 py-3 text-start font-medium">{t("مسئول")}</th>
             </tr>
           </thead>
           <tbody>
@@ -165,7 +167,7 @@ export function BulkLeads({
               <tr key={r.id} className={`border-b border-border last:border-0 ${selected.has(r.id) ? "bg-purple-600/5" : "hover:bg-tint/40"}`}>
                 {canWrite && (
                   <td className="px-3 py-3">
-                    <input type="checkbox" aria-label={`انتخاب ${r.name}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
+                    <input type="checkbox" aria-label={t("انتخاب {name}", { name: r.name })} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
                   </td>
                 )}
                 <td className="px-3 py-3">
@@ -186,7 +188,7 @@ export function BulkLeads({
                 </td>
                 <td className="px-3 py-3">
                   <span title={r.scoreReasons} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${TIER_CLASS[r.tierTone]}`}>
-                    {r.score.toLocaleString("fa-IR")}٪ · {r.tier}
+                    {t("{n}٪", { n: r.score.toLocaleString(intl) })} · {t(r.tier)}
                   </span>
                 </td>
                 <td className={`whitespace-nowrap px-3 py-3 text-xs ${r.late ? "font-semibold text-danger" : "text-secondary"}`}>{r.waiting ?? "—"}</td>

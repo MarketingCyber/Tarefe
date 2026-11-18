@@ -8,6 +8,7 @@ import { Badge } from "@/components/shared/Badge";
 import { LEAD_STATUS_FA, TICKET_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 import { MyCrmWork } from "@/components/crm/customer/MyCrmWork";
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 
 /**
  * Per Phase 2's "CRM workspace + account-manager 'My Work' dashboard" —
@@ -25,6 +26,7 @@ export default async function MyWorkPage() {
   // null on a fresh-login race.
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/my-work");
   const advisorId = session.user.id;
+  const { t } = await getOpsI18n();
 
   const [myLeads, myTickets, myTasks] = await Promise.all([
     prisma.lead.findMany({
@@ -64,8 +66,8 @@ export default async function MyWorkPage() {
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">کارهای من</h1>
-      <p className="mt-1 text-sm text-secondary">کارهای باز شما در CRM قدیم و سایت، {session?.user?.name}.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("کارهای من")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("کارهای باز شما در CRM قدیم و سایت، {name}.", { name: session?.user?.name })}</p>
 
       {canAccessPipeline(session.user.role) && (
         <div className="mt-6">
@@ -74,19 +76,19 @@ export default async function MyWorkPage() {
       )}
 
       <div className="mt-6 rounded-2xl border border-border bg-white p-6">
-        <h2 className="mb-4 text-sm font-bold text-purple-900">تسک‌های سایت ({myTasks.length})</h2>
+        <h2 className="mb-4 text-sm font-bold text-purple-900">{t("تسک‌های سایت ({n})", { n: myTasks.length })}</h2>
         <div className="mb-4">
           <QuickAddTask returnPath="/ops/my-work" />
         </div>
-        <TaskList tasks={myTasks.map((t) => ({ ...t, link: linkFor(t) }))} returnPath="/ops/my-work" />
+        <TaskList tasks={myTasks.map((task) => ({ ...task, link: linkFor(task) }))} returnPath="/ops/my-work" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="mb-3 text-sm font-bold text-purple-900">لیدهای سایت ({myLeads.length})</h2>
+          <h2 className="mb-3 text-sm font-bold text-purple-900">{t("لیدهای سایت ({n})", { n: myLeads.length })}</h2>
           {myLeads.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border-strong bg-white py-10 text-center">
-              <p className="text-sm text-secondary">در حال حاضر چیزی به شما واگذار نشده.</p>
+              <p className="text-sm text-secondary">{t("در حال حاضر چیزی به شما واگذار نشده.")}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -98,7 +100,7 @@ export default async function MyWorkPage() {
                       {lead.category ?? "—"} {lead.serviceSlug ? `/ ${lead.serviceSlug}` : ""}
                     </p>
                   </div>
-                  <Badge>{LEAD_STATUS_FA[lead.status] ?? lead.status}</Badge>
+                  <Badge>{t(LEAD_STATUS_FA[lead.status] ?? lead.status)}</Badge>
                 </Link>
               ))}
             </div>
@@ -106,10 +108,10 @@ export default async function MyWorkPage() {
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-bold text-purple-900">تیکت‌های سایت ({myTickets.length})</h2>
+          <h2 className="mb-3 text-sm font-bold text-purple-900">{t("تیکت‌های سایت ({n})", { n: myTickets.length })}</h2>
           {myTickets.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border-strong bg-white py-10 text-center">
-              <p className="text-sm text-secondary">در حال حاضر چیزی به شما واگذار نشده.</p>
+              <p className="text-sm text-secondary">{t("در حال حاضر چیزی به شما واگذار نشده.")}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -119,7 +121,7 @@ export default async function MyWorkPage() {
                     <p className="text-sm font-semibold text-purple-900">{ticket.subject}</p>
                     <p className="text-xs text-secondary">{ticket.customer.name}</p>
                   </div>
-                  <Badge>{TICKET_STATUS_FA[ticket.status] ?? ticket.status}</Badge>
+                  <Badge>{t(TICKET_STATUS_FA[ticket.status] ?? ticket.status)}</Badge>
                 </Link>
               ))}
             </div>

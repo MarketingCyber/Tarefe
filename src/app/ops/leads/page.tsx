@@ -15,6 +15,7 @@ import { LEAD_STATE_TONE } from "@/components/crm/customer/CrmLead";
 import { crmUsers } from "@/lib/crm/crm-users";
 import { emailKey, phoneKey } from "@/lib/dynamics/identity";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * Leads across both CRMs.
  *  - old CRM (default): Dynamics converts or closes leads within days, so the useful view is the funnel — for a
@@ -66,6 +67,7 @@ export default async function OpsLeadsPage({
 }: {
   searchParams: Promise<{ source?: string; period?: string; q?: string; result?: string; channel?: string; owner?: string; page?: string }>;
 }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
   const sp = await searchParams;
@@ -73,24 +75,24 @@ export default async function OpsLeadsPage({
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">لیدها</h1>
-      <p className="mt-1 text-sm text-secondary">سرنخ‌های CRM قدیم و فرم‌های مشاوره سایت — از کجا آمده‌اند و چند تا قرارداد شده‌اند.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("لیدها")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("سرنخ‌های CRM قدیم و فرم‌های مشاوره سایت — از کجا آمده‌اند و چند تا قرارداد شده‌اند.")}</p>
       <div className="mt-5 flex flex-wrap gap-1.5">
         <FilterChip href="/ops/leads" active={source === "crm"}>
-          CRM قدیم
+          {t("CRM قدیم")}
         </FilterChip>
         <FilterChip href="/ops/leads?source=site" active={source === "site"}>
-          فرم‌های سایت
+          {t("فرم‌های سایت")}
         </FilterChip>
         <span className="mx-1 h-5 w-px self-center bg-border-strong" aria-hidden />
         <Link href="/ops/leads/queue" className="press rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-900">
-          صف سرنخ‌ها و کار گروهی
+          {t("صف سرنخ‌ها و کار گروهی")}
         </Link>
         <Link href="/ops/calls" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
-          لیست تماس امروز
+          {t("لیست تماس امروز")}
         </Link>
         <Link href="/ops/leads/reports" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
-          گزارش لیدها
+          {t("گزارش لیدها")}
         </Link>
       </div>
       {source === "crm" ? <CrmLeads sp={sp} /> : <SiteLeads />}
@@ -104,9 +106,10 @@ function daysAgo(days: number) {
   return new Date(new Date().getTime() - days * 86_400_000).toISOString();
 }
 
-const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100).toLocaleString("fa-IR")}٪` : "—");
 
 async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: string; channel?: string; owner?: string; page?: string } }) {
+  const { t, intl } = await getOpsI18n();
+  const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100).toLocaleString(intl)}${intl === intl ? t("٪") : "%"}` : "—");
   const period = PERIODS.includes(Number(sp.period)) ? Number(sp.period) : 90;
   const since = daysAgo(period);
   const q = sp.q?.trim() ?? "";
@@ -166,20 +169,20 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
     <>
       <section className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-bold text-purple-900">قیف لیدها</h2>
+          <h2 className="text-sm font-bold text-purple-900">{t("قیف لیدها")}</h2>
           <div className="flex gap-1.5">
             {PERIODS.map((p) => (
               <FilterChip key={p} href={href({ period: p === 90 ? null : String(p), page: null })} active={period === p}>
-                {p.toLocaleString("fa-IR")} روز اخیر
+                {t("{n} روز اخیر", { n: p.toLocaleString(intl) })}
               </FilterChip>
             ))}
           </div>
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Tile label="لید جدید" value={totals.total} />
-          <Tile label="تبدیل به قرارداد" value={totals.converted} note={pct(totals.converted, totals.total)} tone="text-success" />
-          <Tile label="بسته شده" value={totals.closed} note={pct(totals.closed, totals.total)} />
-          <Tile label="هنوز باز" value={totals.open} />
+          <Tile label={t("لید جدید")} value={totals.total} />
+          <Tile label={t("تبدیل به قرارداد")} value={totals.converted} note={pct(totals.converted, totals.total)} tone="text-success" />
+          <Tile label={t("بسته شده")} value={totals.closed} note={pct(totals.closed, totals.total)} />
+          <Tile label={t("هنوز باز")} value={totals.open} />
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-3">
@@ -187,12 +190,12 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-secondary">
-                  <th className="px-4 py-3 text-start font-medium">منبع</th>
-                  <th className="px-4 py-3 text-start font-medium">لید</th>
-                  <th className="px-4 py-3 text-start font-medium">قرارداد شد</th>
-                  <th className="px-4 py-3 text-start font-medium">نرخ تبدیل</th>
-                  <th className="px-4 py-3 text-start font-medium">بسته شد</th>
-                  <th className="px-4 py-3 text-start font-medium">باز</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("منبع")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("لید")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("قرارداد شد")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("نرخ تبدیل")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("بسته شد")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("باز")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,30 +207,30 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
                           {r.channel}
                         </Link>
                       ) : (
-                        <span className="text-secondary">نامشخص</span>
+                        <span className="text-secondary">{t("نامشخص")}</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 tabular-nums">{Number(r.total).toLocaleString("fa-IR")}</td>
-                    <td className="px-4 py-2.5 tabular-nums">{Number(r.converted).toLocaleString("fa-IR")}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{Number(r.total).toLocaleString(intl)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{Number(r.converted).toLocaleString(intl)}</td>
                     <td className="px-4 py-2.5 tabular-nums font-medium text-purple-900">{pct(Number(r.converted), Number(r.total))}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(r.closed).toLocaleString("fa-IR")}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(r.open).toLocaleString("fa-IR")}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(r.closed).toLocaleString(intl)}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(r.open).toLocaleString(intl)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-bold text-purple-900">دلیل بستن لیدها</p>
+            <p className="text-xs font-bold text-purple-900">{t("دلیل بستن لیدها")}</p>
             {reasons.length === 0 ? (
-              <p className="mt-2 text-sm text-secondary">موردی نیست.</p>
+              <p className="mt-2 text-sm text-secondary">{t("موردی نیست.")}</p>
             ) : (
               <ul className="mt-3 space-y-2.5 text-sm">
                 {reasons.map((r) => (
                   <li key={r.reason ?? "none"}>
                     <div className="flex justify-between gap-3">
-                      <span className="text-body">{r.reason ?? "نامشخص"}</span>
-                      <span className="shrink-0 tabular-nums text-secondary">{Number(r.n).toLocaleString("fa-IR")}</span>
+                      <span className="text-body">{r.reason ?? t("نامشخص")}</span>
+                      <span className="shrink-0 tabular-nums text-secondary">{Number(r.n).toLocaleString(intl)}</span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-tint">
                       <div className="h-1.5 rounded-full bg-purple-600/60" style={{ width: `${(Number(r.n) / reasonTotal) * 100}%` }} />
@@ -242,40 +245,40 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
 
       <section className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-bold text-purple-900">لیدهای باز ({open.length.toLocaleString("fa-IR")})</h2>
+          <h2 className="text-sm font-bold text-purple-900">{t("لیدهای باز ({n})", { n: open.length.toLocaleString(intl) })}</h2>
           <Link href="/ops/leads/queue" className="text-xs font-semibold text-purple-600 hover:underline">
-            به ترتیب کار، با امتیاز و کار گروهی ←
+            {t("به ترتیب کار، با امتیاز و کار گروهی ←")}
           </Link>
         </div>
-        {open.length === 0 ? <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">لید بازی نیست.</p> : <LeadTable rows={open} />}
+        {open.length === 0 ? <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">{t("لید بازی نیست.")}</p> : <LeadTable rows={open} />}
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-bold text-purple-900">همه لیدها</h2>
+        <h2 className="text-sm font-bold text-purple-900">{t("همه لیدها")}</h2>
         <form className="mt-3 flex flex-wrap items-center gap-2 text-sm" role="search">
           {period !== 90 && <input type="hidden" name="period" value={period} />}
           <div className="flex min-w-64 flex-1 items-center gap-2 rounded-full border border-border-strong bg-white px-4 py-2 focus-within:border-purple-600">
             <MagnifyingGlass size={16} className="shrink-0 text-secondary" aria-hidden />
-            <input name="q" defaultValue={q} placeholder="نام، شماره، ایمیل، موضوع…" aria-label="جستجوی لید" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
+            <input name="q" defaultValue={q} placeholder={t("نام، شماره، ایمیل، موضوع…")} aria-label={t("جستجوی لید")} className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
           </div>
-          <Select name="result" value={result} label="نتیجه" options={Object.entries(RESULT).map(([id, r]) => ({ id, name: r.label }))} />
-          <Select name="channel" value={channel} label="منبع" options={channels.map((c) => ({ id: c, name: c }))} />
-          <Select name="owner" value={owner} label="مسئول" options={owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (غیرفعال)` : o.name }))} />
+          <Select name="result" value={result} label={t("نتیجه")} options={Object.entries(RESULT).map(([id, r]) => ({ id, name: t(r.label) }))} />
+          <Select name="channel" value={channel} label={t("منبع")} options={channels.map((c) => ({ id: c, name: c }))} />
+          <Select name="owner" value={owner} label={t("مسئول")} options={owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (${t("غیرفعال")})` : o.name }))} />
           <button type="submit" className="press rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-            اعمال
+            {t("اعمال")}
           </button>
           {(q || result || channel || owner) && (
             <Link href={href({ q: null, result: null, channel: null, owner: null, page: null })} className="text-xs font-medium text-secondary hover:text-purple-600">
-              حذف فیلترها
+              {t("حذف فیلترها")}
             </Link>
           )}
         </form>
         <p className="mt-3 text-xs text-secondary">
-          {total.toLocaleString("fa-IR")} لید{ids && ids.length >= 1000 ? " (۱٬۰۰۰ نتیجه اول جستجو)" : ""} — به ترتیب آخرین تغییر
+          {t("{n} لید", { n: total.toLocaleString(intl) })}{ids && ids.length >= 1000 ? t(" (۱٬۰۰۰ نتیجه اول جستجو)") : ""} — {t("به ترتیب آخرین تغییر")}
         </p>
         {rows.length === 0 ? (
           <div className="mt-4">
-            <EmptyState icon={Funnel} title={q ? `لیدی با «${q}» پیدا نشد` : "لیدی با این فیلترها نیست"} body="فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید." />
+            <EmptyState icon={Funnel} title={q ? t("لیدی با «{q}» پیدا نشد", { q }) : t("لیدی با این فیلترها نیست")} body={t("فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید.")} />
           </div>
         ) : (
           <LeadTable rows={rows} />
@@ -284,13 +287,13 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
           <div className="mt-4 flex items-center gap-3 text-sm">
             {page > 1 && (
               <Link href={href({ page: page > 2 ? String(page - 1) : null })} className="font-medium text-purple-600 hover:underline">
-                صفحه قبل
+                {t("صفحه قبل")}
               </Link>
             )}
-            <span className="text-secondary">صفحه {page.toLocaleString("fa-IR")}</span>
+            <span className="text-secondary">{t("صفحه {n}", { n: page.toLocaleString(intl) })}</span>
             {page * PAGE < total && (
               <Link href={href({ page: String(page + 1) })} className="font-medium text-purple-600 hover:underline">
-                صفحه بعد
+                {t("صفحه بعد")}
               </Link>
             )}
           </div>
@@ -300,31 +303,33 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
   );
 }
 
-function Tile({ label, value, note, tone }: { label: string; value: number; note?: string; tone?: string }) {
+async function Tile({ label, value, note, tone }: { label: string; value: number; note?: string; tone?: string }) {
+  const { intl } = await getOpsI18n();
   return (
     <div className="rounded-2xl border border-border bg-white p-4">
       <p className="text-xs text-secondary">{label}</p>
       <p className={`mt-1 text-2xl font-bold tabular-nums ${tone ?? "text-purple-900"}`}>
-        {value.toLocaleString("fa-IR")}
+        {value.toLocaleString(intl)}
         {note && <span className="ms-2 text-sm font-medium text-secondary">{note}</span>}
       </p>
     </div>
   );
 }
 
-function LeadTable({ rows }: { rows: { crmId: string; data: unknown }[] }) {
+async function LeadTable({ rows }: { rows: { crmId: string; data: unknown }[] }) {
+  const { t, tn, intl } = await getOpsI18n();
   return (
     <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-secondary">
-            <th className="px-4 py-3 text-start font-medium">نام</th>
-            <th className="px-4 py-3 text-start font-medium">موضوع</th>
-            <th className="px-4 py-3 text-start font-medium">تماس</th>
-            <th className="px-4 py-3 text-start font-medium">منبع</th>
-            <th className="px-4 py-3 text-start font-medium">نتیجه</th>
-            <th className="px-4 py-3 text-start font-medium">مسئول</th>
-            <th className="px-4 py-3 text-start font-medium">ایجاد</th>
+            <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("موضوع")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("تماس")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("منبع")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("نتیجه")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("ایجاد")}</th>
           </tr>
         </thead>
         <tbody>
@@ -335,23 +340,23 @@ function LeadTable({ rows }: { rows: { crmId: string; data: unknown }[] }) {
               <tr key={r.crmId} className="border-b border-border last:border-0 hover:bg-tint/40">
                 <td className="px-4 py-3">
                   <Link href={`/ops/leads/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                    {shown(d, "fullname") ?? "بدون نام"}
+                    {shown(d, "fullname") ?? t("بدون نام")}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-xs text-secondary">{[shown(d, "subject"), shown(d, "new_type")].filter(Boolean).join(" · ") || "—"}</td>
                 <td className="font-latin px-4 py-3 text-xs text-secondary">{shown(d, "mobilephone") ?? shown(d, "emailaddress1") ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-secondary">{shown(d, "leadsourcecode") ?? "—"}</td>
+                <td className="px-4 py-3 text-xs text-secondary">{tn(shown(d, "leadsourcecode")) ?? "—"}</td>
                 <td className="px-4 py-3 text-xs">
                   {contractId ? (
                     <Link href={`/ops/contracts/${contractId}`} className="text-success hover:underline">
-                      {shown(d, "qualifyingopportunityid") ?? "قرارداد"}
+                      {shown(d, "qualifyingopportunityid") ?? t("قرارداد")}
                     </Link>
                   ) : (
-                    <Badge tone={LEAD_STATE_TONE[Number(d.statecode)] ?? "neutral"}>{Number(d.statecode) === 2 ? (shown(d, "statuscode") ?? "بسته شده") : (shown(d, "new_status") ?? "—")}</Badge>
+                    <Badge tone={LEAD_STATE_TONE[Number(d.statecode)] ?? "neutral"}>{Number(d.statecode) === 2 ? (tn(shown(d, "statuscode")) ?? t("بسته شده")) : (tn(shown(d, "new_status")) ?? "—")}</Badge>
                   )}
                 </td>
                 <td className="px-4 py-3 text-xs text-secondary">{shown(d, "ownerid") ?? "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(d, "createdon")}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(d, "createdon", false, intl)}</td>
               </tr>
             );
           })}
@@ -361,10 +366,11 @@ function LeadTable({ rows }: { rows: { crmId: string; data: unknown }[] }) {
   );
 }
 
-function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+async function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+  const { t } = await getOpsI18n();
   return (
     <select name={name} defaultValue={value ?? ""} aria-label={label} className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
-      <option value="">{label}: همه</option>
+      <option value="">{t("{label}: همه", { label })}</option>
       {options.map((o) => (
         <option key={o.id} value={o.id}>
           {o.name}
@@ -375,6 +381,7 @@ function Select({ name, value, label, options }: { name: string; value: string |
 }
 
 async function SiteLeads() {
+  const { t, tn, intl } = await getOpsI18n();
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: "desc" },
     include: { assignedAdvisor: { select: { name: true } } },
@@ -395,7 +402,7 @@ async function SiteLeads() {
   if (leads.length === 0)
     return (
       <div className="mt-8">
-        <EmptyState icon={Funnel} title="هنوز لیدی ثبت نشده" body="با ثبت فرم مشاوره در سایت اصلی، یک لید همین‌جا نمایش داده می‌شود." />
+        <EmptyState icon={Funnel} title={t("هنوز لیدی ثبت نشده")} body={t("با ثبت فرم مشاوره در سایت اصلی، یک لید همین‌جا نمایش داده می‌شود.")} />
       </div>
     );
 
@@ -404,15 +411,15 @@ async function SiteLeads() {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-start text-xs text-secondary">
-            <th className="px-4 py-3 text-start font-medium">نام</th>
-            <th className="px-4 py-3 text-start font-medium">اطلاعات تماس</th>
-            <th className="px-4 py-3 text-start font-medium">خدمت</th>
-            <th className="px-4 py-3 text-start font-medium">منبع ترافیک</th>
-            <th className="px-4 py-3 text-start font-medium">صفحه فرم</th>
-            <th className="px-4 py-3 text-start font-medium">وضعیت</th>
-            <th className="px-4 py-3 text-start font-medium">در CRM قدیم</th>
-            <th className="px-4 py-3 text-start font-medium">مشاور</th>
-            <th className="px-4 py-3 text-start font-medium">دریافت</th>
+            <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("اطلاعات تماس")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("خدمت")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("منبع ترافیک")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("صفحه فرم")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("در CRM قدیم")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("مشاور")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("دریافت")}</th>
             <th className="px-4 py-3"></th>
           </tr>
         </thead>
@@ -445,20 +452,20 @@ async function SiteLeads() {
                 <td className="px-4 py-3 text-xs">
                   {crm && crmData ? (
                     <Link href={`/ops/leads/${crm.crmId}`} className="text-purple-900 hover:text-purple-600 hover:underline">
-                      {shown(crmData, "new_status") ?? "مشاهده"}
+                      {tn(shown(crmData, "new_status")) ?? t("مشاهده")}
                     </Link>
                   ) : (
                     <span className="text-secondary">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-secondary">{lead.assignedAdvisor?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-secondary">{lead.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</td>
+                <td className="px-4 py-3 text-xs text-secondary">{lead.createdAt.toLocaleString(intl, { calendar: "gregory" })}</td>
                 <td className="px-4 py-3">
                   {lead.status === "NEW" && (
                     <form action={markContacted}>
                       <input type="hidden" name="leadId" value={lead.id} />
                       <Button type="submit" variant="secondary">
-                        تماس گرفته شد
+                        {t("تماس گرفته شد")}
                       </Button>
                     </form>
                   )}

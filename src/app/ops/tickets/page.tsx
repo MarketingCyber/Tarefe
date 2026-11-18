@@ -11,6 +11,7 @@ import { canAccessPipeline } from "@/lib/permissions";
 import { crmUsers } from "@/lib/crm/crm-users";
 import { FilterChip, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 const STATUS_TONE: Record<string, BadgeTone> = {
   RECEIVED: "purple",
   UNDER_REVIEW: "neutral",
@@ -47,6 +48,7 @@ export default async function OpsTicketsPage({
 }: {
   searchParams: Promise<{ source?: string; q?: string; state?: string; category?: string; owner?: string; page?: string }>;
 }) {
+  const { t } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
   const sp = await searchParams;
@@ -54,14 +56,14 @@ export default async function OpsTicketsPage({
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">تیکت‌ها</h1>
-      <p className="mt-1 text-sm text-secondary">درخواست‌های مشتریان در CRM قدیم و سایت — لغو قرارداد، تغییر آدرس، صورتحساب، خسارت و پشتیبانی.</p>
+      <h1 className="text-2xl font-bold text-purple-900">{t("تیکت‌ها")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("درخواست‌های مشتریان در CRM قدیم و سایت — لغو قرارداد، تغییر آدرس، صورتحساب، خسارت و پشتیبانی.")}</p>
       <div className="mt-5 flex flex-wrap gap-1.5">
         <FilterChip href="/ops/tickets" active={source === "crm"}>
-          CRM قدیم
+          {t("CRM قدیم")}
         </FilterChip>
         <FilterChip href="/ops/tickets?source=site" active={source === "site"}>
-          تیکت‌های سایت و اپ
+          {t("تیکت‌های سایت و اپ")}
         </FilterChip>
       </div>
       {source === "crm" ? <CrmTickets sp={sp} /> : <SiteTickets />}
@@ -70,6 +72,7 @@ export default async function OpsTicketsPage({
 }
 
 async function CrmTickets({ sp }: { sp: { q?: string; state?: string; category?: string; owner?: string; page?: string } }) {
+  const { t, intl } = await getOpsI18n();
   const q = sp.q?.trim() ?? "";
   const owner = sp.owner?.toLowerCase() || null;
   const category = sp.category?.toLowerCase() || null;
@@ -127,40 +130,40 @@ async function CrmTickets({ sp }: { sp: { q?: string; state?: string; category?:
   return (
     <>
       <section className="mt-6">
-        <h2 className="text-sm font-bold text-purple-900">نیاز به رسیدگی ({attention.length.toLocaleString("fa-IR")})</h2>
-        <p className="mt-1 text-xs text-secondary">تیکت‌های باز، و پیگیری‌های مجددی که گذشته‌اند یا تا ۷ روز آینده موعدشان است.</p>
+        <h2 className="text-sm font-bold text-purple-900">{t("نیاز به رسیدگی ({n})", { n: attention.length.toLocaleString(intl) })}</h2>
+        <p className="mt-1 text-xs text-secondary">{t("تیکت‌های باز، و پیگیری‌های مجددی که گذشته‌اند یا تا ۷ روز آینده موعدشان است.")}</p>
         {attention.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">همه تیکت‌ها رسیدگی شده‌اند.</p>
+          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">{t("همه تیکت‌ها رسیدگی شده‌اند.")}</p>
         ) : (
           <TicketTable rows={attention} today={today} showFollowUp />
         )}
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-bold text-purple-900">همه تیکت‌ها</h2>
+        <h2 className="text-sm font-bold text-purple-900">{t("همه تیکت‌ها")}</h2>
         <form className="mt-3 flex flex-wrap items-center gap-2 text-sm" role="search">
           <div className="flex min-w-64 flex-1 items-center gap-2 rounded-full border border-border-strong bg-white px-4 py-2 focus-within:border-purple-600">
             <MagnifyingGlass size={16} className="shrink-0 text-secondary" aria-hidden />
-            <input name="q" defaultValue={q} placeholder="عنوان، شماره تیکت، مشتری، متن…" aria-label="جستجوی تیکت" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
+            <input name="q" defaultValue={q} placeholder={t("عنوان، شماره تیکت، مشتری، متن…")} aria-label={t("جستجوی تیکت")} className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-secondary" />
           </div>
-          <Select name="state" value={state} label="وضعیت" options={Object.entries(STATE_FILTER).map(([id, s]) => ({ id, name: s.label }))} />
-          <Select name="category" value={category} label="نوع قرارداد" options={categoryOptions} />
-          <Select name="owner" value={owner} label="مسئول" options={owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (غیرفعال)` : o.name }))} />
+          <Select name="state" value={state} label={t("وضعیت")} options={Object.entries(STATE_FILTER).map(([id, s]) => ({ id, name: t(s.label) }))} />
+          <Select name="category" value={category} label={t("نوع قرارداد")} options={categoryOptions} />
+          <Select name="owner" value={owner} label={t("مسئول")} options={owners.map((o) => ({ id: o.id, name: o.disabled ? `${o.name} (${t("غیرفعال")})` : o.name }))} />
           <button type="submit" className="press rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-900">
-            اعمال
+            {t("اعمال")}
           </button>
           {(q || state || category || owner) && (
             <Link href="/ops/tickets" className="text-xs font-medium text-secondary hover:text-purple-600">
-              حذف فیلترها
+              {t("حذف فیلترها")}
             </Link>
           )}
         </form>
         <p className="mt-3 text-xs text-secondary">
-          {total.toLocaleString("fa-IR")} تیکت{ids && ids.length >= 1000 ? " (۱٬۰۰۰ نتیجه اول جستجو)" : ""} — به ترتیب آخرین تغییر
+          {t("{n} تیکت", { n: total.toLocaleString(intl) })}{ids && ids.length >= 1000 ? t(" (۱٬۰۰۰ نتیجه اول جستجو)") : ""} — {t("به ترتیب آخرین تغییر")}
         </p>
         {rows.length === 0 ? (
           <div className="mt-4">
-            <EmptyState icon={Headset} title={q ? `تیکتی با «${q}» پیدا نشد` : "تیکتی با این فیلترها نیست"} body="فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید." />
+            <EmptyState icon={Headset} title={q ? t("تیکتی با «{q}» پیدا نشد", { q }) : t("تیکتی با این فیلترها نیست")} body={t("فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید.")} />
           </div>
         ) : (
           <TicketTable rows={rows} today={today} />
@@ -169,13 +172,13 @@ async function CrmTickets({ sp }: { sp: { q?: string; state?: string; category?:
           <div className="mt-4 flex items-center gap-3 text-sm">
             {page > 1 && (
               <Link href={href({ page: page > 2 ? String(page - 1) : null })} className="font-medium text-purple-600 hover:underline">
-                صفحه قبل
+                {t("صفحه قبل")}
               </Link>
             )}
-            <span className="text-secondary">صفحه {page.toLocaleString("fa-IR")}</span>
+            <span className="text-secondary">{t("صفحه {n}", { n: page.toLocaleString(intl) })}</span>
             {page * PAGE < total && (
               <Link href={href({ page: String(page + 1) })} className="font-medium text-purple-600 hover:underline">
-                صفحه بعد
+                {t("صفحه بعد")}
               </Link>
             )}
           </div>
@@ -185,19 +188,20 @@ async function CrmTickets({ sp }: { sp: { q?: string; state?: string; category?:
   );
 }
 
-function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: number; showFollowUp?: boolean }) {
+async function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: number; showFollowUp?: boolean }) {
+  const { t, tn, intl } = await getOpsI18n();
   return (
     <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-secondary">
-            <th className="px-4 py-3 text-start font-medium">تیکت</th>
-            <th className="px-4 py-3 text-start font-medium">مشتری</th>
-            <th className="px-4 py-3 text-start font-medium">قرارداد</th>
-            <th className="px-4 py-3 text-start font-medium">وضعیت</th>
-            {showFollowUp && <th className="px-4 py-3 text-start font-medium">پیگیری مجدد</th>}
-            <th className="px-4 py-3 text-start font-medium">مسئول</th>
-            <th className="px-4 py-3 text-start font-medium">ایجاد</th>
+            <th className="px-4 py-3 text-start font-medium">{t("تیکت")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("مشتری")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("قرارداد")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
+            {showFollowUp && <th className="px-4 py-3 text-start font-medium">{t("پیگیری مجدد")}</th>}
+            <th className="px-4 py-3 text-start font-medium">{t("مسئول")}</th>
+            <th className="px-4 py-3 text-start font-medium">{t("ایجاد")}</th>
           </tr>
         </thead>
         <tbody>
@@ -208,14 +212,14 @@ function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: num
               <tr key={r.crmId} className="border-b border-border last:border-0 hover:bg-tint/40">
                 <td className="px-4 py-3">
                   <Link href={`/ops/tickets/${r.crmId}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                    {shown(d, "title") ?? "تیکت بدون عنوان"}
+                    {shown(d, "title") ?? t("تیکت بدون عنوان")}
                   </Link>
                   <span className="font-latin block text-xs text-secondary">{shown(d, "ticketnumber")}</span>
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {typeof d._customerid_value === "string" ? (
                     <Link href={`/ops/customers/${d._customerid_value}`} className="text-purple-900 hover:text-purple-600 hover:underline">
-                      {shown(d, "customerid") ?? "مشتری"}
+                      {shown(d, "customerid") ?? t("مشتری")}
                     </Link>
                   ) : (
                     "—"
@@ -224,14 +228,14 @@ function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: num
                 <td className="px-4 py-3 text-xs">
                   {typeof d._new_opportunity_value === "string" ? (
                     <Link href={`/ops/contracts/${d._new_opportunity_value}`} className="text-purple-900 hover:text-purple-600 hover:underline">
-                      {shown(d, "new_opportunity") ?? "قرارداد"}
+                      {shown(d, "new_opportunity") ?? t("قرارداد")}
                     </Link>
                   ) : (
                     <span className="text-secondary">{shown(d, "new_category") ?? "—"}</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge tone={CRM_STATE_TONE[r.state ?? 0] ?? "neutral"}>{shown(d, "new_status") ?? statusFa(shown(d, "statuscode")) ?? "—"}</Badge>
+                  <Badge tone={CRM_STATE_TONE[r.state ?? 0] ?? "neutral"}>{tn(shown(d, "new_status")) ?? tn(statusFa(shown(d, "statuscode"))) ?? "—"}</Badge>
                 </td>
                 {showFollowUp && (
                   <td className="whitespace-nowrap px-4 py-3 text-xs">
@@ -239,13 +243,13 @@ function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: num
                       <span className="text-secondary">—</span>
                     ) : (
                       <Badge tone={days < 0 ? "danger" : days <= 7 ? "warning" : "neutral"}>
-                        {shownDate(d, "new_follow_up_again")} · {days < 0 ? `${(-days).toLocaleString("fa-IR")} روز گذشته` : days === 0 ? "امروز" : `${days.toLocaleString("fa-IR")} روز`}
+                        {shownDate(d, "new_follow_up_again", false, intl)} · {days < 0 ? t("{n} روز گذشته", { n: (-days).toLocaleString(intl) }) : days === 0 ? t("امروز") : t("{n} روز", { n: days.toLocaleString(intl) })}
                       </Badge>
                     )}
                   </td>
                 )}
                 <td className="px-4 py-3 text-xs text-secondary">{shown(d, "ownerid") ?? "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(d, "createdon")}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-xs text-secondary">{shownDate(d, "createdon", false, intl)}</td>
               </tr>
             );
           })}
@@ -255,10 +259,11 @@ function TicketTable({ rows, today, showFollowUp }: { rows: Ticket[]; today: num
   );
 }
 
-function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+async function Select({ name, value, label, options }: { name: string; value: string | null; label: string; options: { id: string; name: string }[] }) {
+  const { t } = await getOpsI18n();
   return (
     <select name={name} defaultValue={value ?? ""} aria-label={label} className="rounded-full border border-border-strong bg-white px-3 py-2 text-xs font-medium text-purple-900">
-      <option value="">{label}: همه</option>
+      <option value="">{t("{label}: همه", { label })}</option>
       {options.map((o) => (
         <option key={o.id} value={o.id}>
           {o.name}
@@ -269,6 +274,7 @@ function Select({ name, value, label, options }: { name: string; value: string |
 }
 
 async function SiteTickets() {
+  const { t, intl } = await getOpsI18n();
   const tickets = await prisma.serviceRequest.findMany({
     // Projected Dynamics tickets are in the old-CRM view — unless the customer wrote on one in the portal / app:
     // then it is a conversation here, answered here.
@@ -292,26 +298,26 @@ async function SiteTickets() {
     <>
       {breachedCount > 0 && (
         <p className="mt-4 text-sm font-semibold text-danger">
-          {breachedCount} تیکت بیش از {TICKET_SLA_BREACH_HOURS} ساعت منتظر پاسخ‌اند.
+          {t("{n} تیکت بیش از {h} ساعت منتظر پاسخ‌اند.", { n: breachedCount, h: TICKET_SLA_BREACH_HOURS })}
         </p>
       )}
 
       {tickets.length === 0 ? (
         <div className="mt-8">
-          <EmptyState icon={Headset} title="هنوز تیکتی ثبت نشده" body="با ثبت تیکت توسط مشتری در پنل خودش، همین‌جا نمایش داده می‌شود." />
+          <EmptyState icon={Headset} title={t("هنوز تیکتی ثبت نشده")} body={t("با ثبت تیکت توسط مشتری در پنل خودش، همین‌جا نمایش داده می‌شود.")} />
         </div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-start text-xs text-secondary">
-                <th className="px-4 py-3 text-start font-medium">موضوع</th>
-                <th className="px-4 py-3 text-start font-medium">مشتری</th>
-                <th className="px-4 py-3 text-start font-medium">اولویت</th>
-                <th className="px-4 py-3 text-start font-medium">وضعیت</th>
+                <th className="px-4 py-3 text-start font-medium">{t("موضوع")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("مشتری")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("اولویت")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
                 <th className="px-4 py-3 text-start font-medium">SLA</th>
-                <th className="px-4 py-3 text-start font-medium">مشاور</th>
-                <th className="px-4 py-3 text-start font-medium">ایجاد</th>
+                <th className="px-4 py-3 text-start font-medium">{t("مشاور")}</th>
+                <th className="px-4 py-3 text-start font-medium">{t("ایجاد")}</th>
               </tr>
             </thead>
             <tbody>
@@ -338,14 +344,14 @@ async function SiteTickets() {
                     {sla ? (
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold ${sla.breached ? "text-danger" : "text-secondary"}`}>
                         <Clock size={12} weight={sla.breached ? "fill" : "regular"} />
-                        {Math.round(sla.hoursWaiting)} ساعت در انتظار
+                        {t("{n} ساعت در انتظار", { n: Math.round(sla.hoursWaiting) })}
                       </span>
                     ) : (
                       <span className="text-xs text-secondary">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-secondary">{ticket.advisor?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-secondary">{ticket.createdAt.toLocaleString("fa-IR", { calendar: "gregory" })}</td>
+                  <td className="px-4 py-3 text-xs text-secondary">{ticket.createdAt.toLocaleString(intl, { calendar: "gregory" })}</td>
                 </tr>
               ))}
             </tbody>

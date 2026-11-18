@@ -5,6 +5,7 @@ import { CALL_RESULTS, LEAD_CLOSE_REASONS, LEAD_OPEN_REASONS, LEAD_STAGES, assig
 import { personKeys } from "@/lib/dynamics/identity";
 import { AssignForm, CallResultForm, CloseLeadForm, LeadStatusForm, QualifyLeadForm, ScheduleCallForm, UploadFileForm } from "@/components/crm/customer/CrmEditForms";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * «ویرایش در CRM قدیم»: the edits staff can make on an old-CRM lead, customer, contract or ticket from /ops —
  * lead stage / follow-up / close (leads only), assign, next call, upload a file. Hidden when writing is off or the
@@ -23,6 +24,7 @@ export async function CrmEditPanel({
   state: number | null;
   returnPath: string;
 }) {
+  const { t } = await getOpsI18n();
   const mode = writeMode();
   const session = await auth();
   if (mode === "off" || !session?.user?.id || !canAccessPipeline(session.user.role)) return null;
@@ -40,13 +42,13 @@ export async function CrmEditPanel({
   return (
     <section aria-labelledby={`edit-${id}`} className="mt-6 rounded-2xl border border-border bg-white p-6">
       <h2 id={`edit-${id}`} className="text-sm font-bold text-purple-900">
-        ویرایش در CRM قدیم{dry ? " (آزمایشی — چیزی ارسال نمی‌شود)" : ""}
+        {t("ویرایش در CRM قدیم")}{dry ? t(" (آزمایشی — چیزی ارسال نمی‌شود)") : ""}
       </h2>
-      <p className="mt-1 text-xs text-secondary">هر تغییر اول در CRM قدیم ثبت می‌شود و بعد اینجا نمایش داده می‌شود؛ نام شما در گزارش فعالیت می‌ماند.</p>
+      <p className="mt-1 text-xs text-secondary">{t("هر تغییر اول در CRM قدیم ثبت می‌شود و بعد اینجا نمایش داده می‌شود؛ نام شما در گزارش فعالیت می‌ماند.")}</p>
 
       <div className="mt-5 space-y-5 divide-y divide-border [&>*:not(:first-child)]:pt-5">
         <div>
-          <p className="mb-2 text-xs font-medium text-secondary">نتیجه تماس — بعد از هر تماس یک کلیک</p>
+          <p className="mb-2 text-xs font-medium text-secondary">{t("نتیجه تماس — بعد از هر تماس یک کلیک")}</p>
           <CallResultForm {...common} results={entity === "lead" ? CALL_RESULTS : CALL_RESULTS.filter(([r]) => r !== "wrong_number")} />
         </div>
         {openLead && (

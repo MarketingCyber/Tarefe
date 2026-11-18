@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { UserRole } from "@prisma/client";
 import { track, EVENT } from "@/lib/analytics";
@@ -39,6 +39,9 @@ import {
 } from "@phosphor-icons/react";
 import { NotificationBell, type NotificationItem } from "@/components/shared/NotificationBell";
 import { canAccessPipeline, canAccessContent, canAccessAnalytics, isAdminRole } from "@/lib/permissions";
+import { useOpsI18n } from "@/lib/ops-i18n/client";
+import { OPS_LOCALES, OPS_LOCALE_NAMES, type OpsLocale } from "@/lib/ops-i18n/core";
+import { setOpsLocale } from "@/lib/ops-i18n/actions";
 
 /** Omitted `visible` means "every staff role sees this" (e.g. "امنیت" — everyone manages their own MFA, see /ops/security itself having no role gate). */
 /** `app`: belongs to the mobile app, shown only while it is switched on (lib/app-flag.ts). */
@@ -147,6 +150,7 @@ function readStoredCollapsed(): Set<string> | null {
 }
 
 function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
+  const { t } = useOpsI18n();
   return (
     <Link
       href={item.href}
@@ -156,7 +160,7 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
       }`}
     >
       <item.icon size={17} weight={active ? "fill" : "regular"} />
-      {item.label}
+      {t(item.label)}
     </Link>
   );
 }
@@ -183,6 +187,7 @@ function NavGroupSection({
   // since closing is the system responding to a decision already made
   // while opening is still revealing something new to read.
   const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+  const { t } = useOpsI18n();
   return (
     <div className="mt-1">
       <button
@@ -191,7 +196,7 @@ function NavGroupSection({
         aria-expanded={!collapsed}
         className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs font-semibold text-secondary transition-colors hover:text-purple-600"
       >
-        {group.label}
+        {t(group.label)}
         <CaretDown
           size={12}
           weight="bold"
@@ -304,7 +309,45 @@ function NavList({ pathname, role, appEnabled, onNavigate }: { pathname: string;
   );
 }
 
+/**
+ * fa / EN / DE switch (2026-11-18, owner). Saves the choice in a cookie on the server and reloads the current page
+ * in the new language and direction. Short labels, each written in its own language, so anyone can find theirs.
+ */
+function LanguageSwitch() {
+  const { locale, t } = useOpsI18n();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const SHORT: Record<OpsLocale, string> = { fa: "فا", en: "EN", de: "DE" };
+  return (
+    <div role="group" aria-label={t("زبان پنل")} className="mt-2 flex rounded-full border border-border p-0.5">
+      {OPS_LOCALES.map((l) => (
+        <button
+          key={l}
+          type="button"
+          lang={l}
+          title={OPS_LOCALE_NAMES[l]}
+          aria-pressed={l === locale}
+          disabled={pending}
+          onClick={() => {
+            if (l === locale) return;
+            startTransition(async () => {
+              await setOpsLocale(l);
+              router.refresh();
+            });
+          }}
+          className={`flex-1 rounded-full px-2 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            l === locale ? "bg-purple-600 text-white" : "text-body hover:text-purple-600"
+          }`}
+        >
+          {SHORT[l]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: () => void }) {
+  const { t } = useOpsI18n();
   const initial = (userName || "?").trim().charAt(0).toUpperCase();
   return (
     <div className="border-t border-border p-3">
@@ -316,7 +359,7 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
         <Link
           href="/fa"
           onClick={onNavigate}
-          aria-label="بازگشت به سایت اصلی"
+          aria-label={t("بازگشت به سایت اصلی")}
           className="press flex h-9 w-9 items-center justify-center rounded-full border border-border text-body transition-colors hover:border-purple-600 hover:text-purple-600"
         >
           <House size={16} />
@@ -330,9 +373,10 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
           className="press flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-body transition-colors hover:border-purple-600 hover:text-purple-600"
         >
           <SignOut size={14} />
-          خروج
+          {t("خروج")}
         </button>
       </div>
+      <LanguageSwitch />
     </div>
   );
 }
@@ -352,13 +396,16 @@ export function OpsNav({ userName, notifications, role, appEnabled }: { userName
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
+  const { t, locale, dir } = useOpsI18n();
+  // The drawer slides in from the start side: right in Persian, left in English / German.
+  const offscreen = dir === "rtl" ? "100%" : "-100%";
 
   return (
     <>
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-border bg-white lg:flex">
         <Link href="/ops" className="block px-5 pb-4 pt-5">
-          <p className="text-lg font-bold text-purple-900">تعرفه</p>
-          <p className="text-xs font-medium text-secondary">پنل عملیات</p>
+          <p className="text-lg font-bold text-purple-900">{t("تعرفه")}</p>
+          <p className="text-xs font-medium text-secondary">{t("پنل عملیات")}</p>
         </Link>
         <nav className="flex-1 overflow-y-auto px-3">
           <NavList pathname={pathname} role={role} appEnabled={appEnabled} />
@@ -370,13 +417,13 @@ export function OpsNav({ userName, notifications, role, appEnabled }: { userName
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="باز کردن منو"
+          aria-label={t("باز کردن منو")}
           className="press flex h-9 w-9 items-center justify-center rounded-full border border-border text-purple-900"
         >
           <List size={18} />
         </button>
-        <span className="text-sm font-bold text-purple-900">پنل عملیات</span>
-        <NotificationBell initialNotifications={notifications} locale="fa" />
+        <span className="text-sm font-bold text-purple-900">{t("پنل عملیات")}</span>
+        <NotificationBell initialNotifications={notifications} locale={locale} />
       </header>
 
       <div style={{ pointerEvents: mobileOpen ? "auto" : "none" }} className="contents">
@@ -393,20 +440,20 @@ export function OpsNav({ userName, notifications, role, appEnabled }: { userName
               />
               <motion.aside
                 className="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white lg:hidden"
-                initial={reduce ? false : { x: "100%" }}
+                initial={reduce ? false : { x: offscreen }}
                 animate={{ x: 0 }}
-                exit={{ x: "100%" }}
+                exit={{ x: offscreen }}
                 transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
               >
                 <div className="flex items-center justify-between px-5 pb-4 pt-5">
                   <div>
-                    <p className="text-lg font-bold text-purple-900">تعرفه</p>
-                    <p className="text-xs font-medium text-secondary">پنل عملیات</p>
+                    <p className="text-lg font-bold text-purple-900">{t("تعرفه")}</p>
+                    <p className="text-xs font-medium text-secondary">{t("پنل عملیات")}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileOpen(false)}
-                    aria-label="بستن منو"
+                    aria-label={t("بستن منو")}
                     className="press flex h-9 w-9 items-center justify-center rounded-full border border-border"
                   >
                     <X size={18} />

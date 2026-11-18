@@ -9,6 +9,7 @@ import { Badge } from "@/components/shared/Badge";
 import { CALL_RESULTS, writeMode } from "@/lib/dynamics/write";
 import { callList, leadQueue, recordHref, SPEED_LIMIT_HOURS } from "@/lib/crm/lead-work";
 
+import { getOpsI18n } from "@/lib/ops-i18n/server";
 /**
  * «لیست تماس امروز»: an operator's calls for today in one queue — planned calls due today or overdue (old-CRM phone
  * calls), then their new leads not called yet. Each call is finished with one «نتیجه تماس» click, which completes it
@@ -16,10 +17,11 @@ import { callList, leadQueue, recordHref, SPEED_LIMIT_HOURS } from "@/lib/crm/le
  */
 export const dynamic = "force-dynamic";
 
-const time = (d: Date | null) => (d ? d.toLocaleString("fa-IR", { calendar: "gregory", dateStyle: "short", timeStyle: "short" }) : "—");
 const ENTITY_FA: Record<string, string> = { lead: "سرنخ", contact: "مشتری", opportunity: "قرارداد", incident: "تیکت" };
 
 export default async function CallsPage({ searchParams }: { searchParams: Promise<{ who?: string }> }) {
+  const { t, intl, tn } = await getOpsI18n();
+  const time = (d: Date | null) => (d ? d.toLocaleString(intl, { calendar: "gregory", dateStyle: "short", timeStyle: "short" }) : "—");
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/calls");
   if (!canAccessPipeline(session.user.role)) redirect("/ops");
@@ -34,33 +36,33 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="container-page py-8">
-      <h1 className="text-2xl font-bold text-purple-900">لیست تماس امروز</h1>
+      <h1 className="text-2xl font-bold text-purple-900">{t("لیست تماس امروز")}</h1>
       <p className="mt-1 max-w-[75ch] text-sm leading-relaxed text-secondary">
-        تماس‌های برنامه‌ریزی‌شده‌ی امروز و عقب‌افتاده، بعد سرنخ‌های جدیدی که هنوز تماسی نگرفته‌اند. بعد از هر تماس، نتیجه را با یک کلیک ثبت کنید؛ تماس در CRM قدیم
-        بسته می‌شود و اگر لازم باشد تماس بعدی ساخته می‌شود.
+        {t("تماس‌های برنامه‌ریزی‌شده‌ی امروز و عقب‌افتاده، بعد سرنخ‌های جدیدی که هنوز تماسی نگرفته‌اند. بعد از هر تماس، نتیجه را با یک کلیک ثبت کنید؛ تماس در CRM قدیم")}
+        {t("بسته می‌شود و اگر لازم باشد تماس بعدی ساخته می‌شود.")}
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-1.5">
         {myCrm ? (
           <>
             <FilterChip href="/ops/calls" active={!all}>
-              تماس‌های من
+              {t("تماس‌های من")}
             </FilterChip>
             <FilterChip href="/ops/calls?who=all" active={all}>
-              همه
+              {t("همه")}
             </FilterChip>
           </>
         ) : (
           <Link href="/ops/my-work" className="text-xs text-secondary hover:text-purple-600">
-            برای دیدن فقط تماس‌های خودتان، در «کارهای من» کاربر CRM قدیم خود را انتخاب کنید. فعلاً همه نمایش داده می‌شود.
+            {t("برای دیدن فقط تماس‌های خودتان، در «کارهای من» کاربر CRM قدیم خود را انتخاب کنید. فعلاً همه نمایش داده می‌شود.")}
           </Link>
         )}
       </div>
 
       <section className="mt-6">
-        <h2 className="text-sm font-bold text-purple-900">تماس‌های برنامه‌ریزی‌شده ({calls.length.toLocaleString("fa-IR")})</h2>
+        <h2 className="text-sm font-bold text-purple-900">{t("تماس‌های برنامه‌ریزی‌شده ({n})", { n: calls.length.toLocaleString(intl) })}</h2>
         {calls.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">برای امروز تماسی برنامه‌ریزی نشده.</p>
+          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">{t("برای امروز تماسی برنامه‌ریزی نشده.")}</p>
         ) : (
           <ul className="mt-3 space-y-3">
             {calls.map((c) => (
@@ -75,8 +77,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
                       ) : (
                         <span className="font-medium text-purple-900">—</span>
                       )}
-                      {c.regarding && <span className="text-xs text-secondary">{ENTITY_FA[c.regarding.entity] ?? c.regarding.entity}</span>}
-                      {c.overdue && <Badge tone="danger">عقب‌افتاده</Badge>}
+                      {c.regarding && <span className="text-xs text-secondary">{t(ENTITY_FA[c.regarding.entity] ?? c.regarding.entity)}</span>}
+                      {c.overdue && <Badge tone="danger">{t("عقب‌افتاده")}</Badge>}
                     </div>
                     <p className="mt-0.5 text-xs text-secondary">
                       {c.subject} · {time(c.dueAt)}
@@ -101,9 +103,9 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-bold text-purple-900">سرنخ‌های جدید بدون تماس ({newLeads.length.toLocaleString("fa-IR")})</h2>
+        <h2 className="text-sm font-bold text-purple-900">{t("سرنخ‌های جدید بدون تماس ({n})", { n: newLeads.length.toLocaleString(intl) })}</h2>
         {newLeads.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">سرنخ جدیدی منتظر تماس نیست.</p>
+          <p className="mt-3 rounded-xl border border-border bg-white p-4 text-sm text-secondary">{t("سرنخ جدیدی منتظر تماس نیست.")}</p>
         ) : (
           <ul className="mt-3 space-y-3">
             {newLeads.slice(0, 50).map((l) => (
@@ -111,10 +113,10 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link href={`/ops/leads/${l.id}`} className="font-medium text-purple-900 hover:text-purple-600 hover:underline">
-                      {l.name}
+                      {t(l.name)}
                     </Link>
                     <p className={`mt-0.5 text-xs ${l.waitingHours >= SPEED_LIMIT_HOURS ? "font-semibold text-danger" : "text-secondary"}`}>
-                      {[l.type, l.source].filter(Boolean).join(" · ")} · منتظر {Math.floor(l.waitingHours).toLocaleString("fa-IR")} ساعت · امتیاز {l.score.score.toLocaleString("fa-IR")}٪
+                      {[tn(l.type), tn(l.source)].filter(Boolean).join(" · ")} · {t("منتظر {n} ساعت", { n: Math.floor(l.waitingHours).toLocaleString(intl) })} · {t("امتیاز {n}٪", { n: l.score.score.toLocaleString(intl) })}
                     </p>
                   </div>
                   {l.phone && (

@@ -83,7 +83,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
   return (
     <div className="container-page py-8">
       <Link href="/ops/contracts" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" />
+        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
         بازگشت به قراردادها
       </Link>
 
