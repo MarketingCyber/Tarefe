@@ -76,4 +76,5 @@ export const ROLE_FA: Record<string, string> = {
   LEAD_MANAGER: "مسئول لیدها",
   CONTENT_EDITOR: "مدیر محتوا",
   ANALYST: "تحلیل‌گر",
+  MARKETER: "مارکتینگ",
 };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessPipeline } from "@/lib/permissions";
+import { canAccessMarketing } from "@/lib/permissions";
 import { FilterChip } from "@/components/crm/customer/OldCrmParts";
 import { leadReports } from "@/lib/crm/lead-work";
 
@@ -22,7 +22,7 @@ export default async function LeadReportsPage({ searchParams }: { searchParams: 
   const hours = (h: number | null) => (h === null ? "—" : h < 48 ? t("{n} ساعت", { n: fa(Math.round(h)) }) : t("{n} روز", { n: fa(Math.round(h / 24)) }));
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/ops/leads/reports");
-  if (!canAccessPipeline(session.user.role)) redirect("/ops");
+  if (!canAccessMarketing(session.user.role)) redirect("/ops");
   const period = PERIODS.includes(Number((await searchParams).period)) ? Number((await searchParams).period) : 90;
   const { operators, types } = await leadReports(daysAgo(period));
   const th = "px-4 py-3 text-start font-medium";

@@ -25,7 +25,7 @@ async function requireAdmin() {
 }
 
 /** Every role /ops/team can hand out — CUSTOMER deliberately excluded (see createStaffAccount's own comment: that's a different, self-serve path). */
-const ASSIGNABLE_STAFF_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST"];
+const ASSIGNABLE_STAFF_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST", "MARKETER"];
 
 export async function createStaffAccount(formData: FormData) {
   const admin = await requireAdmin();

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { LeadLinks } from "@/components/crm/customer/LeadLinks";
-import { conversionRates, scoreLead, TIER_FA, reasonText } from "@/lib/crm/lead-score";
+import { conversionRates, scoreLead, TIER_FA, reasonText, reasonsFor } from "@/lib/crm/lead-score";
+import { canAccessMarketing } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
@@ -91,7 +93,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
               <h1 className="text-xl font-bold text-purple-900">{shown(d, "fullname") ?? t("بدون نام")}</h1>
               <Badge tone={LEAD_STATE_TONE[state] ?? "neutral"}>{tn(shown(d, "new_status")) ?? "—"}</Badge>
               {score && (
-                <span title={score.reasons.map((r) => reasonText(r, t, intl)).join(" — ")} className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${score.tier === "hot" ? "bg-danger-bg text-danger" : score.tier === "warm" ? "bg-warning-bg text-warning" : "bg-tint text-secondary"}`}>
+                <span title={reasonsFor(score.reasons, canAccessMarketing((await auth())?.user?.role)).map((r) => reasonText(r, t, intl)).join(" — ")} className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${score.tier === "hot" ? "bg-danger-bg text-danger" : score.tier === "warm" ? "bg-warning-bg text-warning" : "bg-tint text-secondary"}`}>
                   {t("امتیاز {n}٪", { n: score.score.toLocaleString(intl) })} · {t(TIER_FA[score.tier])}
                 </span>
               )}

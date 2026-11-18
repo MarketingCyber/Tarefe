@@ -38,6 +38,7 @@ export const DICT: Record<string, readonly [string, string]> = {
   "آنالیتیکس": ["Analytics", "Analytics"],
   "امنیت": ["Security", "Sicherheit"],
   "کارکنان": ["Staff", "Mitarbeitende"],
+  "مارکتینگ": ["Marketing", "Marketing"],
 
   // ── Common words, buttons, messages ───────────────────────────────────────────────────────────────────────────
   "بستن": ["Close", "Schließen"],

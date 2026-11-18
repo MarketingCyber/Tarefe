@@ -8,7 +8,7 @@ import { Button } from "@/components/shared/Button";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { Funnel, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { LEAD_STATUS_FA } from "@/lib/status-labels";
-import { canAccessPipeline } from "@/lib/permissions";
+import { canAccessMarketing, canAccessPipeline } from "@/lib/permissions";
 import { LeadSourceCell } from "@/components/crm/LeadAttribution";
 import { FilterChip, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 import { LEAD_STATE_TONE } from "@/components/crm/customer/CrmLead";
@@ -72,6 +72,8 @@ export default async function OpsLeadsPage({
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
   const sp = await searchParams;
   const source = sp.source === "site" ? "site" : "crm";
+  // Funnel, conversion numbers and traffic sources: marketing and admins only (owner 2026-11-18).
+  const marketing = canAccessMarketing(session?.user?.role);
 
   return (
     <div className="container-page py-8">
@@ -91,11 +93,13 @@ export default async function OpsLeadsPage({
         <Link href="/ops/calls" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
           {t("لیست تماس امروز")}
         </Link>
-        <Link href="/ops/leads/reports" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
-          {t("گزارش لیدها")}
-        </Link>
+        {marketing && (
+          <Link href="/ops/leads/reports" className="press rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-purple-900 hover:border-purple-600">
+            {t("گزارش لیدها")}
+          </Link>
+        )}
       </div>
-      {source === "crm" ? <CrmLeads sp={sp} /> : <SiteLeads />}
+      {source === "crm" ? <CrmLeads sp={sp} marketing={marketing} /> : <SiteLeads marketing={marketing} />}
     </div>
   );
 }
@@ -107,7 +111,7 @@ function daysAgo(days: number) {
 }
 
 
-async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: string; channel?: string; owner?: string; page?: string } }) {
+async function CrmLeads({ sp, marketing }: { sp: { period?: string; q?: string; result?: string; channel?: string; owner?: string; page?: string }; marketing: boolean }) {
   const { t, intl } = await getOpsI18n();
   const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100).toLocaleString(intl)}${intl === intl ? t("٪") : "%"}` : "—");
   const period = PERIODS.includes(Number(sp.period)) ? Number(sp.period) : 90;
@@ -167,6 +171,7 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
 
   return (
     <>
+      {marketing && (
       <section className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-purple-900">{t("قیف لیدها")}</h2>
@@ -242,6 +247,7 @@ async function CrmLeads({ sp }: { sp: { period?: string; q?: string; result?: st
           </div>
         </div>
       </section>
+      )}
 
       <section className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -380,7 +386,7 @@ async function Select({ name, value, label, options }: { name: string; value: st
   );
 }
 
-async function SiteLeads() {
+async function SiteLeads({ marketing }: { marketing: boolean }) {
   const { t, tn, intl } = await getOpsI18n();
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: "desc" },
@@ -414,7 +420,7 @@ async function SiteLeads() {
             <th className="px-4 py-3 text-start font-medium">{t("نام")}</th>
             <th className="px-4 py-3 text-start font-medium">{t("اطلاعات تماس")}</th>
             <th className="px-4 py-3 text-start font-medium">{t("خدمت")}</th>
-            <th className="px-4 py-3 text-start font-medium">{t("منبع ترافیک")}</th>
+            {marketing && <th className="px-4 py-3 text-start font-medium">{t("منبع ترافیک")}</th>}
             <th className="px-4 py-3 text-start font-medium">{t("صفحه فرم")}</th>
             <th className="px-4 py-3 text-start font-medium">{t("وضعیت")}</th>
             <th className="px-4 py-3 text-start font-medium">{t("در CRM قدیم")}</th>
@@ -442,9 +448,11 @@ async function SiteLeads() {
                 <td className="px-4 py-3 text-secondary">
                   {lead.category ?? "—"} {lead.serviceSlug ? `/ ${lead.serviceSlug}` : ""}
                 </td>
-                <td className="px-4 py-3">
-                  <LeadSourceCell lead={lead} />
-                </td>
+                {marketing && (
+                  <td className="px-4 py-3">
+                    <LeadSourceCell lead={lead} />
+                  </td>
+                )}
                 <td className="font-latin px-4 py-3 text-xs text-secondary">{lead.sourcePage ?? "—"}</td>
                 <td className="px-4 py-3">
                   <Badge tone={STATUS_TONE[lead.status]}>{LEAD_STATUS_FA[lead.status] ?? lead.status}</Badge>

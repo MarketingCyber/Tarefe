@@ -18,8 +18,10 @@ import type { UserRole } from "@prisma/client";
 
 const PIPELINE_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "LEAD_MANAGER"];
 const CONTENT_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "CONTENT_EDITOR"];
-const ANALYTICS_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "ANALYST"];
-const STAFF_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST"];
+/** Owner 2026-11-18: marketing data (where leads come from, conversion numbers) only for marketing and admins. */
+const MARKETING_ROLES: UserRole[] = ["ADMIN", "MARKETER"];
+const ANALYTICS_ROLES: UserRole[] = ["ADMIN", "MARKETER", "ANALYST"];
+const STAFF_ROLES: UserRole[] = ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST", "MARKETER"];
 
 type RoleLike = UserRole | string | null | undefined;
 
@@ -40,6 +42,11 @@ export function canAccessPipeline(role: RoleLike): boolean {
 /** Guides, FAQ, testimonials, energy tariffs — public-site content, no customer PII. CONTENT_EDITOR's whole reason to exist. */
 export function canAccessContent(role: RoleLike): boolean {
   return hasRole(role, CONTENT_ROLES);
+}
+
+/** Lead reports and conversion numbers, traffic sources of leads (Google Ads click IDs, first / last source). */
+export function canAccessMarketing(role: RoleLike): boolean {
+  return hasRole(role, MARKETING_ROLES);
 }
 
 /** /ops/analytics — the page itself has no mutations, so granting ANALYST access here is inherently read-only; there's nothing further to restrict. */

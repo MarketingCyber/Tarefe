@@ -29,6 +29,7 @@ enum UserRole {
   LEAD_MANAGER
   CONTENT_EDITOR
   ANALYST
+  MARKETER // 2026-11-18: marketing section (lead reports, traffic sources, analytics)
 }
 
 enum Locale {

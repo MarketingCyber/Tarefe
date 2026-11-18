@@ -26,6 +26,7 @@ import {
   Headset,
   ChatsCircle,
   ChartBar,
+  ChartLineUp,
   BookOpen,
   Question,
   ChatCircleText,
@@ -38,7 +39,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { NotificationBell, type NotificationItem } from "@/components/shared/NotificationBell";
-import { canAccessPipeline, canAccessContent, canAccessAnalytics, isAdminRole } from "@/lib/permissions";
+import { canAccessPipeline, canAccessContent, canAccessAnalytics, canAccessMarketing, isAdminRole } from "@/lib/permissions";
 import { useOpsI18n } from "@/lib/ops-i18n/client";
 import { OPS_LOCALES, OPS_LOCALE_NAMES, type OpsLocale } from "@/lib/ops-i18n/core";
 import { setOpsLocale } from "@/lib/ops-i18n/actions";
@@ -105,12 +106,18 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // Owner 2026-11-18: marketing data only for marketing and admins (lib/permissions.ts canAccessMarketing).
+    id: "marketing",
+    label: "مارکتینگ",
+    items: [
+      { href: "/ops/leads/reports", label: "گزارش لیدها", icon: ChartLineUp, visible: canAccessMarketing },
+      { href: "/ops/analytics", label: "آنالیتیکس", icon: ChartBar, visible: canAccessAnalytics },
+    ],
+  },
+  {
     id: "system",
     label: "سیستم",
-    items: [
-      { href: "/ops/analytics", label: "آنالیتیکس", icon: ChartBar, visible: canAccessAnalytics },
-      { href: "/ops/security", label: "امنیت", icon: ShieldCheck },
-    ],
+    items: [{ href: "/ops/security", label: "امنیت", icon: ShieldCheck }],
   },
 ];
 
@@ -120,8 +127,15 @@ const ADMIN_NAV_ITEM: NavItem = { href: "/ops/team", label: "کارکنان", ic
 /** Per-browser, not per-account — a collapsed group is a "I don't use this on THIS screen" preference, same reasoning as any other sidebar-memory pattern (VS Code, Linear). */
 const STORAGE_KEY = "tarefe-ops-nav-collapsed";
 
-function isActive(pathname: string, href: string) {
+function matches(pathname: string, href: string) {
   return pathname === href || (href !== "/ops" && pathname.startsWith(`${href}/`));
+}
+
+/** Only the most specific menu item is active: on /ops/leads/reports «گزارش لیدها», not «لیدها» as well. */
+function isActive(pathname: string, href: string) {
+  if (!matches(pathname, href)) return false;
+  const all = [...PINNED_ITEMS, ...NAV_GROUPS.flatMap((g) => g.items), ADMIN_NAV_ITEM].map((i) => i.href);
+  return !all.some((other) => other.length > href.length && matches(pathname, other));
 }
 
 function groupContaining(pathname: string, groups: NavGroup[]): string | null {

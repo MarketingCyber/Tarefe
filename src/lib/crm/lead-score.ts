@@ -44,6 +44,11 @@ export const conversionRates = cache(async (): Promise<Rates> => {
 export type ScoreReason = { fa: string; vars?: Record<string, string | number> };
 export type LeadScore = { score: number; tier: "hot" | "warm" | "cold"; reasons: ScoreReason[] };
 
+/** Reasons without the source / type conversion rates — for staff outside marketing (owner 2026-11-18). */
+export function reasonsFor(reasons: ScoreReason[], marketing: boolean): ScoreReason[] {
+  return marketing ? reasons : reasons.filter((r) => r.vars?.p === undefined);
+}
+
 /** A reason as text in the staff member's CRM language (numbers formatted with `intl`). */
 export function reasonText(r: ScoreReason, t: T, intl: string): string {
   const vars = Object.fromEntries(Object.entries(r.vars ?? {}).map(([k, v]) => [k, typeof v === "number" ? v.toLocaleString(intl) : t(v)]));

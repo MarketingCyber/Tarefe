@@ -10,7 +10,7 @@ import { Button } from "@/components/shared/Button";
 import { LEAD_STATUS_FA } from "@/lib/status-labels";
 import { trackServer } from "@/lib/analytics-server";
 import { EVENT } from "@/lib/analytics";
-import { canAccessPipeline } from "@/lib/permissions";
+import { canAccessMarketing, canAccessPipeline } from "@/lib/permissions";
 import { isGuid } from "@/lib/dynamics/identity";
 import { CrmLead } from "@/components/crm/customer/CrmLead";
 import { LeadAttributionPanel } from "@/components/crm/LeadAttribution";
@@ -60,6 +60,7 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
   const { t, intl } = await getOpsI18n();
   const session = await auth();
   if (!canAccessPipeline(session?.user?.role)) redirect("/ops");
+  const viewerRole = session?.user?.role;
 
   const { id } = await params;
   // Old-CRM leads have Dynamics GUIDs; website leads (cuid ids) keep this page.
@@ -121,11 +122,16 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
               </div>
             </dl>
 
-            <LeadAttributionPanel lead={lead} />
-            {lead.gclid && (
-              <p className="mt-3 text-xs text-secondary">
-                Google Ads click id: <span className="font-latin break-all text-body">{lead.gclid}</span>
-              </p>
+            {/* Traffic source and Google Ads click id: marketing and admins only (owner 2026-11-18). */}
+            {canAccessMarketing(viewerRole) && (
+              <>
+                <LeadAttributionPanel lead={lead} />
+                {lead.gclid && (
+                  <p className="mt-3 text-xs text-secondary">
+                    Google Ads click id: <span className="font-latin break-all text-body">{lead.gclid}</span>
+                  </p>
+                )}
+              </>
             )}
 
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">

@@ -31,7 +31,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
 
   const { teamError } = await searchParams;
   const staff = await prisma.user.findMany({
-    where: { role: { in: ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST"] } },
+    where: { role: { in: ["ADVISOR", "ADMIN", "LEAD_MANAGER", "CONTENT_EDITOR", "ANALYST", "MARKETER"] } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -75,11 +75,12 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
             defaultValue="ADVISOR"
             className="rounded-lg border border-border-strong bg-white px-3.5 py-2.5 text-sm text-purple-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/25"
           >
-            <option value="ADVISOR">{ROLE_FA.ADVISOR}</option>
-            <option value="LEAD_MANAGER">{ROLE_FA.LEAD_MANAGER}</option>
-            <option value="CONTENT_EDITOR">{ROLE_FA.CONTENT_EDITOR}</option>
-            <option value="ANALYST">{ROLE_FA.ANALYST}</option>
-            <option value="ADMIN">{ROLE_FA.ADMIN}</option>
+            <option value="ADVISOR">{t(ROLE_FA.ADVISOR)}</option>
+            <option value="LEAD_MANAGER">{t(ROLE_FA.LEAD_MANAGER)}</option>
+            <option value="CONTENT_EDITOR">{t(ROLE_FA.CONTENT_EDITOR)}</option>
+            <option value="ANALYST">{t(ROLE_FA.ANALYST)}</option>
+            <option value="MARKETER">{t(ROLE_FA.MARKETER)}</option>
+            <option value="ADMIN">{t(ROLE_FA.ADMIN)}</option>
           </select>
           {/* No font-latin — same reason as the email field above. */}
           <input
@@ -131,7 +132,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                   <td className="px-4 py-3 font-medium text-purple-900">{member.name}</td>
                   <td className="font-latin px-4 py-3 text-xs text-secondary">{member.email}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={member.role === "ADMIN" ? "purple" : "neutral"}>{ROLE_FA[member.role]}</Badge>
+                    <Badge tone={member.role === "ADMIN" ? "purple" : "neutral"}>{t(ROLE_FA[member.role] ?? member.role)}</Badge>
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={member.active ? "success" : "danger"}>{member.active ? t("فعال") : t("غیرفعال")}</Badge>
@@ -152,11 +153,12 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                             defaultValue={member.role}
                             className="rounded-md border border-border-strong bg-white px-2 py-1 text-xs text-purple-900 outline-none focus:border-purple-600"
                           >
-                            <option value="ADVISOR">{ROLE_FA.ADVISOR}</option>
-                            <option value="LEAD_MANAGER">{ROLE_FA.LEAD_MANAGER}</option>
-                            <option value="CONTENT_EDITOR">{ROLE_FA.CONTENT_EDITOR}</option>
-                            <option value="ANALYST">{ROLE_FA.ANALYST}</option>
-                            <option value="ADMIN">{ROLE_FA.ADMIN}</option>
+                            <option value="ADVISOR">{t(ROLE_FA.ADVISOR)}</option>
+                            <option value="LEAD_MANAGER">{t(ROLE_FA.LEAD_MANAGER)}</option>
+                            <option value="CONTENT_EDITOR">{t(ROLE_FA.CONTENT_EDITOR)}</option>
+                            <option value="ANALYST">{t(ROLE_FA.ANALYST)}</option>
+                            <option value="MARKETER">{t(ROLE_FA.MARKETER)}</option>
+                            <option value="ADMIN">{t(ROLE_FA.ADMIN)}</option>
                           </select>
                           <button type="submit" className="press text-xs font-medium text-secondary hover:text-purple-600">
                             {t("تغییر نقش")}

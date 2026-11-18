@@ -2,12 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { canAccessPipeline } from "@/lib/permissions";
+import { canAccessMarketing, canAccessPipeline } from "@/lib/permissions";
 import { FilterChip } from "@/components/crm/customer/OldCrmParts";
 import { BulkLeads, type BulkRow } from "@/components/crm/BulkLeads";
 import { LEAD_CLOSE_REASONS, LEAD_OPEN_REASONS, LEAD_STAGES, assignableUsers, writeMode } from "@/lib/dynamics/write";
 import { SPEED_LIMIT_HOURS, leadQueue } from "@/lib/crm/lead-work";
-import { TIER_FA, reasonText } from "@/lib/crm/lead-score";
+import { TIER_FA, reasonText, reasonsFor } from "@/lib/crm/lead-score";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
 import type { T } from "@/lib/ops-i18n/core";
@@ -49,7 +49,7 @@ export default async function LeadQueuePage({ searchParams }: { searchParams: Pr
     score: l.score.score,
     tier: TIER_FA[l.score.tier],
     tierTone: l.score.tier,
-    scoreReasons: l.score.reasons.map((r) => reasonText(r, t, intl)).join("\n"),
+    scoreReasons: reasonsFor(l.score.reasons, canAccessMarketing(session?.user?.role)).map((r) => reasonText(r, t, intl)).join("\n"),
   }));
 
   return (
