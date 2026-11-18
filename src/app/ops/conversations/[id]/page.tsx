@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canAccessPipeline } from "@/lib/permissions";
@@ -11,6 +10,7 @@ import { addMessage, GENERAL_TITLE } from "@/lib/app-conversations";
 import { Button } from "@/components/shared/Button";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 async function reply(formData: FormData) {
   "use server";
   const session = await auth();
@@ -64,13 +64,10 @@ export default async function OpsConversationPage({ params }: { params: Promise<
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/conversations" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به گفتگوها")}
-      </Link>
+      <BackLink fallback="/ops/conversations" />
 
-      <div className="grid gap-6 2xl:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-white p-6 2xl:col-span-2">
+      <div className="grid gap-6 @3xl:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-white p-6 @3xl:col-span-2">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5">
             <div>
               <h1 className="text-xl font-bold text-purple-900">{title}</h1>

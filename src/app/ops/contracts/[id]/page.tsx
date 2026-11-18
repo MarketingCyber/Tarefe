@@ -4,7 +4,7 @@ import { writeMode } from "@/lib/dynamics/write";
 import { JumpToNote } from "@/components/crm/customer/JumpToNote";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
 import { isGuid } from "@/lib/dynamics/identity";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, TicketCard, happenedAt, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 /**
  * Contract 360 — one old-CRM contract (Dynamics opportunity) with its key facts and everything filed on it:
  * tickets, the merged history (e-mails, calls, tasks, appointments, notes), points and other records. Read-only
@@ -109,22 +110,8 @@ export default async function ContractPage({ params, searchParams }: { params: P
 
   return (
     <div className="container-page py-8">
-      {/* Back goes to the customer the contract belongs to (staff feedback: it used to open the whole contract list). */}
-      <nav className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        {customerId ? (
-          <Link href={`/ops/customers/${customerId}`} className="inline-flex items-center gap-1.5 font-medium text-secondary hover:text-purple-600">
-            <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-            {t("بازگشت به {name}", { name: customerName ?? t("مشتری") })}
-          </Link>
-        ) : null}
-        <Link
-          href="/ops/contracts"
-          className={customerId ? "text-xs text-secondary hover:text-purple-600" : "inline-flex items-center gap-1.5 font-medium text-secondary hover:text-purple-600"}
-        >
-          {!customerId && <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />}
-          {customerId ? t("همه قراردادها") : t("بازگشت به قراردادها")}
-        </Link>
-      </nav>
+      {/* Back returns to wherever the user came from (customer, list, ticket…); without history: the customer, else the list. */}
+      <BackLink fallback={customerId ? `/ops/customers/${customerId}` : "/ops/contracts"} />
 
       <header className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -178,8 +165,8 @@ export default async function ContractPage({ params, searchParams }: { params: P
       </header>
 
       {/* Two columns like the old CRM's form: the contract on one side, notes and activities on the other. */}
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-5">
-        <div className="space-y-6 lg:col-span-3">
+      <div className="mt-6 grid items-start gap-6 @3xl:grid-cols-5">
+        <div className="space-y-6 @3xl:col-span-3">
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-sm font-bold text-purple-900">{t("جزئیات قرارداد")}</h2>
             <div className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2">
@@ -252,7 +239,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
           <CrmEditPanel entity="opportunity" id={contract.crmId} data={d} state={Number(d.statecode)} returnPath={self} folded />
         </div>
 
-        <section className="rounded-2xl border border-border bg-white p-6 lg:col-span-2">
+        <section className="rounded-2xl border border-border bg-white p-6 @3xl:col-span-2">
           <h2 className="text-sm font-bold text-purple-900">{t("یادداشت‌ها و فعالیت‌ها ({n})", { n: historyAll.length.toLocaleString(intl) })}</h2>
           {writes !== "off" && (
             <div className="mt-3">

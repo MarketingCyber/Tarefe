@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { emailCustomer, notifyUser } from "@/lib/notifications";
@@ -21,6 +20,7 @@ import { addMessage } from "@/lib/app-conversations";
 import { requestStep, STATUS_WORDS, ticketNumber } from "@/lib/app-api";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 const STATUS_OPTIONS = ["RECEIVED", "UNDER_REVIEW", "SENT_TO_PROVIDER", "PROVIDER_PROCESSING", "COMPLETED"] as const;
 
 async function updateStatus(formData: FormData) {
@@ -128,12 +128,9 @@ export default async function OpsTicketDetailPage({ params, searchParams }: { pa
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/tickets" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به تیکت‌ها")}
-      </Link>
+      <BackLink fallback="/ops/tickets" />
 
-      <div className="grid gap-6 2xl:grid-cols-3">
+      <div className="grid gap-6 @3xl:grid-cols-3">
         <div className="2xl:col-span-2">
           <div className="rounded-2xl border border-border bg-white p-6">
             <div className="flex items-start justify-between gap-4">

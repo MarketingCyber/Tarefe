@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { createFaq } from "@/lib/faq-actions";
 import { FaqForm } from "@/components/crm/FaqForm";
 import { canAccessContent } from "@/lib/permissions";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 export default async function NewFaqPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { t } = await getOpsI18n();
   const session = await auth();
@@ -16,10 +15,7 @@ export default async function NewFaqPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="container-page max-w-2xl py-8">
-      <Link href="/ops/faq" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به سوالات متداول")}
-      </Link>
+      <BackLink fallback="/ops/faq" />
       <h1 className="text-2xl font-bold text-purple-900">{t("سوال جدید")}</h1>
       <div className="mt-6">
         <FaqForm action={createFaq} error={error} submitLabel={t("ایجاد")} />

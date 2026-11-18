@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ReportProblemButton } from "@/components/crm/ReportProblemButton";
+import { OpsNavTracker } from "@/components/crm/BackLink";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -52,12 +53,13 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
       <body className="flex min-h-screen antialiased">
         <OpsI18nProvider locale={locale}>
         <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} appEnabled={isAppEnabled()} />
-        <div className="min-w-0 flex-1 bg-tint">
+        <div className="@container min-w-0 flex-1 bg-tint">
           <PageTransition>{children}</PageTransition>
         </div>
         {/* QC during the parallel run: every CRM page can send a problem report to /ops/qc. */}
         <Suspense fallback={null}>
           <ReportProblemButton />
+          <OpsNavTracker />
         </Suspense>
         </OpsI18nProvider>
       </body>

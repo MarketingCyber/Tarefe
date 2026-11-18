@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
@@ -11,6 +10,7 @@ import { APPLICATION_STATUS_FA } from "@/lib/status-labels";
 import { canAccessPipeline } from "@/lib/permissions";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 const STATUS_OPTIONS = ["DRAFT", "SUBMITTED", "PROVIDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED"] as const;
 const STATUS_TONE: Record<string, BadgeTone> = {
   DRAFT: "neutral",
@@ -46,12 +46,9 @@ export default async function OpsApplicationDetailPage({ params }: { params: Pro
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/applications" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به درخواست‌ها")}
-      </Link>
+      <BackLink fallback="/ops/applications" />
 
-      <div className="grid gap-6 2xl:grid-cols-3">
+      <div className="grid gap-6 @3xl:grid-cols-3">
         <div className="2xl:col-span-2">
           <div className="rounded-2xl border border-border bg-white p-6">
             <div className="flex items-start justify-between gap-4">

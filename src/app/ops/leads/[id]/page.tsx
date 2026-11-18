@@ -1,6 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -18,6 +16,7 @@ import { CrmLead } from "@/components/crm/customer/CrmLead";
 import { LeadAttributionPanel } from "@/components/crm/LeadAttribution";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 const STATUS_OPTIONS = ["NEW", "CONTACTED", "QUALIFIED", "CONSULTATION_SCHEDULED", "APPLICATION_STARTED", "APPLICATION_SUBMITTED", "CONTRACT_ACTIVE", "LOST"] as const;
 
 async function updateStatus(formData: FormData) {
@@ -80,12 +79,9 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/leads" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به لیدها")}
-      </Link>
+      <BackLink fallback="/ops/leads" />
 
-      <div className="grid gap-6 2xl:grid-cols-3">
+      <div className="grid gap-6 @3xl:grid-cols-3">
         <div className="2xl:col-span-2">
           <div className="rounded-2xl border border-border bg-white p-6">
             <div className="flex items-start justify-between gap-4">

@@ -5,7 +5,7 @@ import { writeMode } from "@/lib/dynamics/write";
 import { JumpToNote } from "@/components/crm/customer/JumpToNote";
 import { AddNoteForm, CloseActivityButton } from "@/components/crm/customer/CrmWriteForms";
 import Link from "next/link";
-import { ArrowRight, ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
@@ -22,6 +22,7 @@ import { createApplication } from "@/lib/application-actions";
 import { CONTRACT_STATUS_FA, APPLICATION_STATUS_FA, TICKET_STATUS_FA, LEAD_STATUS_FA, DOCUMENT_TYPE_FA } from "@/lib/status-labels";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 const CONTRACT_STATUS_TONE: Record<string, BadgeTone> = {
   ACTIVE: "success",
   PENDING: "warning",
@@ -126,10 +127,7 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/customers" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به مشتریان")}
-      </Link>
+      <BackLink fallback="/ops/customers" />
 
       <div className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -209,8 +207,8 @@ export default async function CustomerDetailPage({
         )}
       </div>
 
-      <div className="mt-6 grid gap-6 2xl:grid-cols-3">
-        <div className="space-y-6 2xl:col-span-2">
+      <div className="mt-6 grid gap-6 @3xl:grid-cols-3">
+        <div className="space-y-6 @3xl:col-span-2">
           {/* Active and inactive contracts as two lists, like the old CRM's customer form (staff feedback 2026-11-18). */}
           <Section title={t("قراردادهای فعال ({n})", { n: activeContracts.length + activeSite.length })}>
             {activeContracts.length + activeSite.length === 0 ? (

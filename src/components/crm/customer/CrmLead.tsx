@@ -5,7 +5,7 @@ import { conversionRates, scoreLead, TIER_FA, reasonText } from "@/lib/crm/lead-
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
-import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
 import { loadWithRelated } from "@/lib/crm/record360";
 import { emailKey, personKeys, phoneKey } from "@/lib/dynamics/identity";
@@ -15,6 +15,7 @@ import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shownDate } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 /**
  * An old-CRM lead (Dynamics lead): who asked about what, where they came from (source), what became of it — the
  * contract it was converted to, or why it was closed — the same person's website form submissions (matched by
@@ -80,10 +81,7 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/leads" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به لیدها")}
-      </Link>
+      <BackLink fallback="/ops/leads" />
 
       <div className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -157,8 +155,8 @@ export async function CrmLead({ id, history, linkQuery }: { id: string; history?
       <CrmEditPanel entity="lead" id={record.crmId} data={d} state={state} returnPath={self} />
       <LeadLinks id={record.crmId} data={d} query={linkQuery?.slice(0, 100)} returnPath={self} />
 
-      <div className="mt-6 grid gap-6 2xl:grid-cols-3">
-        <section className="rounded-2xl border border-border bg-white p-6 2xl:col-span-2">
+      <div className="mt-6 grid gap-6 @3xl:grid-cols-3">
+        <section className="rounded-2xl border border-border bg-white p-6 @3xl:col-span-2">
           <h2 className="text-sm font-bold text-purple-900">{t("تاریخچه ({n})", { n: historyAll.length.toLocaleString(intl) })}</h2>
           {writeMode() !== "off" && (
             <div className="mt-3">

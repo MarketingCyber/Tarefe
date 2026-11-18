@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessPipeline } from "@/lib/permissions";
@@ -9,6 +8,7 @@ import { crmUsers } from "@/lib/crm/crm-users";
 import { Badge } from "@/components/shared/Badge";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 /**
  * Old-CRM automations in test mode (lib/automations/shadow.ts): per automation and day, what our code would have done
  * next to what Dynamics did — matched, different (same record, other owner / customer / version), missing (we'd
@@ -49,10 +49,7 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/old-crm" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("CRM قدیم")}
-      </Link>
+      <BackLink fallback="/ops/old-crm" />
       <h1 className="text-2xl font-bold text-purple-900">{t("اتوماسیون‌ها در حالت آزمایشی")}</h1>
       <p className="mt-1 max-w-3xl text-sm text-secondary">
         {t("هر اتوماسیون CRM قدیم این‌جا دوباره ساخته می‌شود و هر روز، پیش از اجرای Dynamics، فهرست کارهایی که انجام می‌داد ثبت می‌شود؛ بعد با کاری که Dynamics واقعاً")}

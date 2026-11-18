@@ -103,7 +103,7 @@ export default async function AppBannersPage() {
       <h1 className="text-2xl font-bold text-purple-900">{t("اسلایدر اپ")}</h1>
       <p className="mt-1 text-sm text-secondary">{t("اسلایدهای صفحه خانه اپ، زیر خلاصه مشتری. حداکثر ۵ اسلاید فعال برای هر زبان نمایش داده می‌شود.")}</p>
 
-      <div className="mt-6 grid gap-6 2xl:grid-cols-3">
+      <div className="mt-6 grid gap-6 @3xl:grid-cols-3">
         <form action={createBanner} className="space-y-3 rounded-2xl border border-border bg-white p-6 text-sm 2xl:col-span-1">
           <h2 className="font-bold text-purple-900">{t("اسلاید جدید")}</h2>
           <label className="block space-y-1">
@@ -147,7 +147,7 @@ export default async function AppBannersPage() {
           <Button type="submit">{t("افزودن اسلاید")}</Button>
         </form>
 
-        <div className="space-y-3 2xl:col-span-2">
+        <div className="space-y-3 @3xl:col-span-2">
           {banners.length === 0 && <p className="rounded-2xl border border-border bg-white p-6 text-sm text-secondary">{t("هنوز اسلایدی نیست.")}</p>}
           {banners.map((b, i) => (
             <div key={b.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-white p-4 text-sm">

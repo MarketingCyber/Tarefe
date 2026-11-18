@@ -755,6 +755,7 @@ export const DICT: Record<string, readonly [string, string]> = {
   "نتیجه تماس، واگذاری، تماس بعدی، فایل": ["Call result, assign, next call, file", "Anrufergebnis, Zuweisen, nächster Anruf, Datei"],
   "باز کردن": ["Open", "Öffnen"],
   "نمایش": ["Show", "Anzeigen"],
+  "بازگشت": ["Back", "Zurück"],
   "یادداشت را این‌جا بنویسید…": ["Write the note here…", "Notiz hier schreiben…"],
 
   // ── Contracts ─────────────────────────────────────────────────────────────────────────────────────────────────

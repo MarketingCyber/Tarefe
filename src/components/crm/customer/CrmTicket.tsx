@@ -3,13 +3,14 @@ import { CrmEditPanel } from "@/components/crm/customer/CrmEditPanel";
 import { writeMode } from "@/lib/dynamics/write";
 import { AddNoteForm } from "@/components/crm/customer/CrmWriteForms";
 import { notFound } from "next/navigation";
-import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { loadWithRelated } from "@/lib/crm/record360";
 import { TABLE_LABELS, displayName } from "@/lib/dynamics/view";
 import { Badge, type BadgeTone } from "@/components/shared/Badge";
 import { FilterChip, HISTORY_TYPES, HistoryItem, happenedAt, plain, shown, shownDate, statusFa } from "@/components/crm/customer/OldCrmParts";
 
 import { getOpsI18n } from "@/lib/ops-i18n/server";
+import { BackLink } from "@/components/crm/BackLink";
 /**
  * An old-CRM ticket (Dynamics incident) — what the customer asked, the operator's note, the contract and customer
  * it's about, the follow-up date, and its history (e-mails, calls, tasks, notes filed on it). Read-only until
@@ -57,10 +58,7 @@ export async function CrmTicket({ id, history }: { id: string; history?: string 
 
   return (
     <div className="container-page py-8">
-      <Link href="/ops/tickets" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-purple-600">
-        <ArrowRight size={14} weight="bold" className="ltr:-scale-x-100" />
-        {t("بازگشت به تیکت‌ها")}
-      </Link>
+      <BackLink fallback="/ops/tickets" />
 
       <div className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -127,8 +125,8 @@ export async function CrmTicket({ id, history }: { id: string; history?: string 
 
       <CrmEditPanel entity="incident" id={record.crmId} data={d} state={Number(d.statecode)} returnPath={self} />
 
-      <div className="mt-6 grid gap-6 2xl:grid-cols-3">
-        <div className="space-y-6 2xl:col-span-2">
+      <div className="mt-6 grid gap-6 @3xl:grid-cols-3">
+        <div className="space-y-6 @3xl:col-span-2">
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-sm font-bold text-purple-900">{t("شرح درخواست")}</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-body [overflow-wrap:anywhere]">{description || t("شرحی ثبت نشده.")}</p>
