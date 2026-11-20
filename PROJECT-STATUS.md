@@ -4,7 +4,7 @@
 what comes next.** Updated with every change (see [Keeping this file current](#keeping-this-file-current)); the
 [changelog](#changelog) at the end records each update.
 
-Last updated: **2026-11-18**
+Last updated: **2026-11-20**
 
 ---
 
@@ -614,3 +614,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-18 | CRM base font 15px instead of 16px (`html.ops-theme`, text and spacing scale together; public site unchanged) | yes, 2026-11-18 |
 | 2026-11-18 | New staff role MARKETER «مارکتینگ» + menu section «مارکتینگ» (lead reports, analytics). Marketing data only for ADMIN / MARKETER: lead funnel and conversion rates on the leads page, traffic-source column and box, Google Ads click id, score reasons with conversion rates; analytics no longer for ADVISOR (ANALYST keeps it). Database: enum UserRole + MARKETER | yes, 2026-11-18 |
 | 2026-11-18 | Lead reports (marketing): same KPIs by source / medium and by campaign, from the old CRM UTM fields (new_utm_*); leads without UTM as «(not set)» per «نحوه آشنایی»; coverage line (only leads from the new site carry UTM) | yes, 2026-11-18 |
+| 2026-11-20 | Google approved the Play upload-key reset; Android build 2.0.0 (25), signed with the new upload key (fingerprint checked), uploaded to Play **internal testing as a draft** (not rolled out). Note: Play API calls from the laptop only work through the local proxy (direct = Google 403) | yes (Play draft) |
