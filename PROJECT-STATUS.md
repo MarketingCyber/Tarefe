@@ -346,7 +346,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
   Offers, Documents (+ upload), Support (per-contract conversations, new request), Profile (incl. delete account),
   sign-in with e-mail + 6-digit code.
 - Back end in the website repo: `/api/v1/*` (sign-in codes, JWT + refresh tokens, contracts, conversations,
-  documents, devices, banners, referral, me) — **switched off in production** (`APP_ENABLED` not set → 404).
+  documents, devices, banners, referral, me) — **closed test since 2026-11-20** (`APP_ENABLED=true`, `APP_BETA_EMAILS` = the owner's two test addresses; previous settings in `.env.before-app-beta-20261120`).
 - E-mail for sign-in codes: **Zoho SMTP live on the server since 2026-11-17** (`EMAIL_PROVIDER=smtp`, smtp.zoho.eu:465,
   sender on tarefe.de; test e-mail delivered); closed-test list `APP_BETA_EMAILS`. **Designed e-mail layout live
   2026-11-17** (`src/lib/email-template.ts`: mobile first, fa right-to-left / de / ru, HTML + plain text; since 2026-11-18 the Tarefe logo
@@ -395,7 +395,7 @@ BayatSoft notifications, WhatsApp, …). Maps in `docs/crm-redesign/`.
    (`up -d`): run in the old container it sees the old schema and does nothing.
    Never while `scripts/local-backup.sh --full` is dumping the database — the change waits for the dump and blocks
    that table meanwhile.
-5. Check `https://tarefe.de/fa` = 200 and `https://tarefe.de/api/v1/me` = **404** (app must stay off).
+5. Check `https://tarefe.de/fa` = 200 and `https://tarefe.de/api/v1/me` = **401** (app API on for the closed test since 2026-11-20, only `APP_BETA_EMAILS` get a code; a non-invited e-mail must get `not_invited`).
 6. `git push`.
 - **SSH note**: when direct connections from the laptop are blocked, SSH works through the local proxy:
   `-o "ProxyCommand=connect -S 127.0.0.1:10808 %h %p"`.
@@ -615,3 +615,4 @@ then switch `APP_ENABLED` on in production (owner's OK) and publish.
 | 2026-11-18 | New staff role MARKETER «مارکتینگ» + menu section «مارکتینگ» (lead reports, analytics). Marketing data only for ADMIN / MARKETER: lead funnel and conversion rates on the leads page, traffic-source column and box, Google Ads click id, score reasons with conversion rates; analytics no longer for ADVISOR (ANALYST keeps it). Database: enum UserRole + MARKETER | yes, 2026-11-18 |
 | 2026-11-18 | Lead reports (marketing): same KPIs by source / medium and by campaign, from the old CRM UTM fields (new_utm_*); leads without UTM as «(not set)» per «نحوه آشنایی»; coverage line (only leads from the new site carry UTM) | yes, 2026-11-18 |
 | 2026-11-20 | Google approved the Play upload-key reset; Android build 2.0.0 (25), signed with the new upload key (fingerprint checked), uploaded to Play **internal testing as a draft** (not rolled out). Note: Play API calls from the laptop only work through the local proxy (direct = Google 403) | yes (Play draft) |
+| 2026-11-20 | App API switched on for the closed test (owner): `APP_ENABLED=true`, `APP_BETA_EMAILS` = 2 owner addresses; checked /api/v1/me = 401, non-invited e-mail refused | yes (server settings) |
