@@ -298,7 +298,7 @@ export function MobileNav({
                         onClick={() => {
                           onClose();
                           track(EVENT.LOGOUT, { locale });
-                          signOut({ callbackUrl: `/${locale}` });
+                          signOut({ redirectTo: `/${locale}` });
                         }}
                         className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-2 text-start text-sm font-medium text-danger"
                       >

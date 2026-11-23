@@ -7,7 +7,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { inter, iransansx } from "@/lib/fonts";
 import { OpsNav } from "@/components/crm/OpsNav";
-import { GtmScript } from "@/components/providers/GoogleTagManager";
 import { PageTransition } from "@/components/providers/PageTransition";
 import { isStaffRole } from "@/lib/permissions";
 import { isAppEnabled } from "@/lib/app-flag";
@@ -49,7 +48,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
 
   return (
     <html lang={locale} dir={dir} className={`ops-theme ${inter.variable} ${iransansx.variable}`}>
-      <GtmScript />
+      {/* No Google Tag Manager / tracking on staff pages (2026-11-23): not needed, and blocked for staff on Iranian connections. */}
       <body className="flex min-h-screen antialiased">
         <OpsI18nProvider locale={locale}>
         <OpsNav userName={session.user.name ?? session.user.email ?? ""} notifications={notifications} role={session.user.role ?? "ADVISOR"} appEnabled={isAppEnabled()} />

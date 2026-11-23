@@ -168,6 +168,9 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
   return (
     <Link
       href={item.href}
+      // No prefetch (2026-11-23): on slow / throttled connections (staff in Iran) prefetching every menu page competed
+      // with the page actually clicked.
+      prefetch={false}
       onClick={onNavigate}
       className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
         active ? "bg-purple-600/10 text-purple-600" : "text-body hover:bg-tint hover:text-purple-600"
@@ -382,7 +385,7 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
           type="button"
           onClick={() => {
             track(EVENT.LOGOUT);
-            signOut({ callbackUrl: "/fa" });
+            signOut({ redirectTo: "/fa" });
           }}
           className="press flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-body transition-colors hover:border-purple-600 hover:text-purple-600"
         >

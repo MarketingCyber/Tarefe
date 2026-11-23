@@ -106,7 +106,7 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
           type="button"
           onClick={() => {
             track(EVENT.LOGOUT);
-            signOut({ callbackUrl: "/fa" });
+            signOut({ redirectTo: "/fa" });
           }}
           className="press flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-body transition-colors hover:border-purple-600 hover:text-purple-600"
         >
