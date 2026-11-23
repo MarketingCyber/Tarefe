@@ -374,7 +374,7 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
       </div>
       <div className="mt-2 flex items-center gap-2">
         <Link
-          href="/fa"
+          href="https://tarefe.de/fa"
           onClick={onNavigate}
           aria-label={t("بازگشت به سایت اصلی")}
           className="press flex h-9 w-9 items-center justify-center rounded-full border border-border text-body transition-colors hover:border-purple-600 hover:text-purple-600"
@@ -385,7 +385,8 @@ function UserFooter({ userName, onNavigate }: { userName: string; onNavigate?: (
           type="button"
           onClick={() => {
             track(EVENT.LOGOUT);
-            signOut({ redirectTo: "/fa" });
+            // Staff use ops.tarefe.de (2026-11-23): back to the staff sign-in there, not the public site.
+            signOut({ redirectTo: "/login" });
           }}
           className="press flex flex-1 items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-body transition-colors hover:border-purple-600 hover:text-purple-600"
         >
